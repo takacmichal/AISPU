@@ -1,34 +1,11 @@
-# AISPU
+# SolarOps
 
-ASP.NET Core Web API (.NET 10) postavené na princípoch Clean Architecture.
+Správa fotovoltických elektrární (školský projekt AISPU).
 
-## Štruktúra projektu
+- Frontend: Angular + PrimeNG
+- Backend: .NET (ASP.NET Core Web API)
+- ML: Python služba (predikcia výroby, detekcia podvýroby)
+- Deploy: Azure
 
-```
-AISPU/
-├── AISPU.sln
-├── src/
-│   ├── AISPU.Api/              # Prezentačná vrstva – ASP.NET Core Web API (controllers, Program.cs)
-│   ├── AISPU.Application/      # Aplikačná logika – use cases, rozhrania, DTO
-│   ├── AISPU.Domain/           # Doménové entity a pravidlá (bez závislostí)
-│   └── AISPU.Infrastructure/   # Implementácie – databáza, externé služby
-└── tests/
-    └── AISPU.UnitTests/        # xUnit testy pre Domain a Application
-```
-
-### Závislosti medzi vrstvami
-
-```
-Api ──► Application ──► Domain
- └────► Infrastructure ──► Application
-```
-
-Domain nezávisí od ničoho, Application iba od Domain. Infrastructure implementuje rozhrania z Application.
-
-## Spustenie
-
-```bash
-dotnet build
-dotnet run --project src/AISPU.Api
-dotnet test
-```
+Backlog: [Issues](../../issues) a [GitHub Project](https://github.com/users/takacmichal/projects/1).
+Kód sa doplní neskôr.
