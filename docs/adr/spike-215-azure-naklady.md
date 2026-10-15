@@ -28,7 +28,7 @@ SolarOps sa nasadzuje do Azure v Sprinte 4 na študentské predplatné. Architek
 | Registry obrazov | GHCR (pre verejný/súkromný repozitár podľa podmienok GitHubu, **neoverené**) alebo ACR Basic 0,1666 USD/deň | 0 alebo cca 5,00 |
 | Log Analytics (vytvára ho prostredie Container Apps) | príjem logov 2,99 USD/GB nad bezplatný limit (limit **neoverený**); očakávané < 1 GB/mesiac | cca 0 až 3 |
 | **Spolu, demo (scale-to-zero, GHCR)** | PostgreSQL + logy | **cca 19 až 22** |
-| **Spolu, API stále zapnuté, ACR Basic** | | **cca 45 až 50** |
+| **Spolu, API stále zapnuté, ACR Basic** | | **cca 44 až 47** |
 
 S kreditom 100 USD vychádza **scenár demo na cca 4 až 5 mesiacov** prevádzky (Sprint 4 trvá kratšie), scenár so stále zapnutým API na cca 2 mesiace. Ak sa potvrdí bezplatná ponuka PostgreSQL, scenár demo klesne na cca 0 až 8 USD/mesiac.
 
