@@ -1,6 +1,6 @@
 # BPMN modely procesov SolarOps
 
-Modely hlavných procesov firmy (Epic #2). Zdroj je jeden súbor draw.io s 9 stranami: L1 prehľad a L2 detail procesov.
+Modely hlavných procesov firmy (Epic #2). Zdroj je jeden súbor draw.io s 9 stranami: L1 je celý proces v jednom flowe, L2 sú detaily procesov pre jednotlivé stories.
 
 | Súbor | Obsah |
 |---|---|
@@ -11,7 +11,7 @@ Modely hlavných procesov firmy (Epic #2). Zdroj je jeden súbor draw.io s 9 str
 
 ## Konvencie
 - **Bazény:** `SolarOps (firma)` s lanes **Obchod**, **Projektant**, **Technik**. Externé strany **Zákazník**, **Distribučka** a **Detekčný systém (monitoring a ML)** sú zbalené bazény (black box), komunikácia s nimi ide len cez správové toky.
-- **Úrovne:** L1 je kolaborácia celého životného cyklu FVE, L2 je jeden proces na stranu, číslovaný podľa story.
+- **Úrovne:** L1 je celý životný cyklus FVE v jednom flowe (hlavné kroky a brány), L2 je jeden proces na stranu, číslovaný podľa story.
 - **Názvy úloh:** sloveso + objekt (napr. „Odoslať ponuku zákazníkovi“).
 - **Farby:** modrá = úloha, žltá = brána, zelená = štart, červená = koniec, hrubý okraj = call activity, `+` = podproces.
 - Lehoty a hranica malého zdroja (10,8 kW) vychádzajú zo spiku #203.
@@ -20,7 +20,7 @@ Modely hlavných procesov firmy (Epic #2). Zdroj je jeden súbor draw.io s 9 str
 
 | Strana | Story | Náhľad |
 |---|---|---|
-| L1 Prehľad | Epic #2 | [png](png/l1-prehlad.drawio.png) |
+| L1 Celý proces (jeden flow od dopytu po servis) | Epic #2 | [png](png/l1-prehlad.drawio.png) |
 | #61 Dopyt a cenová ponuka | #61 | [png](png/61-dopyt-a-ponuka.drawio.png) |
 | #62 Návrh FVE projektantom | #62 | [png](png/62-navrh-fve.drawio.png) |
 | #63 Uzatvorenie zmluvy a platba zálohy | #63 | [png](png/63-zmluva-a-zaloha.drawio.png) |
