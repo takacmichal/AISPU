@@ -18,7 +18,7 @@ SolarOps má externých používateľov (zákazníci, ktorí si pozerajú svoju 
 | Správa rolí | `RoleManager`, roly v DB, claim `role` v JWT | app roles v Entra + mapovanie na naše roly | áno (Identity) |
 | Cena | 0 EUR | External ID: prvých 50 000 MAU zdarma [3]; školský tenant by sme museli riešiť (zákazníci sú externí) | 0 EUR |
 | Frontend (React) | vlastný auth modul: access token v pamäti, hlavička cez `openapi-fetch` middleware, obnova pri 401 | `msal-react` (hotové PKCE, obnova tokenov) | ako A |
-| Refresh token | vlastná implementácia (rotácia, reuse detection) | rieši Entra | vstavané tokeny **nie sú JWT** (opaque, chránené Data Protection) [2], čo nesedí s požiadavkou na JWT |
+| Refresh token | vlastná implementácia (rotácia, reuse detection) | rieši Entra | vstavané tokeny sú proprietárne, **nie štandardné JWT** [2], čo nesedí s požiadavkou na JWT |
 | Zložitosť pre MVP | stredná (asi 3 endpointy + služba na tokeny) | stredná až vysoká (tenant, consent, sync rolí) | nízka |
 | Závislosť na cudzej službe | žiadna | Entra (dostupnosť, zmeny produktu) | žiadna |
 
@@ -30,7 +30,7 @@ SolarOps má externých používateľov (zákazníci, ktorí si pozerajú svoju 
 - **Refresh token:** náhodných 32+ bajtov, platnosť **7 dní**, rotuje sa pri každom použití. V DB sa ukladá **len SHA-256 hash** (nikdy samotný token), spolu s `UserId`, `ExpiresAt`, `RevokedAt`, `ReplacedByTokenHash`. Pri **odhlásení** sa token revokuje. Pri **reuse** už použitého (rotovaného) tokenu sa revokuje celá rodina tokenov používateľa (podozrenie na krádež).
 - **Reset hesla:** Identity token (`GeneratePasswordResetTokenAsync`), e-mail cez rozhranie `IEmailSender`; vo vývoji implementácia, ktorá len zapíše do logu/konzoly.
 - **Samoregistrácia:** len rola `Customer`; interné roly prideľuje `Admin`.
-- Vstavané `MapIdentityApi` sa **nepoužije** (opaque tokeny, nie JWT); používame z Identity iba `UserManager`, `SignInManager` a `RoleManager`.
+- Vstavané `MapIdentityApi` sa **nepoužije** (proprietárne tokeny, nie JWT); používame z Identity iba `UserManager`, `SignInManager` a `RoleManager`.
 - **Entra ID zamietnuté:** zákazníci sú externí používatelia mimo školského tenantu, lokálny vývoj a CI by závisel od Azure, a rozdiel v cene to nerozhoduje (External ID je do 50 000 MAU zdarma), rozhoduje zložitosť a offline reprodukovateľnosť.
 
 ### Frontend (React namiesto Angulara z checklistu)
@@ -56,11 +56,11 @@ SolarOps má externých používateľov (zákazníci, ktorí si pozerajú svoju 
 ## Zdroje
 
 1. Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.13 na NuGet: https://www.nuget.org/packages/Microsoft.AspNetCore.Identity.EntityFrameworkCore
-2. Identity API endpoints (opaque bearer tokeny): https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization
+2. Identity API endpoints (tokeny "aren't standard JSON Web Tokens"): https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization
 3. Microsoft Entra External ID FAQ (core ponuka zdarma pre prvých 50 000 MAU): https://learn.microsoft.com/en-us/entra/external-id/customers/faq-customers
 4. Podpora .NET 10 (LTS do 14. 11. 2028): https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core
 
 ## Nadväzujúce issues
 
 - #132 Registrovať a prihlásiť používateľa, #133 Obnoviť token a odhlásiť sa, #134 Resetovať zabudnuté heslo, #135 Definovať roly a pridelenie rolí, #136 Chrániť endpointy podľa rolí, #137 Obmedziť zákazníka len na vlastné dáta (features #39, #40).
-- Zastarané issues, ktoré treba upraviť (nevytvárané v tomto PR): #142 (Angular auth guard a JWT interceptor) a #228/#229/#227 sa týkajú Angularu; po zmene rozsahu na React ich treba prepísať.
+- Zastarané issues, ktoré treba upraviť (nevytvárané v tomto PR): #142 (Angular auth guard a JWT interceptor) a UI stories #227 až #229 (feature #226) po zmene rozsahu na React.
