@@ -1,0 +1,10 @@
+@baseUrl = http://localhost:5080
+
+### Health (DB check)
+GET {{baseUrl}}/health
+
+### System info (reference module)
+GET {{baseUrl}}/api/system/info
+
+### OpenAPI document (Development)
+GET {{baseUrl}}/openapi/v1.json
