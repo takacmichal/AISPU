@@ -1,0 +1,59 @@
+# Customers module. Endpoints require a role; until the auth module (#132) is merged,
+# authenticate with a JWT issued by it (Authorization: Bearer ...).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@customerId = 00000000-0000-0000-0000-000000000000
+
+### Create a person
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "Person",
+  "firstName": "Ján",
+  "lastName": "Novák",
+  "email": "jan.novak@example.sk",
+  "phone": "+421 900 123 456",
+  "address": { "street": "Hlavná 12", "city": "Bratislava", "postalCode": "811 01" }
+}
+
+### Create a company (IČO with check digit is required)
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "Company",
+  "companyName": "Slnko s.r.o.",
+  "ico": "35763469",
+  "dic": "2020273893",
+  "icDph": "SK2020273893",
+  "email": "info@slnko.sk",
+  "address": { "street": "Priemyselná 5", "city": "Trnava", "postalCode": "917 01" }
+}
+
+### Get a customer
+GET {{baseUrl}}/api/customers/{{customerId}}
+Authorization: Bearer {{token}}
+
+### Update a customer
+PUT {{baseUrl}}/api/customers/{{customerId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "Person",
+  "firstName": "Ján",
+  "lastName": "Novák",
+  "email": "jan.novak@example.sk",
+  "address": { "street": "Hlavná 14", "city": "Bratislava", "postalCode": "811 01" }
+}
+
+### Archive / reactivate
+POST {{baseUrl}}/api/customers/{{customerId}}/archive
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/customers/{{customerId}}/reactivate
+Authorization: Bearer {{token}}

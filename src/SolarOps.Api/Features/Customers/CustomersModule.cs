@@ -1,0 +1,79 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using SolarOps.Api.Infrastructure.Identity;
+using SolarOps.Api.Infrastructure.Modules;
+using SolarOps.Api.Infrastructure.Validation;
+
+namespace SolarOps.Api.Features.Customers;
+
+/// <summary>Customers (#70): <c>/api/customers</c>.</summary>
+public sealed class CustomersModule : IModule
+{
+    /// <summary>Back-office roles that may read customer data.</summary>
+    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Operator];
+
+    /// <summary>Roles that may create and edit customers.</summary>
+    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Sales];
+
+    public void AddServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped<ICustomerService, CustomerService>();
+    }
+
+    public void MapEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/api/customers").WithTags("Customers");
+
+        group.MapPost("/", CreateAsync)
+            .WithName("CreateCustomer")
+            .WithSummary("Create a customer (person or company)")
+            .WithValidation<CreateCustomerRequest>()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapGet("/{id:guid}", GetAsync)
+            .WithName("GetCustomer")
+            .WithSummary("Get a customer by id")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+
+        group.MapPut("/{id:guid}", UpdateAsync)
+            .WithName("UpdateCustomer")
+            .WithSummary("Update a customer")
+            .WithValidation<UpdateCustomerRequest>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapPost("/{id:guid}/archive", ArchiveAsync)
+            .WithName("ArchiveCustomer")
+            .WithSummary("Archive a customer")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapPost("/{id:guid}/reactivate", ReactivateAsync)
+            .WithName("ReactivateCustomer")
+            .WithSummary("Reactivate an archived customer")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+    }
+
+    internal static async Task<Created<CustomerResponse>> CreateAsync(CreateCustomerRequest request, ICustomerService service, CancellationToken ct)
+    {
+        var customer = await service.CreateAsync(request, ct);
+        return TypedResults.Created($"/api/customers/{customer.Id}", customer);
+    }
+
+    internal static async Task<Ok<CustomerResponse>> GetAsync(Guid id, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.GetAsync(id, ct));
+
+    internal static async Task<Ok<CustomerResponse>> UpdateAsync(Guid id, UpdateCustomerRequest request, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.UpdateAsync(id, request, ct));
+
+    internal static async Task<Ok<CustomerResponse>> ArchiveAsync(Guid id, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ArchiveAsync(id, ct));
+
+    internal static async Task<Ok<CustomerResponse>> ReactivateAsync(Guid id, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ReactivateAsync(id, ct));
+}
