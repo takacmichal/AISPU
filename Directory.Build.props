@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <!-- Production code under src/ must build without warnings. -->
-  <PropertyGroup Condition="$(MSBuildProjectDirectory.Replace('\', '/').Contains('/src/'))">
+  <PropertyGroup Condition="$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/').StartsWith('src/'))">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 </Project>
