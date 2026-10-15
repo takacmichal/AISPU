@@ -46,6 +46,8 @@ Celý stack v kontajneroch: `docker compose --profile app up --build`.
 
 Connection string pre `dotnet run` je v `src/SolarOps.Api/appsettings.Development.json` (len lokálne vývojové heslo). Ak potrebuješ iný, použi `dotnet user-secrets` alebo premennú `ConnectionStrings__Postgres`, nie commit.
 
+JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lokálny vývojový kľúč v `appsettings.Development.json`. Mimo Development ho nastav cez premennú `Jwt__SigningKey` (napr. `openssl rand -base64 48`), inak API nenaštartuje.
+
 ## Testy
 
 ```bash
@@ -81,7 +83,7 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 
 2. Entity a ich EF konfigurácia (`IEntityTypeConfiguration<T>`) patria do modulu. `AppDbContext` ich načíta cez `ApplyConfigurationsFromAssembly`; k dátam pristupuj cez `db.Set<T>()`. Tabuľky a stĺpce sú automaticky `snake_case`, kľúče `Guid` (`Guid.CreateVersion7()`), čas `DateTimeOffset` v UTC (`TimeProvider` je v DI).
 3. Chyby: `DomainException` → 409, `NotFoundException` → 404, `RequestValidationException` → 400, `UnauthorizedAccessException` → 401, všetko ako ProblemDetails. Vstupné DTO validuj cez DataAnnotations a `.WithValidation<T>()`.
-4. Aktuálny používateľ: `ICurrentUser` (`UserId`, `Roles`, `IsInRole`, `RequireUserId()`); dotazy na dáta používateľa vždy filtruj podľa neho. Názvy rolí sú v `Infrastructure/Identity/Roles`. Autentifikácia (JWT) príde v #132; v autorizačných politikách nenastavuj natvrdo schému, aby testy mohli použiť testovaciu.
+4. Aktuálny používateľ: `ICurrentUser` (`UserId`, `Roles`, `IsInRole`, `RequireUserId()`); dotazy na dáta používateľa vždy filtruj podľa neho. Názvy rolí sú v `Infrastructure/Identity/Roles`. Autentifikáciu (Identity + JWT Bearer, `/api/auth/*`) zabezpečuje modul `Features/Auth` (#132); v autorizačných politikách nenastavuj natvrdo schému, aby testy mohli použiť testovaciu.
 5. Enumy sa serializujú ako reťazce. Stavové prechody sú metódy na entite, ktoré pri neplatnom prechode hodia `DomainException`.
 6. Nový NuGet balík: verzia patrí do `Directory.Packages.props` (balíky Sprintu 1 sú tam už pripravené), do `.csproj` modulu pridaj len `<PackageReference Include="..." />` bez verzie.
 7. Integračné testy: `[Collection(PostgresCollection.Name)]`, konštruktor s `PostgresFixture`, `new ApiFactory(postgres)` (každá factory má vlastnú databázu), `factory.CreateApiClient()` (anonymný) alebo `factory.CreateApiClient(userId, Roles.Sales)` (prihlásený cez testovaciu schému `TestAuthHandler`, funguje aj po pridaní JWT v #132), seed cez `factory.ExecuteDbAsync(db => ...)`. Unit testy patria do `tests/SolarOps.Api.Tests/Unit/<Modul>/`, integračné do `Integration/<Modul>/`.
