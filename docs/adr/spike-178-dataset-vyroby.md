@@ -22,13 +22,13 @@ SolarOps potrebuje (a) simulátor, ktorý generuje realistické dáta elektrárn
 | PVOutput | podľa používateľa | 5 až 15 min | tisíce domácich systémov | len celkový výkon/výroba, bez invertorov | API: 60 req/h (300 v donation mode), Get Output max 50 záznamov na požiadavku (overené). Podmienky bulk/komerčného použitia na samostatných stránkach, neoverené. Nevhodné na hromadné sťahovanie |
 | Open Power System Data | od ~2012 | 15 min / 60 min | agregát za krajinu (nie jednotlivé elektrárne) | výroba solár/vietor, kapacity | otvorená licencia (CC BY pri verejnom balíku, neoverené v tejto verzii); nehodí sa na invertorovú úroveň |
 
-Kaggle vzorka stiahnutá do `/private/tmp/claude-501/-Users-michal-Documents-Skola-Ing-1ZS-AISPU/e7274879-0cfe-4f05-afd1-d5b53dc7ebd7/scratchpad/spike178/kaggle/`. Kontrola chýbajúcich hodnôt (overené):
+Kaggle vzorka bola počas spiku stiahnutá lokálne (nie je súčasťou repa). Kontrola chýbajúcich hodnôt (overené):
 
 - Plant 1: 68 778 riadkov výroby, 3 158 unikátnych časov, chýba 106 15-min slotov; senzor 3 182 riadkov, chýba 82 slotov. Plant 2: chýba po 5 slotov. Prázdne bunky: 0.
 - Formát času sa líši medzi súbormi (Plant 1 generácia `dd-mm-yyyy HH:MM`, ostatné ISO), pozor pri parsovaní.
 - Teda dáta sú čisté, ale s dierami a len 34 dní. Žiadna sezónnosť, nevhodné na trénovanie predpovede, použiteľné len na ukážku a detekciu anomálií.
 
-PVDAQ vzorka: `.../spike178/pvdaq/` (`systems.csv` s metadátami a `s4.csv` = 1 deň systému 4, 1 440 riadkov po 1 min, stĺpce `ac_power__315`, `dc_power__314`, `module_temp_1..3`, `ambient_temp__320`, `poa_irradiance__313`).
+PVDAQ vzorka (stiahnutá lokálne počas spiku, nie je v repe; dá sa znovu stiahnuť z OEDI S3): (`systems.csv` s metadátami a `s4.csv` = 1 deň systému 4, 1 440 riadkov po 1 min, stĺpce `ac_power__315`, `dc_power__314`, `module_temp_1..3`, `ambient_temp__320`, `poa_irradiance__313`).
 
 ## Rozhodnutie
 
