@@ -2,7 +2,7 @@
 
 Správa fotovoltických elektrární (školský projekt AISPU).
 
-- Frontend: Angular + PrimeNG
+- Frontend: React + Vite
 - Backend: .NET (ASP.NET Core Web API)
 - ML: Python služba (predikcia výroby, detekcia podvýroby)
 - Deploy: Azure
