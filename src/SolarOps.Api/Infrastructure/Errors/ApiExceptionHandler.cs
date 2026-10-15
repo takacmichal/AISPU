@@ -6,7 +6,8 @@ namespace SolarOps.Api.Infrastructure.Errors;
 /// <summary>
 /// Maps known exceptions to RFC 7807 problem details:
 /// <see cref="DomainException"/> → 409, <see cref="NotFoundException"/> → 404,
-/// <see cref="ValidationException"/> → 400. Anything else falls through to the default 500 handler.
+/// <see cref="RequestValidationException"/> → 400, <see cref="UnauthorizedAccessException"/> → 401
+/// (e.g. <c>ICurrentUser.RequireUserId()</c> on an anonymous request). Anything else falls through to the default 500 handler.
 /// </summary>
 public sealed class ApiExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<ApiExceptionHandler> logger)
     : IExceptionHandler
@@ -15,7 +16,7 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problemDetailsSer
     {
         ProblemDetails? problem = exception switch
         {
-            ValidationException ve => new ValidationProblemDetails(ve.Errors)
+            RequestValidationException ve => new ValidationProblemDetails(ve.Errors)
             {
                 Status = StatusCodes.Status400BadRequest,
             },
@@ -30,6 +31,11 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problemDetailsSer
                 Status = StatusCodes.Status409Conflict,
                 Title = "Conflict",
                 Detail = exception.Message,
+            },
+            UnauthorizedAccessException => new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized",
             },
             _ => null,
         };

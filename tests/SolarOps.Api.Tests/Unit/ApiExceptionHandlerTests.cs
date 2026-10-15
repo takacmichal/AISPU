@@ -50,13 +50,23 @@ public sealed class ApiExceptionHandlerTests
     }
 
     [Fact]
-    public async Task ValidationException_Returns400WithErrors()
+    public async Task RequestValidationException_Returns400WithErrors()
     {
-        var (handled, context, body) = await HandleAsync(new ValidationException("Name", "Name is required."));
+        var (handled, context, body) = await HandleAsync(new RequestValidationException("Name", "Name is required."));
 
         Assert.True(handled);
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
         Assert.Equal("Name is required.", body!.Value.GetProperty("errors").GetProperty("Name")[0].GetString());
+    }
+
+    [Fact]
+    public async Task UnauthorizedAccessException_Returns401ProblemDetails()
+    {
+        var (handled, context, body) = await HandleAsync(new UnauthorizedAccessException("User is not authenticated."));
+
+        Assert.True(handled);
+        Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.Equal(401, body!.Value.GetProperty("status").GetInt32());
     }
 
     [Fact]

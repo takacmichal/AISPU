@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +23,7 @@ namespace SolarOps.Api.Tests.Infrastructure;
 ///     [Fact]
 ///     public async Task Works()
 ///     {
-///         using var client = _factory.CreateApiClient();
+///         using var client = _factory.CreateApiClient(Guid.CreateVersion7(), Roles.Sales);
 ///         var response = await client.GetAsync("/api/foo");
 ///     }
 /// }
@@ -41,6 +43,19 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
         builder.UseEnvironment(EnvironmentName);
         // UseSetting is applied before Program.cs reads configuration.
         builder.UseSetting("ConnectionStrings:Postgres", ConnectionString);
+
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
+            // PostConfigure wins over defaults set by the auth module (JWT), so tests authenticate via headers.
+            services.PostConfigure<AuthenticationOptions>(options =>
+            {
+                options.DefaultScheme = TestAuthHandler.SchemeName;
+                options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+            });
+        });
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -55,6 +70,22 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
     {
         AllowAutoRedirect = false,
     });
+
+    /// <summary>
+    /// Creates an HttpClient authenticated as <paramref name="userId"/> with the given roles
+    /// (see <see cref="TestAuthHandler"/>), e.g. <c>CreateApiClient(userId, Roles.Sales)</c>.
+    /// </summary>
+    public HttpClient CreateApiClient(Guid userId, params string[] roles)
+    {
+        var client = CreateApiClient();
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserHeader, userId.ToString());
+        if (roles.Length > 0)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, string.Join(",", roles));
+        }
+
+        return client;
+    }
 
     /// <summary>Runs <paramref name="action"/> with a scoped <see cref="AppDbContext"/> (seeding, assertions).</summary>
     public async Task ExecuteDbAsync(Func<AppDbContext, Task> action)
