@@ -67,7 +67,7 @@ PostgreSQL 16 (Docker `postgres:16-alpine`, Apple M2, lokálne), 100 zariadení 
 | Denná agregácia všetkých zariadení za mesiac (864 000 riadkov, BRIN bitmap scan) | 360 ms |
 | Posledná hodnota každého zariadenia (`LATERAL ... ORDER BY ts DESC LIMIT 1` nad 100 zariadeniami) | 1,0 ms |
 | Vloženie dávky 100 riadkov (jeden 5-minútový tik) s `ON CONFLICT DO NOTHING` | 1,7 ms |
-| `telemetry_hourly` (8,8 mil. riadkov agregovaných na 876 000) | 98 MB |
+| `telemetry_hourly` (10,5 mil. riadkov agregovaných na 876 000) | 98 MB |
 
 Závery: surové dáta za rok sú rádovo 2 GB, čo je bezproblémové; dotazy na grafy za dlhšie obdobie čítajú **agregačné tabuľky**, nie surové merania; náklady na uuid kľúč sú citeľné (PK je 729 MB), preto je partitioning a retencia užitočná až neskôr. Meranie je jednorazové, lokálne a bez súbežnej záťaže (**neoverené** pre Azure B1ms, kde je menej RAM a IOPS).
 
