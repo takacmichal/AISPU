@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using SolarOps.Api.Features.System;
 using SolarOps.Api.Tests.Infrastructure;
 
@@ -48,10 +49,13 @@ public sealed class FoundationEndpointsTests(PostgresFixture postgres) : IDispos
     }
 
     [Fact]
-    public async Task EnsureCreated_CreatesIdentityTablesInSnakeCase()
+    public async Task EnsureCreated_CreatesTablesAndColumnsInSnakeCase()
     {
-        var count = await _factory.ExecuteDbAsync(db => Task.FromResult(db.Users.Count()));
+        var columns = await _factory.ExecuteDbAsync(db => db.Database
+            .SqlQuery<string>($"SELECT column_name AS \"Value\" FROM information_schema.columns WHERE table_name = 'users'")
+            .ToListAsync());
 
-        Assert.Equal(0, count);
+        Assert.Contains("user_name", columns);
+        Assert.Contains("normalized_email", columns);
     }
 }
