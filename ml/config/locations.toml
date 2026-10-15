@@ -1,0 +1,28 @@
+# Named locations for `uv run python -m solarops_ml.weather fetch --location <name>`.
+# Coordinates are WGS84 degrees (city centres). Open-Meteo snaps them to its model grid;
+# the grid point actually used is stored with the data (ADR #189).
+
+[locations.kosice]
+label = "Košice"
+latitude = 48.72
+longitude = 21.26
+
+[locations.bratislava]
+label = "Bratislava"
+latitude = 48.1486
+longitude = 17.1077
+
+[locations.zilina]
+label = "Žilina"
+latitude = 49.2231
+longitude = 18.7394
+
+[locations.banska_bystrica]
+label = "Banská Bystrica"
+latitude = 48.7363
+longitude = 19.1462
+
+[locations.presov]
+label = "Prešov"
+latitude = 48.9984
+longitude = 21.2339
