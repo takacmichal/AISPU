@@ -25,6 +25,23 @@ internal static class AuthEndpoints
             .AllowAnonymous()
             .WithValidation<LoginRequest>();
 
+        group.MapPost("/refresh", RefreshAsync)
+            .WithName("Refresh")
+            .WithSummary("Exchange a refresh token for a new token pair")
+            .WithDescription("The refresh token is single-use: it is replaced by the returned one. Reusing an already "
+                + "exchanged token revokes the whole session (401), except for a repeated request within a few seconds "
+                + "(concurrent tabs), which gets another valid token. Unknown, expired and revoked tokens return 401.")
+            .AllowAnonymous()
+            .WithValidation<RefreshTokenRequest>();
+
+        group.MapPost("/logout", LogoutAsync)
+            .WithName("Logout")
+            .WithSummary("Log out (revoke the refresh token and its session)")
+            .WithDescription("Needs no access token, so it works after the access token expired. Returns 204 even "
+                + "for unknown or already revoked tokens. Already issued access tokens stay valid until they expire (max. 15 min).")
+            .AllowAnonymous()
+            .WithValidation<RefreshTokenRequest>();
+
         return endpoints;
     }
 
@@ -40,6 +57,22 @@ internal static class AuthEndpoints
     {
         var tokens = await auth.LoginAsync(request, cancellationToken);
         return tokens is null ? InvalidCredentials() : TypedResults.Ok(tokens);
+    }
+
+    internal static async Task<Results<Ok<TokenResponse>, ProblemHttpResult>> RefreshAsync(
+        RefreshTokenRequest request, IAuthService auth, CancellationToken cancellationToken)
+    {
+        var tokens = await auth.RefreshAsync(request, cancellationToken);
+        return tokens is null
+            ? TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Unauthorized", detail: "Invalid refresh token.")
+            : TypedResults.Ok(tokens);
+    }
+
+    internal static async Task<NoContent> LogoutAsync(
+        RefreshTokenRequest request, IAuthService auth, CancellationToken cancellationToken)
+    {
+        await auth.LogoutAsync(request, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     /// <summary>Same response for every credential failure, so the reason is never revealed.</summary>

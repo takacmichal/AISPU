@@ -28,6 +28,22 @@ Content-Type: application/json
   "password": "Solar-Panel-2026"
 }
 
+### Refresh: single-use, returns a new token pair (reusing the old token -> 401 and session revoked)
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### Logout: revokes the refresh token and its session (204, no access token needed)
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
 ### Wrong password -> 401 (same response as unknown e-mail)
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json

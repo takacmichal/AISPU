@@ -15,6 +15,12 @@ internal static class AuthApi
     public static Task<HttpResponseMessage> LoginAsync(HttpClient client, string email, string password = ValidPassword) =>
         client.PostAsJsonAsync("/api/auth/login", new { email, password });
 
+    public static Task<HttpResponseMessage> RefreshAsync(HttpClient client, string refreshToken) =>
+        client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken });
+
+    public static Task<HttpResponseMessage> LogoutAsync(HttpClient client, string refreshToken) =>
+        client.PostAsJsonAsync("/api/auth/logout", new { refreshToken });
+
     /// <summary>Registers (if needed) and logs in; fails the test on any non-success status.</summary>
     public static async Task<TokenResponse> RegisterAndLoginAsync(HttpClient client, string email, string password = ValidPassword)
     {

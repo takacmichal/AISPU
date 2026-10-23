@@ -11,6 +11,8 @@ public sealed class JwtOptions : IValidatableObject
 {
     public const string SectionName = "Jwt";
 
+    public const int DefaultRefreshReuseGraceSeconds = 10;
+
     /// <summary>HMAC-SHA256 needs at least 256 bits of key material.</summary>
     public const int MinSigningKeyBytes = 32;
 
@@ -30,11 +32,20 @@ public sealed class JwtOptions : IValidatableObject
     [Range(1, 30)]
     public int RefreshTokenDays { get; set; } = 7;
 
+    /// <summary>
+    /// A just-rotated refresh token presented again within this window is treated as a concurrent refresh
+    /// (two tabs) and not as theft; see <see cref="RefreshTokenService"/>.
+    /// </summary>
+    [Range(0, 60)]
+    public int RefreshReuseGraceSeconds { get; set; } = DefaultRefreshReuseGraceSeconds;
+
     /// <summary>Tolerated clock difference when validating token lifetime.</summary>
     [Range(0, 120)]
     public int ClockSkewSeconds { get; set; } = 30;
 
     public TimeSpan AccessTokenLifetime => TimeSpan.FromMinutes(AccessTokenMinutes);
+
+    public TimeSpan RefreshReuseGrace => TimeSpan.FromSeconds(RefreshReuseGraceSeconds);
 
     public TimeSpan RefreshTokenLifetime => TimeSpan.FromDays(RefreshTokenDays);
 
