@@ -33,6 +33,9 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
 {
     public const string EnvironmentName = "Testing";
 
+    /// <summary>JWT signing key used by every test host (test-only value, not a secret).</summary>
+    public const string TestJwtSigningKey = "solarops-integration-tests-signing-key-0123456789";
+
     /// <summary>Unique database name of this factory.</summary>
     public string DatabaseName { get; } = databaseName ?? $"test_{Guid.NewGuid():N}";
 
@@ -43,6 +46,7 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
         builder.UseEnvironment(EnvironmentName);
         // UseSetting is applied before Program.cs reads configuration.
         builder.UseSetting("ConnectionStrings:Postgres", ConnectionString);
+        builder.UseSetting("Jwt:SigningKey", TestJwtSigningKey);
 
         builder.ConfigureTestServices(services =>
         {

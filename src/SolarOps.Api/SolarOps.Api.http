@@ -8,3 +8,31 @@ GET {{baseUrl}}/api/system/info
 
 ### OpenAPI document (Development)
 GET {{baseUrl}}/openapi/v1.json
+
+### Register a customer account
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "zakaznik@example.com",
+  "password": "Solar-Panel-2026"
+}
+
+### Log in (returns accessToken, expiresIn, refreshToken)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "zakaznik@example.com",
+  "password": "Solar-Panel-2026"
+}
+
+### Wrong password -> 401 (same response as unknown e-mail)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "zakaznik@example.com",
+  "password": "Wrong-Password-1"
+}
