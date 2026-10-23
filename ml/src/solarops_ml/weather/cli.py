@@ -33,6 +33,10 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--locations-file", type=Path, default=DEFAULT_LOCATIONS_FILE)
         p.add_argument("--data-dir", type=Path, default=None, help="default: $SOLAROPS_DATA_DIR")
         p.add_argument("--format", choices=["parquet", "csv"], default="parquet")
+        p.add_argument("--tilt", type=float, default=None, help="panel tilt for GTI, 0-90 deg")
+        p.add_argument(
+            "--azimuth", type=float, default=None, help="panel azimuth for GTI (0=S, 180=N)"
+        )
         p.add_argument("--no-cache", action="store_true", help="ignore and do not write cache")
         p.add_argument("-v", "--verbose", action="store_true")
 
@@ -67,21 +71,35 @@ def main(argv: Sequence[str] | None = None, client: OpenMeteoClient | None = Non
     if args.end < args.start:
         parser.error("--end must not be before --start")
 
-    targets: list[tuple[str, float, float]]
+    targets: list[tuple[str, float, float, float | None, float | None]]
     if args.command == "fetch":
         if args.location:
             locations = load_locations(args.locations_file)
             if args.location not in locations:
                 parser.error(f"unknown location '{args.location}', known: {', '.join(locations)}")
             loc = locations[args.location]
-            targets = [(loc.name, loc.latitude, loc.longitude)]
+            targets = [
+                (
+                    loc.name,
+                    loc.latitude,
+                    loc.longitude,
+                    args.tilt if args.tilt is not None else loc.tilt,
+                    args.azimuth if args.azimuth is not None else loc.azimuth,
+                )
+            ]
         else:
             if args.lon is None:
                 parser.error("--lat requires --lon")
-            targets = [(slug_for(args.lat, args.lon), args.lat, args.lon)]
+            targets = [(slug_for(args.lat, args.lon), args.lat, args.lon, args.tilt, args.azimuth)]
     else:
         targets = [
-            (loc.name, loc.latitude, loc.longitude)
+            (
+                loc.name,
+                loc.latitude,
+                loc.longitude,
+                args.tilt if args.tilt is not None else loc.tilt,
+                args.azimuth if args.azimuth is not None else loc.azimuth,
+            )
             for loc in load_locations(args.locations_file).values()
         ]
 
@@ -91,7 +109,7 @@ def main(argv: Sequence[str] | None = None, client: OpenMeteoClient | None = Non
     owns_client = client is None
     client = client or OpenMeteoClient()
     try:
-        for name, lat, lon in targets:
+        for name, lat, lon, tilt, azimuth in targets:
             effective = source or WeatherSource.auto(args.start)
             frame = fetch_weather(
                 client,
@@ -103,6 +121,8 @@ def main(argv: Sequence[str] | None = None, client: OpenMeteoClient | None = Non
                 resolution=resolution,
                 data_dir=data_dir,
                 use_cache=not args.no_cache,
+                tilt=tilt,
+                azimuth=azimuth,
             )
             out = (
                 args.out

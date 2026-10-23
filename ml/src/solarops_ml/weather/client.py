@@ -1,8 +1,13 @@
 """Open-Meteo client for historical weather (ADR #180, #189).
 
 All requests use ``timezone=UTC`` and ``timeformat=unixtime`` so timestamps are unambiguous,
-and ``wind_speed_unit=ms``. Hourly radiation values are the mean of the *preceding* hour, so the
-timestamp of a row is the end of the interval it describes (right-labelled).
+and ``wind_speed_unit=ms``. Radiation (and precipitation) values are the mean (sum) of the
+*preceding* hour, so the timestamp of a row is the end of the interval it describes
+(right-labelled). Temperature, wind speed and cloud cover are instantaneous values at the timestamp.
+
+Training data comes from the Historical Forecast API (archived operational forecasts, same models
+as the Forecast API used for serving; team decision on issue #180). The archive (ERA5) API is only
+the fallback for dates before ``HISTORICAL_FORECAST_FIRST_DAY``.
 """
 
 from __future__ import annotations
@@ -32,6 +37,7 @@ VARIABLES: dict[str, str] = {
     "shortwave_radiation": "ghi_wm2",
     "direct_normal_irradiance": "dni_wm2",
     "diffuse_radiation": "dhi_wm2",
+    "global_tilted_irradiance": "gti_wm2",
     "cloud_cover": "cloud_cover_pct",
     "temperature_2m": "temp_air_c",
     "wind_speed_10m": "wind_speed_ms",
@@ -123,8 +129,16 @@ class OpenMeteoClient:
         end: date,
         source: WeatherSource,
         resolution: Resolution = Resolution.HOURLY,
+        *,
+        tilt: float | None = None,
+        azimuth: float | None = None,
     ) -> tuple[pd.DataFrame, GridPoint]:
-        """Fetch one date range (inclusive) and return a UTC-indexed frame plus the grid point."""
+        """Fetch one date range (inclusive) and return a UTC-indexed frame plus the grid point.
+
+        ``tilt`` (0 = horizontal, 90 = vertical) and ``azimuth`` (0 = south, -90 = east,
+        90 = west, +-180 = north) set the plane for ``gti_wm2``. When omitted the API uses a
+        horizontal plane, so GTI equals GHI.
+        """
         if end < start:
             raise ValueError(f"end {end} is before start {start}")
         if resolution is Resolution.MINUTELY_15 and source is WeatherSource.ARCHIVE:
@@ -139,6 +153,10 @@ class OpenMeteoClient:
             "timeformat": "unixtime",
             "wind_speed_unit": "ms",
         }
+        if tilt is not None:
+            params["tilt"] = tilt
+        if azimuth is not None:
+            params["azimuth"] = azimuth
         payload = self._get_json(source.url, params)
         return parse_response(payload, resolution), GridPoint(
             latitude=float(payload["latitude"]),

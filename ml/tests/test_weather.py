@@ -87,16 +87,33 @@ def test_fetch_sends_utc_unixtime_and_required_variables() -> None:
         "shortwave_radiation",
         "direct_normal_irradiance",
         "diffuse_radiation",
+        "global_tilted_irradiance",
         "cloud_cover",
         "temperature_2m",
         "wind_speed_10m",
     }
+    assert "tilt" not in params and "azimuth" not in params  # API default: horizontal plane
     assert grid.latitude == 48.68 and grid.elevation == 214.0
     assert len(frame) == 48
     assert str(frame.index.tz) == "UTC"
     assert frame.index[0] == pd.Timestamp("2024-06-20T00:00Z")
     assert list(frame.columns) == list(VARIABLES.values())
     assert pd.isna(frame["cloud_cover_pct"].iloc[0])
+
+
+def test_fetch_sends_panel_orientation_for_gti() -> None:
+    recorder = Recorder()
+    make_client(recorder).fetch(
+        -23.76,
+        133.87,
+        date(2023, 6, 1),
+        date(2023, 6, 1),
+        WeatherSource.HISTORICAL_FORECAST,
+        tilt=20.0,
+        azimuth=180.0,
+    )
+    params = dict(recorder.requests[0].url.params)
+    assert params["tilt"] == "20.0" and params["azimuth"] == "180.0"
 
 
 def test_archive_source_uses_archive_endpoint() -> None:
@@ -275,6 +292,86 @@ def test_cli_fetch_by_location_writes_documented_parquet(tmp_path: Path, capsys)
     assert str(frame.index.tz) == "UTC"
     params = dict(recorder.requests[0].url.params)
     assert params["latitude"] == "48.72" and params["longitude"] == "21.26"
+
+
+def test_alice_springs_location_is_configured() -> None:
+    dka = load_locations()["alice_springs"]
+    assert dka.latitude == pytest.approx(-23.76)
+    assert dka.longitude == pytest.approx(133.87)
+
+
+def test_location_orientation_is_optional_and_validated(tmp_path: Path) -> None:
+    path = tmp_path / "loc.toml"
+    path.write_text(
+        "[locations.a]\nlatitude = 1\nlongitude = 2\ntilt = 20\nazimuth = 180\n"
+        "[locations.b]\nlatitude = 1\nlongitude = 2\n"
+    )
+    locations = load_locations(path)
+    assert (locations["a"].tilt, locations["a"].azimuth) == (20.0, 180.0)
+    assert (locations["b"].tilt, locations["b"].azimuth) == (None, None)
+    path.write_text("[locations.c]\nlatitude = 1\nlongitude = 2\ntilt = 120\n")
+    with pytest.raises(ValueError):
+        load_locations(path)
+
+
+def test_orientation_is_part_of_cache_key(tmp_path: Path) -> None:
+    recorder = Recorder()
+    client = make_client(recorder)
+    kwargs = dict(data_dir=tmp_path, today=date(2026, 10, 15))
+    day = (date(2024, 1, 1), date(2024, 1, 1))
+    fetch_weather(client, 1.0, 2.0, *day, **kwargs)
+    fetch_weather(client, 1.0, 2.0, *day, tilt=20.0, azimuth=180.0, **kwargs)
+    assert len(recorder.requests) == 2  # different orientation must not hit the same cache
+    fetch_weather(client, 1.0, 2.0, *day, tilt=20.0, azimuth=180.0, **kwargs)
+    assert len(recorder.requests) == 2
+
+
+def test_parquet_is_tagged_with_format_2(tmp_path: Path) -> None:
+    out = tmp_path / "x.parquet"
+    main(
+        [
+            "fetch",
+            "--location",
+            "alice_springs",
+            "--start",
+            "2023-06-01",
+            "--end",
+            "2023-06-01",
+            "--data-dir",
+            str(tmp_path),
+            "--out",
+            str(out),
+        ],
+        client=make_client(Recorder()),
+    )
+    assert pq.read_table(out).schema.metadata[b"solarops.format"] == b"solarops-weather-2"
+    assert "gti_wm2" in COLUMNS
+
+
+def test_cli_passes_orientation_flags(tmp_path: Path) -> None:
+    recorder = Recorder()
+    main(
+        [
+            "fetch",
+            "--lat",
+            "1",
+            "--lon",
+            "2",
+            "--tilt",
+            "30",
+            "--azimuth",
+            "0",
+            "--start",
+            "2024-01-01",
+            "--end",
+            "2024-01-01",
+            "--data-dir",
+            str(tmp_path),
+        ],
+        client=make_client(recorder),
+    )
+    params = dict(recorder.requests[0].url.params)
+    assert params["tilt"] == "30.0" and params["azimuth"] == "0.0"
 
 
 def test_cli_fetch_by_coordinates_to_csv(tmp_path: Path) -> None:

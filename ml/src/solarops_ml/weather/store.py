@@ -5,11 +5,14 @@ Dataset format (one row per interval, see ``ml/README.md``):
 =================  =========  ==========================================================
 column             unit       meaning
 =================  =========  ==========================================================
-time               UTC        end of the interval (values are means over the preceding
-                              interval; ``timestamp[ns, tz=UTC]`` in parquet)
+time               UTC        end of the interval for radiation (mean) and precipitation
+                              (sum) over the preceding interval; temperature, wind and cloud
+                              cover are instantaneous at ``time``
+                              (``timestamp[ns, tz=UTC]`` in parquet)
 ghi_wm2            W/m²       global horizontal irradiance (``shortwave_radiation``)
 dni_wm2            W/m²       direct normal irradiance
 dhi_wm2            W/m²       diffuse horizontal irradiance (``diffuse_radiation``)
+gti_wm2            W/m²       global tilted irradiance (plane set by tilt/azimuth, else = GHI)
 cloud_cover_pct    %          total cloud cover
 temp_air_c         °C         air temperature 2 m
 wind_speed_ms      m/s        wind speed 10 m
@@ -41,6 +44,8 @@ from solarops_ml.weather.client import (
 )
 
 log = logging.getLogger(__name__)
+
+FORMAT = "solarops-weather-2"  # v2 added ``gti_wm2`` (v1 had no GTI column)
 
 COLUMNS = [*VARIABLES.values(), "latitude", "longitude", "elevation", "weather_source"]
 
@@ -79,8 +84,12 @@ def chunk_cache_path(
     longitude: float,
     start: date,
     end: date,
+    tilt: float | None = None,
+    azimuth: float | None = None,
 ) -> Path:
     cell = f"lat{latitude:.4f}_lon{longitude:.4f}"
+    if tilt is not None or azimuth is not None:
+        cell += f"_tilt{tilt}_az{azimuth}"
     return (
         cache_dir
         / source.value
@@ -102,21 +111,40 @@ def fetch_weather(
     data_dir: Path | None = None,
     use_cache: bool = True,
     today: date | None = None,
+    tilt: float | None = None,
+    azimuth: float | None = None,
 ) -> pd.DataFrame:
     """Download (or load from cache) weather for one location; returns the documented format."""
     source = source or WeatherSource.auto(start)
-    cache_dir = (data_dir or default_data_dir()) / "weather" / "cache"
+    cache_dir = (data_dir or default_data_dir()) / "weather" / "cache" / FORMAT
     today = today or datetime.now(UTC).date()
     parts: list[pd.DataFrame] = []
     for chunk_start, chunk_end in month_chunks(start, end):
         path = chunk_cache_path(
-            cache_dir, source, resolution, latitude, longitude, chunk_start, chunk_end
+            cache_dir,
+            source,
+            resolution,
+            latitude,
+            longitude,
+            chunk_start,
+            chunk_end,
+            tilt,
+            azimuth,
         )
         if use_cache and path.exists():
             log.debug("cache hit %s", path)
             parts.append(read_dataset(path))
             continue
-        frame, grid = client.fetch(latitude, longitude, chunk_start, chunk_end, source, resolution)
+        frame, grid = client.fetch(
+            latitude,
+            longitude,
+            chunk_start,
+            chunk_end,
+            source,
+            resolution,
+            tilt=tilt,
+            azimuth=azimuth,
+        )
         frame["latitude"] = grid.latitude
         frame["longitude"] = grid.longitude
         frame["elevation"] = grid.elevation if grid.elevation is not None else float("nan")
@@ -141,7 +169,7 @@ def write_dataset(frame: pd.DataFrame, path: Path) -> Path:
     table = pa.Table.from_pandas(table_frame, preserve_index=False)
     metadata = dict(table.schema.metadata or {})
     metadata[b"solarops.attribution"] = ATTRIBUTION.encode()
-    metadata[b"solarops.format"] = b"solarops-weather-1"
+    metadata[b"solarops.format"] = FORMAT.encode()
     pq.write_table(table.replace_schema_metadata(metadata), path)
     return path
 

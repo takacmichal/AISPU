@@ -26,3 +26,12 @@ longitude = 19.1462
 label = "Prešov"
 latitude = 48.9984
 longitude = 21.2339
+
+# Production data 2023-2024 (DKA Solar Centre, Alice Springs, Australia). Southern hemisphere:
+# fixed panels face north, i.e. azimuth 180 in Open-Meteo's convention (0 = south).
+# `tilt`/`azimuth` (optional, degrees) set the plane for GTI; without them GTI equals GHI.
+# Add the real plant geometry here once known.
+[locations.alice_springs]
+label = "Alice Springs (DKA Solar Centre)"
+latitude = -23.76
+longitude = 133.87
