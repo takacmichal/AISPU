@@ -23,6 +23,13 @@ public sealed record LoginRequest
     public required string Password { get; init; }
 }
 
+/// <summary>Refresh token presented to <c>/api/auth/refresh</c> or <c>/api/auth/logout</c>.</summary>
+public sealed record RefreshTokenRequest
+{
+    [Required, MaxLength(256)]
+    public required string RefreshToken { get; init; }
+}
+
 /// <summary>
 /// Tokens returned after login (and refresh). The access token is a JWT for the <c>Authorization: Bearer</c> header;
 /// the refresh token is opaque, single-use and valid for 7 days.

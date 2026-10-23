@@ -11,6 +11,7 @@ public enum RefreshTokenRevocationReason
     Logout,
     ReuseDetected,
     PasswordReset,
+    UserDisabled,
 }
 
 /// <summary>

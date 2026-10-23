@@ -5,7 +5,7 @@ using SolarOps.Api.Infrastructure.Persistence;
 
 namespace SolarOps.Api.Features.Auth;
 
-/// <summary>Registration and login.</summary>
+/// <summary>Registration, login, token refresh and logout.</summary>
 public interface IAuthService
 {
     /// <summary>Creates a user with the <see cref="Roles.Customer"/> role.</summary>
@@ -13,6 +13,12 @@ public interface IAuthService
 
     /// <summary>Returns tokens, or null for any failure (unknown e-mail, wrong password, locked out).</summary>
     Task<TokenResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Rotates the refresh token and returns a new token pair, or null when it is not usable.</summary>
+    Task<TokenResponse?> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Revokes the session of the refresh token. Always succeeds, so unknown tokens are not revealed.</summary>
+    Task LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken);
 }
 
 internal sealed class AuthService(
@@ -75,6 +81,29 @@ internal sealed class AuthService(
 
         return await IssueTokensAsync(user, cancellationToken);
     }
+
+    public async Task<TokenResponse?> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var rotated = await refreshTokens.RotateAsync(request.RefreshToken, cancellationToken);
+        if (rotated is null)
+        {
+            return null;
+        }
+
+        var user = await userManager.FindByIdAsync(rotated.UserId.ToString());
+        if (user is null || await userManager.IsLockedOutAsync(user))
+        {
+            await refreshTokens.RevokeSessionAsync(rotated.Token.Token, RefreshTokenRevocationReason.UserDisabled, cancellationToken);
+            return null;
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+        var access = accessTokens.Create(user, roles);
+        return new TokenResponse(access.Token, access.ExpiresInSeconds, rotated.Token.Token);
+    }
+
+    public Task LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken) =>
+        refreshTokens.RevokeSessionAsync(request.RefreshToken, RefreshTokenRevocationReason.Logout, cancellationToken);
 
     private async Task<TokenResponse> IssueTokensAsync(AppUser user, CancellationToken cancellationToken)
     {
