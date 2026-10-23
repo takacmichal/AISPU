@@ -8,7 +8,7 @@ Testy a lint (rovnako ako CI `ml.yml`): `uv run pytest`, `uv run ruff check .`, 
 
 Sťahuje počasie z [Open-Meteo](https://open-meteo.com) podľa ADR #180 a #189:
 
-- **Historical Forecast API** (archivované predpovede, od 2022, rovnaký model ako produkčná predpoveď) alebo
+- **Historical Forecast API** (`historical-forecast-api.open-meteo.com/v1/forecast`; archivované predpovede, od 2022, rovnaké modely a premenné ako Forecast API na serving; **tímové rozhodnutie pre trénovacie dáta**, issue #180) alebo
   **Historical Weather API / archive** (ERA5 reanalýza, od 1940, oneskorenie cca 5 dní).
   `--source auto` (predvolené) zvolí historical-forecast pre začiatok od 2022-01-01, inak archive.
 - Rozlíšenie hodinové (predvolené, join podľa ADR #189) alebo `--resolution minutely_15` (len historical-forecast, stredná Európa).
@@ -25,18 +25,23 @@ uv run python -m solarops_ml.weather fetch --lat 48.72 --lon 21.26 --start 2024-
 uv run python -m solarops_ml.weather fetch-all --start 2024-01-01 --end 2024-03-31  # všetky lokality
 ```
 
-Lokality sú v `config/locations.toml` (`[locations.<meno>]` s `latitude`, `longitude`, `label`).
+Lokality sú v `config/locations.toml` (`[locations.<meno>]` s `latitude`, `longitude`, `label`; voliteľne `tilt` a `azimuth`). Obsahuje slovenské mestá a `alice_springs` (DKA Solar Centre, -23.76 / 133.87, produkčné dáta 2023-2024). Pokrytie Historical Forecast API 2023-01-01 až 2024-12-31 bolo overené pre Alice Springs aj Košice (hodinové, bez chýbajúcich hodnôt).
 
-### Formát dát (`solarops-weather-1`)
+**GTI (`gti_wm2`):** rovina panelu sa nastavuje cez `tilt` (0 = horizontálne, 90 = zvislo) a `azimuth` (0 = juh, -90 = východ, 90 = západ, ±180 = sever) v `locations.toml` alebo `--tilt/--azimuth`. Bez nich API počíta GTI pre horizontálnu rovinu, teda `gti_wm2` = `ghi_wm2`. Na južnej pologuli smerujú pevné panely na sever (`azimuth = 180`). Skutočná geometria DKA zatiaľ nie je zadaná. Orientácia je súčasťou kľúča cache.
+
+### Formát dát (`solarops-weather-2`)
+
+Zmena oproti `solarops-weather-1`: pribudol stĺpec `gti_wm2`. Cache je v podadresári `cache/solarops-weather-2/`, staré súbory sa nepoužijú.
 
 Výstup: `data/weather/<lokalita>_<od>_<do>_<source>_<resolution>.parquet` (alebo `.csv`). Jeden riadok = jeden interval.
 
 | stĺpec | jednotka | význam |
 |---|---|---|
-| `time` | UTC | **koniec** intervalu; hodnoty sú priemer/súčet za predchádzajúci interval (Open-Meteo „preceding hour“). Parquet `timestamp[ns, tz=UTC]`, CSV ISO 8601 so `Z` |
+| `time` | UTC | časová značka riadku. Žiarenie (priemer) a zrážky (súčet) sú za **predchádzajúci** interval, teda `time` je jeho koniec (Open-Meteo „preceding hour“). Teplota, vietor a oblačnosť sú **okamžité hodnoty** v čase `time`. Parquet `timestamp[ns, tz=UTC]`, CSV ISO 8601 so `Z` |
 | `ghi_wm2` | W/m² | globálne horizontálne žiarenie (`shortwave_radiation`) |
 | `dni_wm2` | W/m² | priame normálové žiarenie (`direct_normal_irradiance`) |
 | `dhi_wm2` | W/m² | difúzne horizontálne žiarenie (`diffuse_radiation`) |
+| `gti_wm2` | W/m² | globálne žiarenie na naklonenú rovinu (`global_tilted_irradiance`, pozri GTI vyššie) |
 | `cloud_cover_pct` | % | celková oblačnosť |
 | `temp_air_c` | °C | teplota vzduchu 2 m |
 | `wind_speed_ms` | m/s | rýchlosť vetra 10 m |
