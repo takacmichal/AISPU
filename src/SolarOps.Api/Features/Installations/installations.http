@@ -1,0 +1,58 @@
+# Installations (#82). Requires a JWT with role Admin/Operator/Sales/Designer (planning)
+# or Technician (state changes). Port matches launchSettings.json (http profile).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@installationId = 00000000-0000-0000-0000-000000000000
+
+### Create installation (state Planned)
+POST {{baseUrl}}/api/installations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": "0199f0a0-0000-7000-8000-000000000001",
+  "contractId": "0199f0a0-0000-7000-8000-000000000002",
+  "supplyPointId": "0199f0a0-0000-7000-8000-000000000003",
+  "name": "FVE Rodinný dom Nitra",
+  "plannedPowerKwp": 9.6
+}
+
+### List installations filtered by state
+GET {{baseUrl}}/api/installations?state=Planned
+Authorization: Bearer {{token}}
+
+### My installations (technician)
+GET {{baseUrl}}/api/installations?assignedToMe=true
+Authorization: Bearer {{token}}
+
+### Detail with state history
+GET {{baseUrl}}/api/installations/{{installationId}}
+Authorization: Bearer {{token}}
+
+### Update details
+PUT {{baseUrl}}/api/installations/{{installationId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "FVE Rodinný dom Nitra", "plannedPowerKwp": 10.2, "note": "Plechová strecha" }
+
+### Schedule mounting
+PUT {{baseUrl}}/api/installations/{{installationId}}/schedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "scheduledStart": "2026-11-04", "scheduledEnd": "2026-11-05" }
+
+### Assign technicians (user ids with role Technician)
+PUT {{baseUrl}}/api/installations/{{installationId}}/technicians
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "technicianIds": ["0199f0a0-0000-7000-8000-0000000000aa"] }
+
+### Change state (allowed targets are in allowedTransitions; otherwise 409)
+POST {{baseUrl}}/api/installations/{{installationId}}/transitions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "targetState": "ComponentsOrdered", "note": "Objednané u dodávateľa" }
