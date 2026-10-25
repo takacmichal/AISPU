@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SolarOps.Api.Features.Customers;
+using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Features.Quotes;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
@@ -14,6 +15,13 @@ public interface IContractService
     Task<ContractResponse> GetAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<ContractResponse>> ListAsync(Guid? customerId, Guid? quoteId, ContractStatus? status, CancellationToken ct);
+
+    /// <summary>Records the signature and starts the installation (state Planned) in one transaction.</summary>
+    Task<ContractResponse> SignAsync(Guid id, SignContractRequest request, CancellationToken ct);
+
+    Task<ContractResponse> RecordDepositAsync(Guid id, RecordDepositRequest request, CancellationToken ct);
+
+    Task<IReadOnlyList<ContractAuditEntryResponse>> AuditAsync(Guid id, CancellationToken ct);
 }
 
 public sealed class ContractService(AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider) : IContractService
@@ -93,5 +101,72 @@ public sealed class ContractService(AppDbContext db, ICurrentUser currentUser, T
 
         var contracts = await query.OrderByDescending(c => c.Sequence).ToListAsync(ct);
         return contracts.ConvertAll(ContractResponse.FromEntity);
+    }
+
+    public async Task<ContractResponse> SignAsync(Guid id, SignContractRequest request, CancellationToken ct)
+    {
+        var userId = currentUser.RequireUserId();
+        var now = timeProvider.GetUtcNow();
+        var contract = await FindForUpdateAsync(id, ct);
+
+        var installation = Installation.Create(
+            contract.CustomerId,
+            contract.Id,
+            request.SupplyPointId!.Value,
+            string.IsNullOrWhiteSpace(request.InstallationName) ? $"Inštalácia {contract.Number}" : request.InstallationName,
+            plannedPowerKwp: null,
+            note: null,
+            userId,
+            now);
+        contract.Sign(request.SignedOn ?? Today(now), installation.Id, userId, Today(now), now);
+
+        db.Add(installation);
+        await SaveAsync(ct);
+        return ContractResponse.FromEntity(contract);
+    }
+
+    public async Task<ContractResponse> RecordDepositAsync(Guid id, RecordDepositRequest request, CancellationToken ct)
+    {
+        var userId = currentUser.RequireUserId();
+        var now = timeProvider.GetUtcNow();
+        var contract = await FindForUpdateAsync(id, ct);
+
+        contract.RecordDeposit(request.Amount!.Value, request.PaidOn ?? Today(now), userId, Today(now), now);
+
+        await SaveAsync(ct);
+        return ContractResponse.FromEntity(contract);
+    }
+
+    public async Task<IReadOnlyList<ContractAuditEntryResponse>> AuditAsync(Guid id, CancellationToken ct)
+    {
+        if (!await db.Set<Contract>().AnyAsync(c => c.Id == id, ct))
+        {
+            throw new NotFoundException("Contract", id);
+        }
+
+        var entries = await db.Set<ContractAuditEntry>().AsNoTracking()
+            .Where(e => e.ContractId == id)
+            .OrderBy(e => e.PerformedAt).ThenBy(e => e.Id)
+            .ToListAsync(ct);
+        return entries.ConvertAll(ContractAuditEntryResponse.FromEntity);
+    }
+
+    private static DateOnly Today(DateTimeOffset now) => DateOnly.FromDateTime(now.UtcDateTime);
+
+    private async Task<Contract> FindForUpdateAsync(Guid id, CancellationToken ct) =>
+        await db.Set<Contract>().Include(c => c.Lines).FirstOrDefaultAsync(c => c.Id == id, ct)
+        ?? throw new NotFoundException("Contract", id);
+
+    private async Task SaveAsync(CancellationToken ct)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException || (ex is DbUpdateException dbEx && dbEx.IsUniqueViolation()))
+        {
+            // The contract was changed by a concurrent request, or its installation already exists.
+            throw new DomainException("The contract was changed by another request. Reload it and try again.");
+        }
     }
 }
