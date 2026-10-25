@@ -200,6 +200,76 @@ public sealed class CustomerEndpointsTests(PostgresFixture postgres) : IDisposab
     }
 
     [Fact]
+    public async Task List_NoCustomers_Returns200WithEmptyItems()
+    {
+        using var client = Sales();
+
+        var list = await client.GetJsonAsync<CustomerListResponse>("/api/customers");
+
+        Assert.Empty(list.Items);
+        Assert.Equal(0, list.TotalCount);
+        Assert.Equal(1, list.Page);
+        Assert.Equal(20, list.PageSize);
+    }
+
+    [Fact]
+    public async Task List_DefaultsToSurnameOrder_AndPages()
+    {
+        using var client = Sales();
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("c@example.sk", lastName: "Zelený"));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("a@example.sk", lastName: "Adamec"));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Company("b@example.sk", companyName: "Bratia s.r.o."));
+
+        var all = await client.GetJsonAsync<CustomerListResponse>("/api/customers");
+        var second = await client.GetJsonAsync<CustomerListResponse>("/api/customers?page=2&pageSize=2");
+
+        Assert.Equal(["a@example.sk", "b@example.sk", "c@example.sk"], all.Items.Select(c => c.Email));
+        Assert.Equal(3, second.TotalCount);
+        Assert.Equal(["c@example.sk"], second.Items.Select(c => c.Email));
+    }
+
+    [Theory]
+    [InlineData("adam", "a@example.sk")]
+    [InlineData("BRATIA", "b@example.sk")]
+    [InlineData("c@example", "c@example.sk")]
+    [InlineData("35763469", "b@example.sk")]
+    public async Task List_Query_MatchesCaseInsensitively(string q, string expectedEmail)
+    {
+        using var client = Sales();
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("a@example.sk", lastName: "Adamec"));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Company("b@example.sk", companyName: "Bratia s.r.o."));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("c@example.sk", lastName: "Zelený"));
+
+        var list = await client.GetJsonAsync<CustomerListResponse>($"/api/customers?q={Uri.EscapeDataString(q)}");
+
+        Assert.Equal([expectedEmail], list.Items.Select(c => c.Email));
+    }
+
+    [Fact]
+    public async Task List_QueryWithLikeWildcards_IsTreatedLiterally()
+    {
+        using var client = Sales();
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("a@example.sk"));
+
+        var list = await client.GetJsonAsync<CustomerListResponse>("/api/customers?q=%25");
+
+        Assert.Empty(list.Items);
+    }
+
+    [Theory]
+    [InlineData("page=0")]
+    [InlineData("pageSize=0")]
+    [InlineData("pageSize=101")]
+    public async Task List_InvalidPaging_Returns400(string query)
+    {
+        using var client = Sales();
+
+        using var response = await client.GetAsync($"/api/customers?{query}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Schema_HasUniqueEmailIndex()
     {
         var indexes = await _factory.ExecuteDbAsync(db => db.Database
