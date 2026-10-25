@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SolarOps.Api.Infrastructure.Identity;
@@ -34,6 +35,10 @@ public sealed class AuthModule : IModule
         services.AddScoped<IAccessTokenService, AccessTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddOptions<PasswordResetOptions>().Bind(configuration.GetSection(PasswordResetOptions.SectionName));
+        services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = PasswordResetOptions.TokenLifetime);
+        // No e-mail provider yet: the default only logs the link. Register another IPasswordResetSender to replace it.
+        services.TryAddSingleton<IPasswordResetSender, LoggingPasswordResetSender>();
         services.AddScoped<IdentitySeeder>();
         services.AddHostedService<IdentitySeedHostedService>();
     }

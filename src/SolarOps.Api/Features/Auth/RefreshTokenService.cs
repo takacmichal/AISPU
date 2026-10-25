@@ -23,6 +23,9 @@ public interface IRefreshTokenService
 
     /// <summary>Revokes every token of the session the given token belongs to. Unknown tokens are ignored.</summary>
     Task RevokeSessionAsync(string token, RefreshTokenRevocationReason reason, CancellationToken cancellationToken);
+
+    /// <summary>Revokes all active tokens of the user (every session).</summary>
+    Task RevokeAllAsync(Guid userId, RefreshTokenRevocationReason reason, CancellationToken cancellationToken);
 }
 
 /// <summary>Result of a successful rotation.</summary>
@@ -109,6 +112,16 @@ internal sealed class RefreshTokenService(AppDbContext db, IOptions<JwtOptions> 
         {
             await RevokeFamilyAsync(id, reason, timeProvider.GetUtcNow(), cancellationToken);
         }
+    }
+
+    public async Task RevokeAllAsync(Guid userId, RefreshTokenRevocationReason reason, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        await db.Set<RefreshToken>()
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.RevokedAt, now)
+                .SetProperty(t => t.RevocationReason, reason), cancellationToken);
     }
 
     // Rotated tokens keep their own reason, so a revoked session is recognised by any non-rotation reason in the family.
