@@ -3,7 +3,7 @@ using SolarOps.Api.Infrastructure.Errors;
 
 namespace SolarOps.Api.Features.Quotes;
 
-/// <summary>Lifecycle of a quote (BPMN mapping #69). Transitions are added with #75; new quotes start in Draft.</summary>
+/// <summary>Lifecycle of a quote (BPMN mapping #69): Draft, then Sent, then Accepted, Rejected or Expired.</summary>
 public enum QuoteStatus
 {
     Draft,
@@ -46,8 +46,20 @@ public sealed class Quote
     public const int NoteMaxLength = 2000;
     public const int MaxLines = 200;
     public const decimal MaxQuantity = 10_000m;
+    public const int MaxValidityDays = 365;
+
+    private static readonly IReadOnlyDictionary<QuoteStatus, QuoteStatus[]> AllowedTransitionMap =
+        new Dictionary<QuoteStatus, QuoteStatus[]>
+        {
+            [QuoteStatus.Draft] = [QuoteStatus.Sent],
+            [QuoteStatus.Sent] = [QuoteStatus.Accepted, QuoteStatus.Rejected, QuoteStatus.Expired],
+            [QuoteStatus.Accepted] = [],
+            [QuoteStatus.Rejected] = [],
+            [QuoteStatus.Expired] = [],
+        };
 
     private readonly List<QuoteLine> _lines = [];
+    private readonly List<QuoteStateChange> _stateChanges = [];
 
     private Quote()
     {
@@ -77,6 +89,53 @@ public sealed class Quote
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public IReadOnlyList<QuoteLine> Lines => _lines;
+
+    /// <summary>End of the validity period; set when the quote is sent. A sent quote past it expires.</summary>
+    public DateTimeOffset? ValidUntil { get; private set; }
+
+    public IReadOnlyList<QuoteStateChange> StateChanges => _stateChanges;
+
+    public IReadOnlyList<QuoteStatus> AllowedTransitions => AllowedTransitionMap[Status];
+
+    /// <summary>True for a sent quote whose validity period has ended but that was not marked Expired yet.</summary>
+    public bool IsOverdue(DateTimeOffset now) => Status == QuoteStatus.Sent && ValidUntil is { } until && now >= until;
+
+    /// <summary>Sends the quote to the customer and starts its validity period.</summary>
+    public void Send(int validityDays, Guid by, string? note, DateTimeOffset now)
+    {
+        if (validityDays is < 1 or > MaxValidityDays)
+        {
+            throw new RequestValidationException("ValidityDays", $"Validity must be between 1 and {MaxValidityDays} days.");
+        }
+
+        TransitionTo(QuoteStatus.Sent, by, note, now);
+        ValidUntil = now.AddDays(validityDays);
+    }
+
+    public void Accept(Guid by, string? note, DateTimeOffset now) => TransitionTo(QuoteStatus.Accepted, by, note, now);
+
+    public void Reject(Guid by, string? note, DateTimeOffset now) => TransitionTo(QuoteStatus.Rejected, by, note, now);
+
+    /// <summary>Expires a sent quote past its validity (done by the system, so there is no user).</summary>
+    public void Expire(DateTimeOffset now) => TransitionTo(QuoteStatus.Expired, null, "Validity period ended.", now);
+
+    private void TransitionTo(QuoteStatus target, Guid? by, string? note, DateTimeOffset now)
+    {
+        if (note?.Length > NoteMaxLength)
+        {
+            throw new RequestValidationException("Note", $"Note is at most {NoteMaxLength} characters.");
+        }
+
+        if (!AllowedTransitionMap[Status].Contains(target))
+        {
+            throw new DomainException($"Quote cannot move from {Status} to {target}.");
+        }
+
+        var from = Status;
+        Status = target;
+        UpdatedAt = now;
+        _stateChanges.Add(QuoteStateChange.Create(Id, from, target, by, note, now));
+    }
 
     /// <summary>Creates a quote in state Draft. Throws <see cref="RequestValidationException"/> on invalid lines or VAT rate.</summary>
     public static Quote Create(
@@ -114,6 +173,7 @@ public sealed class Quote
         quote.NetTotal = totals.Net;
         quote.VatTotal = totals.Vat;
         quote.GrossTotal = totals.Gross;
+        quote._stateChanges.Add(QuoteStateChange.Create(quote.Id, null, QuoteStatus.Draft, createdBy, null, now));
         return quote;
     }
 
@@ -201,4 +261,38 @@ public sealed class QuoteLine
 
     /// <summary>Unit price times quantity, rounded to cents.</summary>
     public decimal NetPrice { get; private set; }
+}
+
+/// <summary>History entry of a quote: who changed the status and when. <see cref="ChangedBy"/> is null for system changes (expiry).</summary>
+public sealed class QuoteStateChange
+{
+    private QuoteStateChange()
+    {
+    }
+
+    public Guid Id { get; private set; }
+
+    public Guid QuoteId { get; private set; }
+
+    /// <summary>Null for the creation entry.</summary>
+    public QuoteStatus? FromStatus { get; private set; }
+
+    public QuoteStatus ToStatus { get; private set; }
+
+    public Guid? ChangedBy { get; private set; }
+
+    public DateTimeOffset ChangedAt { get; private set; }
+
+    public string? Note { get; private set; }
+
+    internal static QuoteStateChange Create(Guid quoteId, QuoteStatus? from, QuoteStatus to, Guid? changedBy, string? note, DateTimeOffset at) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        QuoteId = quoteId,
+        FromStatus = from,
+        ToStatus = to,
+        ChangedBy = changedBy,
+        ChangedAt = at,
+        Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+    };
 }
