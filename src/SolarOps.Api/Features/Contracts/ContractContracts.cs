@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SolarOps.Api.Features.Components;
+using SolarOps.Api.Features.Installations;
 
 namespace SolarOps.Api.Features.Contracts;
 
@@ -8,6 +9,37 @@ public sealed record CreateContractRequest
 {
     [Required]
     public Guid? QuoteId { get; init; }
+}
+
+/// <summary>Payload for <c>POST /api/contracts/{id}/sign</c>.</summary>
+public sealed record SignContractRequest
+{
+    /// <summary>Supply point (odberné miesto) of the installation that the signature starts.</summary>
+    [Required]
+    public Guid? SupplyPointId { get; init; }
+
+    /// <summary>Date of the signature; defaults to today (UTC) and must not be in the future.</summary>
+    public DateOnly? SignedOn { get; init; }
+
+    /// <summary>Name of the created installation; defaults to "Inštalácia" plus the contract number.</summary>
+    [MaxLength(Installation.NameMaxLength)]
+    public string? InstallationName { get; init; }
+}
+
+/// <summary>Payload for <c>POST /api/contracts/{id}/deposit/pay</c>.</summary>
+public sealed record RecordDepositRequest
+{
+    /// <summary>Paid amount in EUR: greater than 0, at most the contract total, at most two decimals.</summary>
+    [Required]
+    public decimal? Amount { get; init; }
+
+    /// <summary>Date of payment; defaults to today (UTC) and must not be in the future.</summary>
+    public DateOnly? PaidOn { get; init; }
+}
+
+public sealed record ContractAuditEntryResponse(ContractAction Action, Guid PerformedBy, DateTimeOffset PerformedAt, string? Details)
+{
+    public static ContractAuditEntryResponse FromEntity(ContractAuditEntry e) => new(e.Action, e.PerformedBy, e.PerformedAt, e.Details);
 }
 
 public sealed record ContractLineResponse(
@@ -30,6 +62,11 @@ public sealed record ContractResponse(
     Guid CustomerId,
     Guid QuoteId,
     ContractStatus Status,
+    DateOnly? SignedOn,
+    Guid? InstallationId,
+    DepositStatus DepositStatus,
+    decimal? DepositPaidAmount,
+    DateOnly? DepositPaidOn,
     decimal VatRatePercent,
     string Currency,
     IReadOnlyList<ContractLineResponse> Lines,
@@ -46,6 +83,11 @@ public sealed record ContractResponse(
         c.CustomerId,
         c.QuoteId,
         c.Status,
+        c.SignedOn,
+        c.InstallationId,
+        c.DepositStatus,
+        c.DepositPaidAmount,
+        c.DepositPaidOn,
         c.VatRatePercent,
         "EUR",
         c.Lines.OrderBy(l => l.Position).Select(ContractLineResponse.FromEntity).ToList(),
