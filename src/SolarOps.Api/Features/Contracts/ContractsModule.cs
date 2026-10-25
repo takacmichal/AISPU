@@ -5,7 +5,7 @@ using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Contracts;
 
-/// <summary>Contracts made from accepted quotes (#79): <c>/api/contracts</c>.</summary>
+/// <summary>Contracts made from accepted quotes (#79) with signature and deposit (#81): <c>/api/contracts</c>.</summary>
 public sealed class ContractsModule : IModule
 {
     internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator];
@@ -36,6 +36,31 @@ public sealed class ContractsModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
+        group.MapPost("/{id:guid}/sign", SignAsync)
+            .WithName("SignContract")
+            .WithSummary("Record the signature (Draft to Signed) and create the installation")
+            .WithDescription("Needs the supply point of the installation. The installation starts in state Planned; "
+                + "it cannot move to ComponentsOrdered until the deposit is paid. Only a draft contract can be signed (409 otherwise).")
+            .WithValidation<SignContractRequest>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapPost("/{id:guid}/deposit/pay", RecordDepositAsync)
+            .WithName("RecordContractDeposit")
+            .WithSummary("Record the paid deposit of a signed contract")
+            .WithDescription("Only a signed contract; the deposit can be recorded once (409 otherwise). Amount is in EUR, at most the contract total.")
+            .WithValidation<RecordDepositRequest>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapGet("/{id:guid}/audit", AuditAsync)
+            .WithName("GetContractAudit")
+            .WithSummary("Audit trail of the contract (created, signed, deposit paid), oldest first")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+
         group.MapGet("/", ListAsync)
             .WithName("ListContracts")
             .WithSummary("List contracts")
@@ -55,4 +80,13 @@ public sealed class ContractsModule : IModule
     internal static async Task<Ok<IReadOnlyList<ContractResponse>>> ListAsync(
         IContractService service, CancellationToken ct, Guid? customerId = null, Guid? quoteId = null, ContractStatus? status = null) =>
         TypedResults.Ok(await service.ListAsync(customerId, quoteId, status, ct));
+
+    internal static async Task<Ok<ContractResponse>> SignAsync(Guid id, SignContractRequest request, IContractService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.SignAsync(id, request, ct));
+
+    internal static async Task<Ok<ContractResponse>> RecordDepositAsync(Guid id, RecordDepositRequest request, IContractService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.RecordDepositAsync(id, request, ct));
+
+    internal static async Task<Ok<IReadOnlyList<ContractAuditEntryResponse>>> AuditAsync(Guid id, IContractService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.AuditAsync(id, ct));
 }

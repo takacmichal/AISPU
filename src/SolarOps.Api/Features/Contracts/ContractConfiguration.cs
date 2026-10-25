@@ -15,6 +15,8 @@ internal sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
         builder.Property(c => c.Sequence).UseSequence("contract_numbers");
         builder.Ignore(c => c.Number);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.DepositStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.DepositPaidAmount).HasPrecision(16, 2);
         builder.Property(c => c.VatRatePercent).HasPrecision(5, 2);
         builder.Property(c => c.NetTotal).HasPrecision(16, 2);
         builder.Property(c => c.VatTotal).HasPrecision(16, 2);
@@ -30,6 +32,28 @@ internal sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
             .HasForeignKey(l => l.ContractId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(c => c.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(c => c.AuditEntries)
+            .WithOne()
+            .HasForeignKey(e => e.ContractId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(c => c.AuditEntries).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Optimistic concurrency, so a double submit of sign or deposit cannot be applied twice.
+        builder.Property<uint>("xmin").IsRowVersion();
+    }
+}
+
+internal sealed class ContractAuditEntryConfiguration : IEntityTypeConfiguration<ContractAuditEntry>
+{
+    public void Configure(EntityTypeBuilder<ContractAuditEntry> builder)
+    {
+        builder.ToTable("contract_audit_entries");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Action).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.Details).HasMaxLength(ContractAuditEntry.DetailsMaxLength);
+        builder.HasIndex(e => new { e.ContractId, e.PerformedAt });
     }
 }
 
