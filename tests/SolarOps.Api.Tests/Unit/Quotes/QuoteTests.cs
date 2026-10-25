@@ -96,4 +96,99 @@ public sealed class QuoteTests
 
         Assert.Contains("VatRatePercent", ex.Errors.Keys);
     }
+
+    private static Quote Draft() => Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now);
+
+    [Fact]
+    public void Create_RecordsInitialHistoryEntry()
+    {
+        var change = Assert.Single(Draft().StateChanges);
+
+        Assert.Null(change.FromStatus);
+        Assert.Equal(QuoteStatus.Draft, change.ToStatus);
+        Assert.Equal(UserId, change.ChangedBy);
+    }
+
+    [Fact]
+    public void Send_SetsValidityAndStatus_AndAppendsHistory()
+    {
+        var quote = Draft();
+
+        quote.Send(14, UserId, "Odoslané e-mailom", Now.AddHours(1));
+
+        Assert.Equal(QuoteStatus.Sent, quote.Status);
+        Assert.Equal(Now.AddHours(1).AddDays(14), quote.ValidUntil);
+        Assert.Equal(2, quote.StateChanges.Count);
+        Assert.Equal("Odoslané e-mailom", quote.StateChanges[1].Note);
+    }
+
+    [Theory]
+    [InlineData(QuoteStatus.Accepted)]
+    [InlineData(QuoteStatus.Rejected)]
+    [InlineData(QuoteStatus.Expired)]
+    public void FinalStates_AllowNoTransition(QuoteStatus final)
+    {
+        var quote = Draft();
+        quote.Send(30, UserId, null, Now);
+        switch (final)
+        {
+            case QuoteStatus.Accepted: quote.Accept(UserId, null, Now); break;
+            case QuoteStatus.Rejected: quote.Reject(UserId, null, Now); break;
+            default: quote.Expire(Now.AddDays(31)); break;
+        }
+
+        Assert.Empty(quote.AllowedTransitions);
+        Assert.Throws<DomainException>(() => quote.Send(30, UserId, null, Now));
+        Assert.Throws<DomainException>(() => quote.Accept(UserId, null, Now));
+        Assert.Throws<DomainException>(() => quote.Reject(UserId, null, Now));
+        Assert.Throws<DomainException>(() => quote.Expire(Now));
+    }
+
+    [Fact]
+    public void Draft_CannotBeAcceptedRejectedOrExpired()
+    {
+        var quote = Draft();
+
+        Assert.Throws<DomainException>(() => quote.Accept(UserId, null, Now));
+        Assert.Throws<DomainException>(() => quote.Reject(UserId, null, Now));
+        Assert.Throws<DomainException>(() => quote.Expire(Now));
+        Assert.Equal(QuoteStatus.Draft, quote.Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(366)]
+    public void Send_InvalidValidity_Throws_AndKeepsDraft(int days)
+    {
+        var quote = Draft();
+
+        Assert.Throws<RequestValidationException>(() => quote.Send(days, UserId, null, Now));
+        Assert.Equal(QuoteStatus.Draft, quote.Status);
+        Assert.Null(quote.ValidUntil);
+    }
+
+    [Fact]
+    public void IsOverdue_TrueFromValidUntilOnwards_OnlyForSentQuotes()
+    {
+        var quote = Draft();
+        Assert.False(quote.IsOverdue(Now.AddYears(1)));
+
+        quote.Send(10, UserId, null, Now);
+
+        Assert.False(quote.IsOverdue(Now.AddDays(10).AddTicks(-1)));
+        Assert.True(quote.IsOverdue(Now.AddDays(10)));
+    }
+
+    [Fact]
+    public void Expire_IsASystemChangeWithoutUser()
+    {
+        var quote = Draft();
+        quote.Send(1, UserId, null, Now);
+
+        quote.Expire(Now.AddDays(1));
+
+        var last = quote.StateChanges[^1];
+        Assert.Equal(QuoteStatus.Expired, quote.Status);
+        Assert.Null(last.ChangedBy);
+    }
 }
