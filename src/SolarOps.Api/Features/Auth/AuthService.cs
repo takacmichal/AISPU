@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Persistence;
@@ -19,6 +20,12 @@ public interface IAuthService
 
     /// <summary>Revokes the session of the refresh token. Always succeeds, so unknown tokens are not revealed.</summary>
     Task LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Sends a reset link when the account exists; does nothing (and reveals nothing) otherwise.</summary>
+    Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Sets a new password and revokes all sessions. Throws a validation error for a bad token or password.</summary>
+    Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken);
 }
 
 internal sealed class AuthService(
@@ -27,6 +34,8 @@ internal sealed class AuthService(
     SignInManager<AppUser> signInManager,
     IAccessTokenService accessTokens,
     IRefreshTokenService refreshTokens,
+    IPasswordResetSender resetSender,
+    IOptions<PasswordResetOptions> resetOptions,
     ILogger<AuthService> logger) : IAuthService
 {
     // Hash verified for unknown e-mails so the response time does not reveal whether an account exists.
@@ -104,6 +113,48 @@ internal sealed class AuthService(
 
     public Task LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken) =>
         refreshTokens.RevokeSessionAsync(request.RefreshToken, RefreshTokenRevocationReason.Logout, cancellationToken);
+
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+        if (user?.Email is null)
+        {
+            return;
+        }
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var link = $"{resetOptions.Value.ResetUrl}?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+        await resetSender.SendAsync(user.Email, link, cancellationToken);
+        logger.LogInformation("Password reset requested for user {UserId}", user.Id);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+        if (user is null)
+        {
+            throw InvalidResetToken();
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.InvalidToken)))
+            {
+                throw InvalidResetToken();
+            }
+
+            throw new RequestValidationException(IdentityErrorMapping.ToValidationErrors(
+                result.Errors, passwordField: nameof(ResetPasswordRequest.NewPassword), otherField: nameof(ResetPasswordRequest.Token)));
+        }
+
+        await refreshTokens.RevokeAllAsync(user.Id, RefreshTokenRevocationReason.PasswordReset, cancellationToken);
+        logger.LogInformation("Password reset for user {UserId}", user.Id);
+    }
+
+    // Same error for an unknown e-mail as for a bad token, so existence is not revealed.
+    private static RequestValidationException InvalidResetToken() =>
+        new(nameof(ResetPasswordRequest.Token), "Invalid or expired token.");
 
     private async Task<TokenResponse> IssueTokensAsync(AppUser user, CancellationToken cancellationToken)
     {

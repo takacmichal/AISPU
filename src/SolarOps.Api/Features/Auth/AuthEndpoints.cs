@@ -42,7 +42,37 @@ internal static class AuthEndpoints
             .AllowAnonymous()
             .WithValidation<RefreshTokenRequest>();
 
+        group.MapPost("/forgot-password", ForgotPasswordAsync)
+            .WithName("ForgotPassword")
+            .WithSummary("Request a password reset link by e-mail")
+            .WithDescription("Always returns 202, whether or not the e-mail belongs to an account. "
+                + $"The link is valid for {PasswordResetOptions.TokenLifetime.TotalHours:0} hour.")
+            .AllowAnonymous()
+            .WithValidation<ForgotPasswordRequest>();
+
+        group.MapPost("/reset-password", ResetPasswordAsync)
+            .WithName("ResetPassword")
+            .WithSummary("Set a new password with the token from the reset link")
+            .WithDescription("Unknown e-mail, wrong or expired token all return the same 400. A new password that "
+                + "violates the policy returns 400 on newPassword. On success all sessions (refresh tokens) are revoked.")
+            .AllowAnonymous()
+            .WithValidation<ResetPasswordRequest>();
+
         return endpoints;
+    }
+
+    internal static async Task<Accepted> ForgotPasswordAsync(
+        ForgotPasswordRequest request, IAuthService auth, CancellationToken cancellationToken)
+    {
+        await auth.ForgotPasswordAsync(request, cancellationToken);
+        return TypedResults.Accepted((string?)null);
+    }
+
+    internal static async Task<NoContent> ResetPasswordAsync(
+        ResetPasswordRequest request, IAuthService auth, CancellationToken cancellationToken)
+    {
+        await auth.ResetPasswordAsync(request, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     internal static async Task<Created<UserResponse>> RegisterAsync(
