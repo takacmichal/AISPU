@@ -27,6 +27,14 @@ internal sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
             .HasForeignKey(l => l.QuoteId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(q => q.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(q => q.StateChanges)
+            .WithOne()
+            .HasForeignKey(c => c.QuoteId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(q => q.StateChanges).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Ignore(q => q.AllowedTransitions);
+        builder.HasIndex(q => new { q.Status, q.ValidUntil });
     }
 }
 
@@ -47,5 +55,19 @@ internal sealed class QuoteLineConfiguration : IEntityTypeConfiguration<QuoteLin
 
         // Deliberately no foreign key to the catalog: the line is a snapshot and must outlive catalog changes.
         builder.HasIndex(l => new { l.QuoteId, l.Position }).IsUnique();
+    }
+}
+
+internal sealed class QuoteStateChangeConfiguration : IEntityTypeConfiguration<QuoteStateChange>
+{
+    public void Configure(EntityTypeBuilder<QuoteStateChange> builder)
+    {
+        builder.ToTable("quote_state_changes");
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.Property(c => c.FromStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.ToStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.Note).HasMaxLength(Quote.NoteMaxLength);
+        builder.HasIndex(c => new { c.QuoteId, c.ChangedAt });
     }
 }

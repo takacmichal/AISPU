@@ -71,6 +71,8 @@ public sealed record QuoteResponse(
     Guid Id,
     Guid CustomerId,
     QuoteStatus Status,
+    IReadOnlyList<QuoteStatus> AllowedTransitions,
+    DateTimeOffset? ValidUntil,
     decimal VatRatePercent,
     string Currency,
     string? Note,
@@ -86,6 +88,8 @@ public sealed record QuoteResponse(
         q.Id,
         q.CustomerId,
         q.Status,
+        q.AllowedTransitions,
+        q.ValidUntil,
         q.VatRatePercent,
         "EUR",
         q.Note,
@@ -96,4 +100,30 @@ public sealed record QuoteResponse(
         q.CreatedBy,
         q.CreatedAt,
         q.UpdatedAt);
+}
+
+/// <summary>Optional body of <c>POST /api/quotes/{id}/send</c>.</summary>
+public sealed record SendQuoteRequest
+{
+    /// <summary>How long the quote is valid (1 to 365 days); defaults to <c>Quotes:DefaultValidityDays</c> (30).</summary>
+    public int? ValidityDays { get; init; }
+
+    public string? Note { get; init; }
+}
+
+/// <summary>Optional body of <c>accept</c> and <c>reject</c>.</summary>
+public sealed record QuoteNoteRequest
+{
+    public string? Note { get; init; }
+}
+
+public sealed record QuoteStateChangeResponse(
+    QuoteStatus? FromStatus,
+    QuoteStatus ToStatus,
+    Guid? ChangedBy,
+    DateTimeOffset ChangedAt,
+    string? Note)
+{
+    public static QuoteStateChangeResponse FromEntity(QuoteStateChange c) =>
+        new(c.FromStatus, c.ToStatus, c.ChangedBy, c.ChangedAt, c.Note);
 }
