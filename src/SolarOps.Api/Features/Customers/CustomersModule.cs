@@ -17,6 +17,7 @@ public sealed class CustomersModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ICustomerScope, CustomerScope>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

@@ -9,8 +9,8 @@ namespace SolarOps.Api.Features.Installations;
 /// <summary>Role sets of the Installations module (#207).</summary>
 public static class InstallationRoles
 {
-    /// <summary>Back office and field staff may read installations.</summary>
-    public static readonly string[] Read = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician];
+    /// <summary>Back office and field staff read all installations; a customer only its own (see <c>ICustomerScope</c>).</summary>
+    public static readonly string[] Read = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer];
 
     /// <summary>Planning an installation (BPMN #65, lane Obchod/Operátor, story #82 Projektant).</summary>
     public static readonly string[] Plan = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer];

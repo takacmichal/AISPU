@@ -68,7 +68,10 @@ public sealed class InstallationEndpointsTests(PostgresFixture postgres) : IDisp
         using var technician = _factory.CreateApiClient(Guid.CreateVersion7(), Roles.Technician);
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/installations")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/installations")).StatusCode);
+        // A customer may read, but only its own installations (see CustomerOwnDataTests); it never plans or changes them.
+        Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/installations")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await customer.PostJsonAsync("/api/installations", InstallationsTestData.NewInstallationRequest())).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await technician.GetAsync("/api/installations")).StatusCode);
         // Technicians do field work but do not plan installations.
         Assert.Equal(HttpStatusCode.Forbidden,

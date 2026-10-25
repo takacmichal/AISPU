@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using SolarOps.Api.Features.Contracts;
+using SolarOps.Api.Features.Customers;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
@@ -26,13 +27,20 @@ public interface IInstallationService
     Task<InstallationDetailResponse> TransitionAsync(Guid id, InstallationTransitionRequest request, CancellationToken ct);
 }
 
-internal sealed class InstallationService(AppDbContext db, ICurrentUser currentUser, TimeProvider time) : IInstallationService
+internal sealed class InstallationService(AppDbContext db, ICurrentUser currentUser, ICustomerScope customerScope, TimeProvider time) : IInstallationService
 {
     private const string UniqueViolation = "23505";
 
     public async Task<IReadOnlyList<InstallationResponse>> ListAsync(InstallationQuery query, CancellationToken ct)
     {
         var installations = db.Set<Installation>().AsNoTracking();
+
+        var scope = await customerScope.GetAsync(ct);
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            installations = installations.Where(x => x.CustomerId == own);
+        }
 
         if (query.State is { } state)
         {
@@ -69,8 +77,16 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
 
     public async Task<InstallationDetailResponse> GetAsync(Guid id, CancellationToken ct)
     {
-        var installation = await db.Set<Installation>()
-            .AsNoTracking()
+        var scope = await customerScope.GetAsync(ct);
+        var visible = db.Set<Installation>().AsNoTracking();
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            visible = visible.Where(x => x.CustomerId == own);
+        }
+
+        // Another customer's installation looks exactly like a missing one.
+        var installation = await visible
             .Include(x => x.StateChanges)
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException("Installation", id);
