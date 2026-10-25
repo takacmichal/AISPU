@@ -103,6 +103,13 @@ public sealed record CreateCustomerRequest : CustomerRequest;
 /// <summary>Payload for <c>PUT /api/customers/{id}</c> (full replacement of the editable data).</summary>
 public sealed record UpdateCustomerRequest : CustomerRequest;
 
+/// <summary>Page of customers returned by <c>GET /api/customers</c>.</summary>
+public sealed record CustomerListResponse(
+    IReadOnlyList<CustomerResponse> Items,
+    int Page,
+    int PageSize,
+    int TotalCount);
+
 /// <summary>Customer returned by the API.</summary>
 public sealed record CustomerResponse(
     Guid Id,
