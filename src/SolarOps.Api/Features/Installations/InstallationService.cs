@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using SolarOps.Api.Features.Contracts;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
@@ -151,9 +152,27 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
     {
         var userId = currentUser.RequireUserId();
         var installation = await LoadAsync(id, ct);
+        if (request.TargetState == InstallationState.ComponentsOrdered)
+        {
+            await EnsureDepositPaidAsync(installation.ContractId, ct);
+        }
+
         installation.TransitionTo(request.TargetState!.Value, userId, request.Note, time.GetUtcNow());
         await SaveAsync(ct);
         return InstallationDetailResponse.From(installation);
+    }
+
+    // Realization starts with ordering components. A contract that does not exist (installation created by hand) is not checked.
+    private async Task EnsureDepositPaidAsync(Guid contractId, CancellationToken ct)
+    {
+        var deposit = await db.Set<Contract>().AsNoTracking()
+            .Where(c => c.Id == contractId)
+            .Select(c => (DepositStatus?)c.DepositStatus)
+            .FirstOrDefaultAsync(ct);
+        if (deposit is { } status && status != DepositStatus.Paid)
+        {
+            throw new DomainException("Realization cannot start before the deposit of the contract is paid.");
+        }
     }
 
     private async Task<Installation> LoadAsync(Guid id, CancellationToken ct) =>
