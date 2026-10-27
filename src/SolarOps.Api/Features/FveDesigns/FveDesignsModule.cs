@@ -15,6 +15,8 @@ public sealed class FveDesignsModule : IModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        // Swap for a PVGIS / prediction-service client by registering another IYieldEstimator.
+        services.AddSingleton<IYieldEstimator, SimpleYieldEstimator>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -54,5 +56,27 @@ public sealed class FveDesignsModule : IModule
             .WithSummary("Set roof planes, consumption and location (SiteSurveyDone/InDesign → InDesign)")
             .WithValidation<UpdateDesignParametersRequest>()
             .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+
+        group.MapPost("/{id:guid}/configuration/preview", FveDesignVersionEndpoints.Preview)
+            .WithName("PreviewFveDesignConfiguration")
+            .WithSummary("Check panel/inverter compatibility and estimate annual yield without saving")
+            .WithValidation<ConfigureDesignRequest>()
+            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+
+        group.MapPost("/{id:guid}/versions", FveDesignVersionEndpoints.Save)
+            .WithName("SaveFveDesignVersion")
+            .WithSummary("Save the configuration as a new immutable version (400 when incompatible, 409 when the design is not InDesign)")
+            .WithValidation<ConfigureDesignRequest>()
+            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+
+        group.MapGet("/{id:guid}/versions", FveDesignVersionEndpoints.List)
+            .WithName("ListFveDesignVersions")
+            .WithSummary("List saved configuration versions, newest first")
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+
+        group.MapGet("/{id:guid}/versions/{number:int}", FveDesignVersionEndpoints.Get)
+            .WithName("GetFveDesignVersion")
+            .WithSummary("Get one saved configuration version")
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
     }
 }
