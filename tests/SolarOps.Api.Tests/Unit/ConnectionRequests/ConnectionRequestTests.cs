@@ -8,8 +8,8 @@ public sealed class ConnectionRequestTests
     private static readonly DateTimeOffset Now = new(2026, 10, 27, 8, 0, 0, TimeSpan.Zero);
     private static readonly Guid User = Guid.CreateVersion7();
 
-    private static AttachmentInput File(ConnectionRequestAttachmentKind kind) =>
-        new(kind, $"{kind}.pdf", "application/pdf", 1024);
+    private static AttachmentInput File(ConnectionRequestAttachmentKind kind, byte[]? content = null) =>
+        new(kind, $"{kind}.pdf", "application/pdf", content?.LongLength ?? 1024, content);
 
     private static readonly AttachmentInput[] Required =
     [
@@ -67,5 +67,72 @@ public sealed class ConnectionRequestTests
 
         Assert.Equal("SK1234567890123456", request.EicCode);
         Assert.Equal(3, request.Attachments.Count);
+    }
+
+    [Fact]
+    public void Create_WithContent_StoresBytesAndDerivesSize()
+    {
+        var content = "PDF content"u8.ToArray();
+        var request = New(attachments: [
+            File(ConnectionRequestAttachmentKind.SingleLineDiagram, content),
+            File(ConnectionRequestAttachmentKind.OwnerConsent),
+        ]);
+
+        var diagram = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.SingleLineDiagram);
+        Assert.True(diagram.HasContent);
+        Assert.Equal(content, diagram.Content);
+        Assert.Equal(content.LongLength, diagram.SizeBytes);
+
+        var consent = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.OwnerConsent);
+        Assert.False(consent.HasContent);
+        Assert.Null(consent.Content);
+        Assert.Equal(1024, consent.SizeBytes);
+    }
+
+    [Fact]
+    public void Update_ReplacesFieldsAndAttachments_AndRecalculatesType()
+    {
+        var request = New();
+        var content = "new diagram"u8.ToArray();
+
+        request.Update(
+            " SK9999999999999999 ",
+            12.5m,
+            10.8m,
+            32,
+            [
+                File(ConnectionRequestAttachmentKind.SingleLineDiagram, content),
+                File(ConnectionRequestAttachmentKind.OwnerConsent),
+                File(ConnectionRequestAttachmentKind.Datasheet),
+            ],
+            Now.AddHours(1));
+
+        Assert.Equal(ConnectionRequestState.Draft, request.State);
+        Assert.Equal(ConnectionRequestType.LargeSource, request.Type);
+        Assert.Equal("SK9999999999999999", request.EicCode);
+        Assert.Equal(12.5m, request.RatedAcPowerKw);
+        Assert.Equal(32, request.MainBreakerAmps);
+        Assert.Equal(3, request.Attachments.Count);
+        Assert.Contains(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.Datasheet);
+        Assert.Equal(Now.AddHours(1), request.UpdatedAt);
+        var diagram = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.SingleLineDiagram);
+        Assert.Equal(content, diagram.Content);
+    }
+
+    [Fact]
+    public void Update_WithoutRequiredAttachment_Throws_AndKeepsOriginalAttachments()
+    {
+        var request = New();
+
+        var ex = Assert.Throws<DomainException>(() => request.Update(
+            "SK1234567890123456",
+            8m,
+            10.8m,
+            25,
+            [File(ConnectionRequestAttachmentKind.SingleLineDiagram)],
+            Now.AddHours(1)));
+
+        Assert.Contains(nameof(ConnectionRequestAttachmentKind.OwnerConsent), ex.Message);
+        Assert.Equal(2, request.Attachments.Count);
     }
 }

@@ -15,6 +15,9 @@ internal sealed class ConnectionRequestConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
         builder.Property(x => x.State).HasConversion<string>().HasMaxLength(32);
 
+        // Optimistic concurrency, so two edits cannot overwrite each other.
+        builder.Property<uint>("xmin").IsRowVersion();
+
         // The installation is referenced by id only (modules do not share foreign keys); not unique, a rejected request may be followed by a new one.
         builder.HasIndex(x => x.InstallationId);
         builder.HasIndex(x => x.CustomerId);
@@ -38,6 +41,7 @@ internal sealed class ConnectionRequestAttachmentConfiguration : IEntityTypeConf
         builder.Property(x => x.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(x => x.FileName).HasMaxLength(ConnectionRequest.FileNameMaxLength).IsRequired();
         builder.Property(x => x.ContentType).HasMaxLength(ConnectionRequest.ContentTypeMaxLength).IsRequired();
+        builder.Property(x => x.HasContent).IsRequired();
         builder.HasIndex(x => x.ConnectionRequestId);
     }
 }

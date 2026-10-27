@@ -1,12 +1,15 @@
-# Connection requests (#85). Requires a JWT with role Admin/Operator/Sales (create) or any staff role (read).
+# Connection requests (#85). Requires a JWT with role Admin/Operator/Sales (create/update) or any staff role (read).
 # Port matches launchSettings.json (http profile).
+# Limits: 10 attachments, 5 MB each (contentBase64), request body up to ~70 MB. content type must be a bare
+# media type such as application/pdf (no parameters); downloads are served with X-Content-Type-Options: nosniff.
 @baseUrl = http://localhost:5080
 @token = paste-access-token-here
 @installationId = 00000000-0000-0000-0000-000000000000
 @connectionRequestId = 00000000-0000-0000-0000-000000000000
+@attachmentId = 00000000-0000-0000-0000-000000000000
 
 ### Create a connection request (state Draft); diagram and owner consent are required.
-### File content is not uploaded yet: only attachment metadata is stored.
+### Attachments may send base64 content (stored, downloadable) or only metadata (contentBase64 omitted).
 POST {{baseUrl}}/api/connection-requests
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -17,12 +20,45 @@ Content-Type: application/json
   "ratedAcPowerKw": 8,
   "mainBreakerAmps": 25,
   "attachments": [
-    { "kind": "SingleLineDiagram", "fileName": "schema.pdf", "contentType": "application/pdf", "sizeBytes": 120000 },
-    { "kind": "OwnerConsent", "fileName": "suhlas-vlastnika.pdf", "contentType": "application/pdf", "sizeBytes": 80000 },
+    {
+      "kind": "SingleLineDiagram",
+      "fileName": "schema.pdf",
+      "contentType": "application/pdf",
+      "contentBase64": "JVBERi0xLjQKJcfsj6IKMSAwIG9iago="
+    },
+    {
+      "kind": "OwnerConsent",
+      "fileName": "suhlas-vlastnika.pdf",
+      "contentType": "application/pdf",
+      "sizeBytes": 80000
+    },
     { "kind": "Datasheet", "fileName": "panel-datasheet.pdf", "contentType": "application/pdf", "sizeBytes": 450000 }
   ]
 }
 
+### List connection requests (filters: installationId, customerId, state)
+GET {{baseUrl}}/api/connection-requests?installationId={{installationId}}
+Authorization: Bearer {{token}}
+
 ### Get a connection request
 GET {{baseUrl}}/api/connection-requests/{{connectionRequestId}}
+Authorization: Bearer {{token}}
+
+### Replace the EIC, power, breaker and attachments of a Draft request
+PUT {{baseUrl}}/api/connection-requests/{{connectionRequestId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "eicCode": "24ZZS12345678901",
+  "ratedAcPowerKw": 12,
+  "mainBreakerAmps": 32,
+  "attachments": [
+    { "kind": "SingleLineDiagram", "fileName": "schema-v2.pdf", "contentType": "application/pdf", "sizeBytes": 120000 },
+    { "kind": "OwnerConsent", "fileName": "suhlas-vlastnika.pdf", "contentType": "application/pdf", "sizeBytes": 80000 }
+  ]
+}
+
+### Download an attachment (only when contentBase64 was sent)
+GET {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/attachments/{{attachmentId}}
 Authorization: Bearer {{token}}

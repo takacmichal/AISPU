@@ -26,6 +26,10 @@ Systém evidenciu žiadosti o pripojenie FVE k distribučnej sústave (ZSD, SSD,
 - Žiadateľ (zákazník alebo splnomocnená osoba), odberné miesto (EIC, adresa), typ zdroja `SmallSource` / `LargeSource` odvodený z **celkového menovitého AC výkonu meničov** (prah 10,8 kW, ZSD) [1].
 - Parametre zdroja: výkon, počet a typ meničov a panelov, hlavný istič odberného miesta (pri malom zdroji súvisí s istením do 16 A na fázu podľa vzorových zmlúv SSD a vývodovým ističom pri hlavnom ističi do 80 A, ZSD) [1][4].
 - Stav (#207): `Draft`, `Submitted`, `InfoRequested`, `Rejected`, `ContractOffered`, `ContractSigned`, `ContractSubmitted`, `Concluded`; dátum podania spúšťa lehoty.
+  - `Draft` zodpovedá stavu „Pripravená“ z ticketu #85: žiadosť je založená a majú k nej byť priložené podklady, ale ešte nebola podaná distribučke.
+  - Prílohy (`SingleLineDiagram`, `OwnerConsent`) sa v MVP ukladajú aj s obsahom priamo v databáze (max. 5 MB na súbor, telo požiadavky max. cca 70 MB). Metadatoví klienti môžu poslať len metadáta; ak je obsah uložený, dá sa stiahnuť cez `GET /api/connection-requests/{id}/attachments/{attachmentId}`.
+  - Súhlas vlastníka (`OwnerConsent`): ticket #85 ho vyžaduje pri každej žiadosti, tabuľka nižšie ho spomína len pri malom zdroji. Implementácia ho preto zatiaľ vyžaduje pri oboch typoch; definitívne rozhodnutie treba potvrdiť s tímom.
+  - Jedna inštalácia môže mať viac žiadostí v čase (napr. po zamietnutí vzniká nová), preto duplicitu neblokuje unikátny index.
 
 ### Zoznam príloh a lehôt
 

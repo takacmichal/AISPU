@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
@@ -27,15 +28,44 @@ public sealed class ConnectionRequestsModule : IModule
         group.MapPost("/", CreateAsync)
             .WithName("CreateConnectionRequest")
             .WithSummary("Create a connection request for an installation (state Draft)")
-            .WithDescription("Requires the single-line diagram and the owner's consent as attachments (metadata only, file storage is not defined yet). "
+            .WithDescription("Requires the single-line diagram and the owner's consent as attachments. "
+                + "Attachments may carry base64 content (stored and downloadable) or metadata only; "
+                + $"at most {ConnectionRequest.MaxAttachments} attachments of {ConnectionRequest.MaxAttachmentBytes / (1024 * 1024)} MB, "
+                + $"request body up to {ConnectionRequest.MaxRequestBodyBytes / (1024 * 1024)} MB. "
                 + "Type is SmallSource up to 10.8 kW rated AC power, otherwise LargeSource.")
             .WithValidation<CreateConnectionRequestRequest>()
+            // Without this the Kestrel default (~30 MB) would reject bodies that the per-attachment limits allow.
+            .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapGet("/", ListAsync)
+            .WithName("ListConnectionRequests")
+            .WithSummary("List connection requests")
+            .WithDescription("Filters: installationId, customerId, state. Newest first. A customer sees only its own requests.")
+            .ProducesValidationProblem()
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetConnectionRequest")
             .WithSummary("Get a connection request with its attachments")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+
+        group.MapPut("/{id:guid}", UpdateAsync)
+            .WithName("UpdateConnectionRequest")
+            .WithSummary("Replace the EIC, power, breaker and attachments of a Draft request")
+            .WithDescription("Only a request in state Draft can be edited; anything else gives 409. The installation stays the same.")
+            .WithValidation<UpdateConnectionRequestRequest>()
+            .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+
+        group.MapGet("/{id:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync)
+            .WithName("DownloadConnectionRequestAttachment")
+            .WithSummary("Download the content of one attachment")
+            .WithDescription("Only attachments sent with base64 content can be downloaded; metadata-only attachments give 404.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
     }
@@ -49,4 +79,25 @@ public sealed class ConnectionRequestsModule : IModule
 
     internal static async Task<Ok<ConnectionRequestResponse>> GetAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
         TypedResults.Ok(await service.GetAsync(id, ct));
+
+    internal static async Task<Ok<IReadOnlyList<ConnectionRequestResponse>>> ListAsync(
+        IConnectionRequestService service,
+        CancellationToken ct,
+        Guid? installationId = null,
+        Guid? customerId = null,
+        ConnectionRequestState? state = null) =>
+        TypedResults.Ok(await service.ListAsync(installationId, customerId, state, ct));
+
+    internal static async Task<Ok<ConnectionRequestResponse>> UpdateAsync(
+        Guid id, UpdateConnectionRequestRequest request, IConnectionRequestService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.UpdateAsync(id, request, ct));
+
+    internal static async Task<IResult> DownloadAttachmentAsync(
+        Guid id, Guid attachmentId, IConnectionRequestService service, HttpContext http, CancellationToken ct)
+    {
+        var file = await service.DownloadAttachmentAsync(id, attachmentId, ct);
+        // The content type comes from the client; never let the browser sniff something else into executing it.
+        http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return Results.File(file.Content, file.ContentType, file.FileName);
+    }
 }

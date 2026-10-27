@@ -1,4 +1,8 @@
 using System.Net;
+using System.Text;
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SolarOps.Api.Features.ConnectionRequests;
 using SolarOps.Api.Features.Customers;
@@ -35,6 +39,16 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
             new AttachmentRequest { Kind = ConnectionRequestAttachmentKind.OwnerConsent, FileName = "suhlas.pdf", ContentType = "application/pdf", SizeBytes = 80_000 },
         ],
     };
+
+    private static AttachmentRequest WithContent(
+        ConnectionRequestAttachmentKind kind, string fileName, string content = "PDF")
+        => new()
+        {
+            Kind = kind,
+            FileName = fileName,
+            ContentType = "application/pdf",
+            ContentBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(content)),
+        };
 
     private static async Task<InstallationResponse> NewInstallationAsync(HttpClient client, Guid? customerId = null)
     {
@@ -126,6 +140,44 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
     }
 
     [Fact]
+    public async Task Create_WithInvalidContentType_Returns400()
+    {
+        using var client = Sales();
+        var installation = await NewInstallationAsync(client);
+        var request = NewRequest(installation.Id);
+
+        var response = await client.PostJsonAsync("/api/connection-requests", request with
+        {
+            Attachments =
+            [
+                request.Attachments![0] with { ContentType = "not a media type" },
+                request.Attachments[1],
+            ],
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("ContentType", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public void CreateAndUpdate_DeclareRequestBodyLimit()
+    {
+        var limits = _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.RoutePattern.RawText?.Contains("connection-requests", StringComparison.Ordinal) == true)
+            .Select(e => (
+                Methods: e.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods ?? [],
+                Limit: e.Metadata.GetMetadata<IRequestSizeLimitMetadata>()))
+            .Where(x => x.Limit is not null)
+            .ToList();
+
+        Assert.Equal(2, limits.Count);
+        Assert.All(limits, x => Assert.Equal(ConnectionRequest.MaxRequestBodyBytes, x.Limit!.MaxRequestBodySize));
+        Assert.Contains(limits, x => x.Methods.Contains("POST"));
+        Assert.Contains(limits, x => x.Methods.Contains("PUT"));
+    }
+
+    [Fact]
     public async Task Get_ReturnsRequest_AndMissingIs404()
     {
         using var client = Sales();
@@ -140,6 +192,104 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
         Assert.Equal(created.Id, body!.Id);
         Assert.Equal(2, body.Attachments.Count);
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_WithAttachmentContent_DetailHasDownloadUrl_AndDownloadReturnsBytes()
+    {
+        using var client = Sales();
+        var installation = await NewInstallationAsync(client);
+        var request = NewRequest(installation.Id) with
+        {
+            Attachments =
+            [
+                WithContent(ConnectionRequestAttachmentKind.SingleLineDiagram, "schema.pdf"),
+                new AttachmentRequest
+                {
+                    Kind = ConnectionRequestAttachmentKind.OwnerConsent,
+                    FileName = "suhlas.pdf",
+                    ContentType = "application/pdf",
+                    SizeBytes = 80_000,
+                },
+            ],
+        };
+
+        var created = await (await client.PostJsonAsync("/api/connection-requests", request))
+            .ReadJsonAsync<ConnectionRequestResponse>();
+
+        var diagram = Assert.Single(created!.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.SingleLineDiagram);
+        Assert.True(diagram.HasContent);
+        Assert.NotNull(diagram.DownloadUrl);
+        Assert.Equal(3, diagram.SizeBytes);
+        var consent = Assert.Single(created.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.OwnerConsent);
+        Assert.False(consent.HasContent);
+        Assert.Null(consent.DownloadUrl);
+
+        using var download = await client.GetAsync(diagram.DownloadUrl);
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        Assert.Equal("application/pdf", download.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("schema.pdf", download.Content.Headers.ContentDisposition?.ToString());
+        Assert.Equal("nosniff", download.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("PDF", Encoding.UTF8.GetString(await download.Content.ReadAsByteArrayAsync()));
+
+        using var noContent = await client.GetAsync($"/api/connection-requests/{created.Id}/attachments/{consent.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, noContent.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_ReplacesFieldsAndAttachments_WhileDraft()
+    {
+        using var client = Sales();
+        var installation = await NewInstallationAsync(client);
+        var created = await (await client.PostJsonAsync("/api/connection-requests", NewRequest(installation.Id)))
+            .ReadJsonAsync<ConnectionRequestResponse>();
+
+        var update = new UpdateConnectionRequestRequest
+        {
+            EicCode = "24ZZS99999999999",
+            RatedAcPowerKw = 12.5m,
+            MainBreakerAmps = 32,
+            Attachments =
+            [
+                WithContent(ConnectionRequestAttachmentKind.SingleLineDiagram, "schema-v2.pdf"),
+                WithContent(ConnectionRequestAttachmentKind.OwnerConsent, "suhlas-v2.pdf"),
+                WithContent(ConnectionRequestAttachmentKind.Datasheet, "panel.pdf"),
+            ],
+        };
+
+        var updated = await (await client.PutJsonAsync($"/api/connection-requests/{created!.Id}", update))
+            .ReadJsonAsync<ConnectionRequestResponse>();
+
+        Assert.Equal(created.Id, updated!.Id);
+        Assert.Equal(ConnectionRequestState.Draft, updated.State);
+        Assert.Equal(ConnectionRequestType.LargeSource, updated.Type);
+        Assert.Equal("24ZZS99999999999", updated.EicCode);
+        Assert.Equal(12.5m, updated.RatedAcPowerKw);
+        Assert.Equal(32, updated.MainBreakerAmps);
+        Assert.Equal(3, updated.Attachments.Count);
+        Assert.Contains(updated.Attachments, a => a.FileName == "schema-v2.pdf");
+        Assert.DoesNotContain(updated.Attachments, a => a.FileName == "schema.pdf");
+        Assert.All(updated.Attachments, a => Assert.True(a.HasContent));
+    }
+
+    [Fact]
+    public async Task List_FiltersByInstallationAndState()
+    {
+        using var client = Sales();
+        var first = await NewInstallationAsync(client);
+        var second = await NewInstallationAsync(client);
+        var firstRequest = await (await client.PostJsonAsync("/api/connection-requests", NewRequest(first.Id)))
+            .ReadJsonAsync<ConnectionRequestResponse>();
+        await client.PostJsonAsync("/api/connection-requests", NewRequest(second.Id));
+
+        var byInstallation = await client.GetJsonAsync<List<ConnectionRequestResponse>>(
+            $"/api/connection-requests?installationId={first.Id}");
+        var draft = await client.GetJsonAsync<List<ConnectionRequestResponse>>("/api/connection-requests?state=Draft");
+        var badState = await client.GetAsync("/api/connection-requests?state=Nonsense");
+
+        Assert.Equal([firstRequest!.Id], byInstallation.Select(x => x.Id));
+        Assert.Equal(2, draft.Count);
+        Assert.Equal(HttpStatusCode.BadRequest, badState.StatusCode);
     }
 
     [Fact]
@@ -175,5 +325,8 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
 
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync($"/api/connection-requests/{ownRequest!.Id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync($"/api/connection-requests/{foreignRequest!.Id}")).StatusCode);
+
+        var list = await customer.GetJsonAsync<List<ConnectionRequestResponse>>("/api/connection-requests");
+        Assert.Equal([ownRequest.Id], list.Select(x => x.Id));
     }
 }
