@@ -114,7 +114,8 @@ public sealed class FveDesignVersionEndpointsTests(PostgresFixture postgres) : I
         Assert.Equal(first.Id, refetched.Id);
         Assert.Equal(first.PanelCount, refetched.PanelCount);
         Assert.Equal(first.AnnualYieldKwh, refetched.AnnualYieldKwh);
-        Assert.Equal(first.CreatedAt, refetched.CreatedAt);
+        // The POST response carries the in-memory value (100 ns ticks); PostgreSQL stores timestamptz in microseconds.
+        Assert.Equal(first.CreatedAt, refetched.CreatedAt, TimeSpan.FromMilliseconds(1));
 
         var list = await client.GetJsonAsync<List<FveDesignVersionResponse>>($"/api/designs/{design.Id}/versions");
         Assert.Equal([2, 1], list.Select(v => v.VersionNumber));
