@@ -15,7 +15,7 @@ Všetko navrhované.
 | `FveDesign` | `Requested`, `SiteSurveyDone`, `Infeasible`, `InDesign`, `Rejected`, `Approved` | `Requested → SiteSurveyDone → InDesign → Approved`; `InDesign → InDesign` (prepracovanie); `SiteSurveyDone → Infeasible` (#76 až #78). |
 | `Contract` | `Draft`, `PdfGenerated`, `Sent`, `Signed`, `Expired`, `Cancelled` | `Draft → PdfGenerated → Sent → Signed`; `Sent → Expired` (lehota na podpis) (#79 až #81). |
 | `DepositPayment` (súčasť `Contract`) | `NotInvoiced`, `Invoiced`, `Paid`, `Overdue` | `NotInvoiced → Invoiced → Paid`; `Invoiced → Overdue` (#81). |
-| `ConnectionRequest` | `Ready`, `Submitted`, `InfoRequested`, `Rejected`, `ContractOffered`, `ContractSigned`, `ContractSubmitted`, `Concluded` | `Ready → Submitted` až `Concluded`; povinné prílohy schéma a súhlas vlastníka (#85). Typ žiadosti: `SmallSource` (≤ 10,8 kW) alebo `LargeSource` (posúdenie, štúdia). Lehoty 10 pracovných dní / 30 dní (#85 až #87). |
+| `ConnectionRequest` | `Draft`, `Submitted`, `InfoRequested`, `Rejected`, `ContractOffered`, `ContractSigned`, `ContractSubmitted`, `Concluded` | Typ žiadosti: `SmallSource` (≤ 10,8 kW) alebo `LargeSource` (posúdenie, štúdia). Lehoty 10 pracovných dní / 30 dní (#85 až #87). |
 | `Installation` | `Planned`, `ComponentsOrdered`, `ComponentsReceived`, `Mounting`, `MountingDone`, `Inspection`, `InspectionFailed`, `InspectionPassed`, `Commissioned`, `HandedOver` | Pozri tabuľky procesov #65 a #66 (#82, #88 až #93). |
 | `Component` (panel, invertor) | `Ordered`, `Received`, `Installed`, `Faulty`, `Replaced` | Sériové čísla (#83, #84, #128). |
 | `ConnectionMilestone` (súčasť `Installation`) | `FunctionalTestDone`, `MeterInstalled`, `ConnectionNotified` | Len pre väčší zdroj a podľa distribučky (#92). |
@@ -67,10 +67,10 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 
 | Úloha | Lane | Entita → stav | Endpoint (navrhovaný) | Story |
 |---|---|---|---|---|
-| Pripraviť podklady pre pripojenie | O | `ConnectionRequest` → `Ready` (povinné prílohy) | `POST /api/connection-requests` | #85, #217 |
+| Pripraviť podklady pre pripojenie | O | `ConnectionRequest` → `Draft` | `POST /api/connection-requests` | #85, #217 |
 | Brána "Výkon ≤ 10,8 kW?" | P | `ConnectionRequest.Type` = `SmallSource` / `LargeSource` | (súčasť `POST /api/connection-requests`, pole `type` odvodené z výkonu) | #85 |
-| Pripraviť žiadosť pre malý zdroj (online) | P | `ConnectionRequest` (`Ready`, typ `SmallSource`) | `PUT /api/connection-requests/{id}` | #85 |
-| Pripraviť žiadosť pre väčší zdroj (posúdenie, štúdia) | P | `ConnectionRequest` (`Ready`, typ `LargeSource`) | `PUT /api/connection-requests/{id}` | #85 |
+| Pripraviť žiadosť pre malý zdroj (online) | P | `ConnectionRequest` (`Draft`, typ `SmallSource`) | `PUT /api/connection-requests/{id}` | #85 |
+| Pripraviť žiadosť pre väčší zdroj (posúdenie, štúdia) | P | `ConnectionRequest` (`Draft`, typ `LargeSource`) | `PUT /api/connection-requests/{id}` | #85 |
 | Podať žiadosť distribučke | P | `ConnectionRequest` → `Submitted` (začnú plynúť lehoty) | `POST /api/connection-requests/{id}/submit` | #85, #86 |
 | Rozhodnutie distribučky (catch) + brána "Obsah rozhodnutia?" | P | `ConnectionRequest` → `InfoRequested` / `Rejected` / `ContractOffered` | `POST /api/connection-requests/{id}/decision` (simulácia distribučky) | #86, #87 |
 | Doplniť a opraviť žiadosť | O | `ConnectionRequest` → `Submitted` (z `InfoRequested`) | `POST /api/connection-requests/{id}/resubmit` | #86 |

@@ -1,4 +1,3 @@
-using System.Text;
 using SolarOps.Api.Features.ConnectionRequests;
 using SolarOps.Api.Infrastructure.Errors;
 
@@ -6,162 +5,134 @@ namespace SolarOps.Api.Tests.Unit.ConnectionRequests;
 
 public sealed class ConnectionRequestTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 20, 9, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 10, 27, 8, 0, 0, TimeSpan.Zero);
     private static readonly Guid User = Guid.CreateVersion7();
 
-    private static ConnectionAttachmentData Attachment(
-        ConnectionAttachmentKind kind, string fileName = "podklad.pdf", string content = "PDF")
-        => new(kind, fileName, "application/pdf", Encoding.UTF8.GetBytes(content));
+    private static AttachmentInput File(ConnectionRequestAttachmentKind kind, byte[]? content = null) =>
+        new(kind, $"{kind}.pdf", "application/pdf", content?.LongLength ?? 1024, content);
 
-    private static List<ConnectionAttachmentData> CompleteAttachments() =>
+    private static readonly AttachmentInput[] Required =
     [
-        Attachment(ConnectionAttachmentKind.SingleLineDiagram, "schema.pdf"),
-        Attachment(ConnectionAttachmentKind.OwnerConsent, "suhlas.pdf"),
+        File(ConnectionRequestAttachmentKind.SingleLineDiagram),
+        File(ConnectionRequestAttachmentKind.OwnerConsent),
     ];
 
-    private static ConnectionRequest NewRequest(
-        decimal powerKw = 9.6m, IReadOnlyList<ConnectionAttachmentData>? attachments = null) =>
+    private static ConnectionRequest New(decimal acPowerKw = 8m, IReadOnlyCollection<AttachmentInput>? attachments = null) =>
         ConnectionRequest.Create(
-            Guid.CreateVersion7(),
-            Guid.CreateVersion7(),
-            Guid.CreateVersion7(),
-            powerKw,
-            " Poznámka ",
-            attachments ?? CompleteAttachments(),
-            ConnectionRequest.DefaultSmallSourceMaxKw,
-            User,
-            Now);
+            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), " SK1234567890123456 ",
+            acPowerKw, 10.8m, 25, attachments ?? Required, User, Now);
 
     [Fact]
-    public void Create_StartsReady_WithCopiedIdsAndAttachments()
+    public void Create_StartsInDraft_LinkedToInstallation_WithAttachments()
     {
         var installationId = Guid.CreateVersion7();
-        var customerId = Guid.CreateVersion7();
-        var supplyPointId = Guid.CreateVersion7();
 
         var request = ConnectionRequest.Create(
-            installationId, customerId, supplyPointId, 9.6m, " Poznámka ",
-            CompleteAttachments(), ConnectionRequest.DefaultSmallSourceMaxKw, User, Now);
+            installationId, Guid.CreateVersion7(), Guid.CreateVersion7(), "SK1234567890123456",
+            8m, 10.8m, 25, Required, User, Now);
 
-        Assert.Equal(ConnectionRequestStatus.Ready, request.Status);
-        Assert.Equal(ConnectionSourceType.SmallSource, request.Type);
+        Assert.Equal(ConnectionRequestState.Draft, request.State);
         Assert.Equal(installationId, request.InstallationId);
-        Assert.Equal(customerId, request.CustomerId);
-        Assert.Equal(supplyPointId, request.SupplyPointId);
-        Assert.Equal("Poznámka", request.Note);
         Assert.Equal(2, request.Attachments.Count);
-        Assert.All(request.Attachments, a => Assert.True(a.SizeBytes > 0));
-        Assert.Equal(User, request.CreatedBy);
         Assert.Equal(Now, request.CreatedAt);
+        Assert.Equal(User, request.CreatedBy);
     }
 
     [Theory]
-    [InlineData("10.8", ConnectionSourceType.SmallSource)]
-    [InlineData("10.801", ConnectionSourceType.LargeSource)]
-    [InlineData("1", ConnectionSourceType.SmallSource)]
-    [InlineData("100", ConnectionSourceType.LargeSource)]
-    public void Create_DerivesTypeFromTotalInverterAcPower(string power, ConnectionSourceType expected)
+    [InlineData(5, ConnectionRequestType.SmallSource)]
+    [InlineData(10.8, ConnectionRequestType.SmallSource)]
+    [InlineData(10.81, ConnectionRequestType.LargeSource)]
+    [InlineData(50, ConnectionRequestType.LargeSource)]
+    public void Create_DerivesTypeFromAcPower_With10Point8KwThreshold(double kw, ConnectionRequestType expected)
     {
-        var request = NewRequest(decimal.Parse(power, System.Globalization.CultureInfo.InvariantCulture));
-
-        Assert.Equal(expected, request.Type);
-        Assert.Equal(expected, ConnectionRequest.Classify(decimal.Parse(power, System.Globalization.CultureInfo.InvariantCulture), 10.8m));
+        Assert.Equal(expected, New((decimal)kw).Type);
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void Classify_NonPositivePower_Throws(int power)
+    [InlineData(ConnectionRequestAttachmentKind.SingleLineDiagram)]
+    [InlineData(ConnectionRequestAttachmentKind.OwnerConsent)]
+    public void Create_WithoutRequiredAttachment_Throws(ConnectionRequestAttachmentKind missing)
     {
-        var ex = Assert.Throws<RequestValidationException>(() => ConnectionRequest.Classify(power, 10.8m));
+        var attachments = Required.Where(a => a.Kind != missing).ToList();
 
-        Assert.Contains(nameof(ConnectionRequest.TotalInverterAcPowerKw), ex.Errors.Keys);
+        var ex = Assert.Throws<DomainException>(() => New(attachments: attachments));
+
+        Assert.Contains(missing.ToString(), ex.Message);
     }
 
     [Fact]
-    public void Create_WithoutAttachments_Throws_AndNamesBothMandatoryKinds()
+    public void Create_TrimsEic_AndAcceptsOptionalAttachments()
     {
-        var ex = Assert.Throws<RequestValidationException>(() => NewRequest(attachments: []));
+        var request = New(attachments: [.. Required, File(ConnectionRequestAttachmentKind.Datasheet)]);
 
-        Assert.Contains("Attachments", ex.Errors.Keys);
-        Assert.Contains("SingleLineDiagram", ex.Errors["Attachments"][0]);
-        Assert.Contains("OwnerConsent", ex.Errors["Attachments"][0]);
-    }
-
-    [Fact]
-    public void Create_WithOnlyDiagram_Throws_BecauseOwnerConsentIsMissing()
-    {
-        var attachments = new List<ConnectionAttachmentData>
-        {
-            Attachment(ConnectionAttachmentKind.SingleLineDiagram),
-            Attachment(ConnectionAttachmentKind.InverterDatasheet),
-        };
-
-        var ex = Assert.Throws<RequestValidationException>(() => NewRequest(attachments: attachments));
-
-        Assert.Contains("OwnerConsent", ex.Errors["Attachments"][0]);
-    }
-
-    [Fact]
-    public void Create_TooManyAttachments_Throws()
-    {
-        var attachments = CompleteAttachments();
-        while (attachments.Count <= ConnectionRequest.MaxAttachments)
-        {
-            attachments.Add(Attachment(ConnectionAttachmentKind.Other, $"dalsi-{attachments.Count}.pdf"));
-        }
-
-        var ex = Assert.Throws<RequestValidationException>(() => NewRequest(attachments: attachments));
-
-        Assert.Contains("Attachments", ex.Errors.Keys);
-    }
-
-    [Fact]
-    public void Create_EmptyAttachment_Throws()
-    {
-        var attachments = CompleteAttachments();
-        attachments.Add(new ConnectionAttachmentData(ConnectionAttachmentKind.Other, "prazdny.pdf", "application/pdf", []));
-
-        var ex = Assert.Throws<RequestValidationException>(() => NewRequest(attachments: attachments));
-
-        Assert.Contains("Attachments[2].ContentBase64", ex.Errors.Keys);
-    }
-
-    [Fact]
-    public void Update_ReplacesAttachments_RecalculatesType_AndKeepsReady()
-    {
-        var request = NewRequest();
-        var updated = new List<ConnectionAttachmentData>
-        {
-            Attachment(ConnectionAttachmentKind.SingleLineDiagram, "nova-schema.pdf"),
-            Attachment(ConnectionAttachmentKind.OwnerConsent, "novy-suhlas.pdf"),
-            Attachment(ConnectionAttachmentKind.PanelDatasheet, "panel.pdf"),
-        };
-
-        request.Update(12.5m, null, updated, ConnectionRequest.DefaultSmallSourceMaxKw, Now.AddHours(1));
-
-        Assert.Equal(ConnectionSourceType.LargeSource, request.Type);
-        Assert.Equal(12.5m, request.TotalInverterAcPowerKw);
-        Assert.Null(request.Note);
+        Assert.Equal("SK1234567890123456", request.EicCode);
         Assert.Equal(3, request.Attachments.Count);
-        Assert.Contains(request.Attachments, a => a.FileName == "nova-schema.pdf");
-        Assert.Equal(ConnectionRequestStatus.Ready, request.Status);
-        Assert.Equal(Now.AddHours(1), request.UpdatedAt);
     }
 
     [Fact]
-    public void Update_WithoutMandatoryAttachment_Throws_AndKeepsOriginalAttachments()
+    public void Create_WithContent_StoresBytesAndDerivesSize()
     {
-        var request = NewRequest();
+        var content = "PDF content"u8.ToArray();
+        var request = New(attachments: [
+            File(ConnectionRequestAttachmentKind.SingleLineDiagram, content),
+            File(ConnectionRequestAttachmentKind.OwnerConsent),
+        ]);
 
-        var ex = Assert.Throws<RequestValidationException>(() => request.Update(
-            9.6m,
-            null,
-            [Attachment(ConnectionAttachmentKind.SingleLineDiagram)],
-            ConnectionRequest.DefaultSmallSourceMaxKw,
+        var diagram = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.SingleLineDiagram);
+        Assert.True(diagram.HasContent);
+        Assert.Equal(content, diagram.Content);
+        Assert.Equal(content.LongLength, diagram.SizeBytes);
+
+        var consent = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.OwnerConsent);
+        Assert.False(consent.HasContent);
+        Assert.Null(consent.Content);
+        Assert.Equal(1024, consent.SizeBytes);
+    }
+
+    [Fact]
+    public void Update_ReplacesFieldsAndAttachments_AndRecalculatesType()
+    {
+        var request = New();
+        var content = "new diagram"u8.ToArray();
+
+        request.Update(
+            " SK9999999999999999 ",
+            12.5m,
+            10.8m,
+            32,
+            [
+                File(ConnectionRequestAttachmentKind.SingleLineDiagram, content),
+                File(ConnectionRequestAttachmentKind.OwnerConsent),
+                File(ConnectionRequestAttachmentKind.Datasheet),
+            ],
+            Now.AddHours(1));
+
+        Assert.Equal(ConnectionRequestState.Draft, request.State);
+        Assert.Equal(ConnectionRequestType.LargeSource, request.Type);
+        Assert.Equal("SK9999999999999999", request.EicCode);
+        Assert.Equal(12.5m, request.RatedAcPowerKw);
+        Assert.Equal(32, request.MainBreakerAmps);
+        Assert.Equal(3, request.Attachments.Count);
+        Assert.Contains(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.Datasheet);
+        Assert.Equal(Now.AddHours(1), request.UpdatedAt);
+        var diagram = Assert.Single(request.Attachments, a => a.Kind == ConnectionRequestAttachmentKind.SingleLineDiagram);
+        Assert.Equal(content, diagram.Content);
+    }
+
+    [Fact]
+    public void Update_WithoutRequiredAttachment_Throws_AndKeepsOriginalAttachments()
+    {
+        var request = New();
+
+        var ex = Assert.Throws<DomainException>(() => request.Update(
+            "SK1234567890123456",
+            8m,
+            10.8m,
+            25,
+            [File(ConnectionRequestAttachmentKind.SingleLineDiagram)],
             Now.AddHours(1)));
 
-        Assert.Contains("OwnerConsent", ex.Errors["Attachments"][0]);
+        Assert.Contains(nameof(ConnectionRequestAttachmentKind.OwnerConsent), ex.Message);
         Assert.Equal(2, request.Attachments.Count);
     }
 }

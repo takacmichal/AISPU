@@ -5,21 +5,18 @@ using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.ConnectionRequests;
 
-/// <summary>
-/// Connection requests for the distributor (BPMN #64, story #85): <c>/api/connection-requests</c>.
-/// A request starts Ready with the mandatory attachments; submitting and deadlines follow in #86/#87.
-/// </summary>
+/// <summary>Requests to connect a PV plant to the distribution grid (#85, ADR #217): <c>/api/connection-requests</c>.</summary>
 public sealed class ConnectionRequestsModule : IModule
 {
-    internal static readonly string[] ReadRoles =
-        [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Operator];
+    /// <summary>Preparing the documents (BPMN #64, lane Obchod/Operátor).</summary>
+    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Operator, Roles.Sales];
 
-    /// <summary>Sales prepares the request (story #85), the designer owns the technical attachments.</summary>
-    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Sales, Roles.Designer];
+    /// <summary>Back office and the designer (lane Projektant); a customer sees only its own request (see <c>ICustomerScope</c>).</summary>
+    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer];
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<ConnectionRequestOptions>(configuration.GetSection(ConnectionRequestOptions.SectionName));
+        services.AddOptions<ConnectionRequestOptions>().Bind(configuration.GetSection(ConnectionRequestOptions.SectionName));
         services.AddScoped<IConnectionRequestService, ConnectionRequestService>();
     }
 
@@ -29,11 +26,10 @@ public sealed class ConnectionRequestsModule : IModule
 
         group.MapPost("/", CreateAsync)
             .WithName("CreateConnectionRequest")
-            .WithSummary("Create a connection request (state Ready) for an installation")
-            .WithDescription("Copies the customer and supply point from the installation and derives "
-                + "the type (SmallSource/LargeSource) from the total inverter AC power. "
-                + "The single-line diagram and the owner's consent are mandatory. "
-                + "One request per installation; a second one gives 409.")
+            .WithSummary("Create a connection request for an installation (state Draft)")
+            .WithDescription("Requires the single-line diagram and the owner's consent as attachments. "
+                + "Attachments may carry base64 content (stored and downloadable) or metadata only. "
+                + "Type is SmallSource up to 10.8 kW rated AC power, otherwise LargeSource.")
             .WithValidation<CreateConnectionRequestRequest>()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(p => p.RequireRole(WriteRoles));
@@ -41,20 +37,20 @@ public sealed class ConnectionRequestsModule : IModule
         group.MapGet("/", ListAsync)
             .WithName("ListConnectionRequests")
             .WithSummary("List connection requests")
-            .WithDescription("Filters: installationId, customerId, status. Newest first.")
+            .WithDescription("Filters: installationId, customerId, state. Newest first. A customer sees only its own requests.")
             .ProducesValidationProblem()
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetConnectionRequest")
-            .WithSummary("Get a connection request with attachment metadata (not the file contents)")
+            .WithSummary("Get a connection request with its attachments")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
         group.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateConnectionRequest")
-            .WithSummary("Replace the power, note and attachments of a Ready request")
-            .WithDescription("Only a request in state Ready can be edited; a submitted request gives 409.")
+            .WithSummary("Replace the EIC, power, breaker and attachments of a Draft request")
+            .WithDescription("Only a request in state Draft can be edited; anything else gives 409. The installation stays the same.")
             .WithValidation<UpdateConnectionRequestRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -62,7 +58,8 @@ public sealed class ConnectionRequestsModule : IModule
 
         group.MapGet("/{id:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync)
             .WithName("DownloadConnectionRequestAttachment")
-            .WithSummary("Download one attachment of a connection request")
+            .WithSummary("Download the content of one attachment")
+            .WithDescription("Only attachments sent with base64 content can be downloaded; metadata-only attachments give 404.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
     }
@@ -74,8 +71,7 @@ public sealed class ConnectionRequestsModule : IModule
         return TypedResults.Created($"/api/connection-requests/{created.Id}", created);
     }
 
-    internal static async Task<Ok<ConnectionRequestResponse>> GetAsync(
-        Guid id, IConnectionRequestService service, CancellationToken ct) =>
+    internal static async Task<Ok<ConnectionRequestResponse>> GetAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
         TypedResults.Ok(await service.GetAsync(id, ct));
 
     internal static async Task<Ok<IReadOnlyList<ConnectionRequestResponse>>> ListAsync(
@@ -83,8 +79,8 @@ public sealed class ConnectionRequestsModule : IModule
         CancellationToken ct,
         Guid? installationId = null,
         Guid? customerId = null,
-        ConnectionRequestStatus? status = null) =>
-        TypedResults.Ok(await service.ListAsync(installationId, customerId, status, ct));
+        ConnectionRequestState? state = null) =>
+        TypedResults.Ok(await service.ListAsync(installationId, customerId, state, ct));
 
     internal static async Task<Ok<ConnectionRequestResponse>> UpdateAsync(
         Guid id, UpdateConnectionRequestRequest request, IConnectionRequestService service, CancellationToken ct) =>

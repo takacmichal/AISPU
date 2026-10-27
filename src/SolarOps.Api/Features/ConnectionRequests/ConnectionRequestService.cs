@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SolarOps.Api.Features.Customers;
 using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
@@ -14,113 +15,107 @@ public interface IConnectionRequestService
     Task<ConnectionRequestResponse> GetAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<ConnectionRequestResponse>> ListAsync(
-        Guid? installationId, Guid? customerId, ConnectionRequestStatus? status, CancellationToken ct);
+        Guid? installationId, Guid? customerId, ConnectionRequestState? state, CancellationToken ct);
 
     Task<ConnectionRequestResponse> UpdateAsync(Guid id, UpdateConnectionRequestRequest request, CancellationToken ct);
 
     Task<ConnectionAttachmentFile> DownloadAttachmentAsync(Guid id, Guid attachmentId, CancellationToken ct);
 }
 
-public sealed class ConnectionRequestService(
+internal sealed class ConnectionRequestService(
     AppDbContext db,
     ICurrentUser currentUser,
-    TimeProvider timeProvider,
-    IOptions<ConnectionRequestOptions> options) : IConnectionRequestService
+    ICustomerScope customerScope,
+    IOptions<ConnectionRequestOptions> options,
+    TimeProvider time) : IConnectionRequestService
 {
     public async Task<ConnectionRequestResponse> CreateAsync(CreateConnectionRequestRequest request, CancellationToken ct)
     {
         var userId = currentUser.RequireUserId();
         var installationId = request.InstallationId!.Value;
 
+        // Customer and supply point come from the installation, so the request cannot point at a foreign supply point.
         var installation = await db.Set<Installation>().AsNoTracking()
-            .FirstOrDefaultAsync(i => i.Id == installationId, ct)
-            ?? throw new RequestValidationException(
-                nameof(CreateConnectionRequestRequest.InstallationId), "Installation does not exist.");
-
-        if (await db.Set<ConnectionRequest>().AnyAsync(r => r.InstallationId == installationId, ct))
-        {
-            throw new DomainException("The installation already has a connection request.");
-        }
+            .Where(x => x.Id == installationId)
+            .Select(x => new { x.CustomerId, x.SupplyPointId })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new RequestValidationException(nameof(CreateConnectionRequestRequest.InstallationId), "Installation does not exist.");
 
         var connectionRequest = ConnectionRequest.Create(
-            installation.Id,
+            installationId,
             installation.CustomerId,
             installation.SupplyPointId,
-            request.TotalInverterAcPowerKw!.Value,
-            request.Note,
-            ReadAttachments(request.Attachments!),
+            request.EicCode!,
+            request.RatedAcPowerKw,
             options.Value.SmallSourceMaxKw,
+            request.MainBreakerAmps,
+            ReadAttachments(request.Attachments!),
             userId,
-            timeProvider.GetUtcNow());
+            time.GetUtcNow());
 
-        db.Set<ConnectionRequest>().Add(connectionRequest);
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
-        {
-            // A concurrent request created the connection request of this installation after our pre-check.
-            throw new DomainException("The installation already has a connection request.");
-        }
-
-        return ConnectionRequestResponse.FromEntity(connectionRequest);
+        db.Add(connectionRequest);
+        await db.SaveChangesAsync(ct);
+        return ConnectionRequestResponse.From(connectionRequest);
     }
 
     public async Task<ConnectionRequestResponse> GetAsync(Guid id, CancellationToken ct)
     {
-        var connectionRequest = await db.Set<ConnectionRequest>().AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new NotFoundException("ConnectionRequest", id);
+        var scope = await customerScope.GetAsync(ct);
+        var connectionRequest = await Visible(scope).AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new NotFoundException("Connection request", id);
 
         var attachments = await LoadAttachmentMetadataAsync([id], ct);
         return ConnectionRequestResponse.From(connectionRequest, attachments.GetValueOrDefault(id, []));
     }
 
     public async Task<IReadOnlyList<ConnectionRequestResponse>> ListAsync(
-        Guid? installationId, Guid? customerId, ConnectionRequestStatus? status, CancellationToken ct)
+        Guid? installationId, Guid? customerId, ConnectionRequestState? state, CancellationToken ct)
     {
-        var query = db.Set<ConnectionRequest>().AsNoTracking();
+        var scope = await customerScope.GetAsync(ct);
+        var query = Visible(scope).AsNoTracking();
+
         if (installationId is { } installation)
         {
-            query = query.Where(r => r.InstallationId == installation);
+            query = query.Where(x => x.InstallationId == installation);
         }
 
         if (customerId is { } customer)
         {
-            query = query.Where(r => r.CustomerId == customer);
+            query = query.Where(x => x.CustomerId == customer);
         }
 
-        if (status is { } s)
+        if (state is { } s)
         {
-            query = query.Where(r => r.Status == s);
+            query = query.Where(x => x.State == s);
         }
 
-        var requests = await query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id).ToListAsync(ct);
+        var requests = await query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).ToListAsync(ct);
         if (requests.Count == 0)
         {
             return [];
         }
 
-        var attachments = await LoadAttachmentMetadataAsync(requests.Select(r => r.Id).ToList(), ct);
+        var attachments = await LoadAttachmentMetadataAsync(requests.Select(x => x.Id).ToList(), ct);
         return requests
-            .Select(r => ConnectionRequestResponse.From(r, attachments.GetValueOrDefault(r.Id, [])))
+            .Select(x => ConnectionRequestResponse.From(x, attachments.GetValueOrDefault(x.Id, [])))
             .ToList();
     }
 
     public async Task<ConnectionRequestResponse> UpdateAsync(
         Guid id, UpdateConnectionRequestRequest request, CancellationToken ct)
     {
-        var connectionRequest = await db.Set<ConnectionRequest>().Include(r => r.Attachments)
-            .FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new NotFoundException("ConnectionRequest", id);
+        var connectionRequest = await db.Set<ConnectionRequest>().Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new NotFoundException("Connection request", id);
 
         connectionRequest.Update(
-            request.TotalInverterAcPowerKw!.Value,
-            request.Note,
-            ReadAttachments(request.Attachments!),
+            request.EicCode!,
+            request.RatedAcPowerKw,
             options.Value.SmallSourceMaxKw,
-            timeProvider.GetUtcNow());
+            request.MainBreakerAmps,
+            ReadAttachments(request.Attachments!),
+            time.GetUtcNow());
 
         try
         {
@@ -131,79 +126,102 @@ public sealed class ConnectionRequestService(
             throw new DomainException("The connection request was changed by another request. Reload it and try again.");
         }
 
-        return ConnectionRequestResponse.FromEntity(connectionRequest);
+        return ConnectionRequestResponse.From(connectionRequest);
     }
 
     public async Task<ConnectionAttachmentFile> DownloadAttachmentAsync(Guid id, Guid attachmentId, CancellationToken ct)
     {
-        var attachment = await db.Set<ConnectionRequestAttachment>().AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == attachmentId && a.ConnectionRequestId == id, ct)
-            ?? throw new NotFoundException("ConnectionRequestAttachment", attachmentId);
+        var scope = await customerScope.GetAsync(ct);
+        if (!await Visible(scope).AsNoTracking().AnyAsync(x => x.Id == id, ct))
+        {
+            throw new NotFoundException("Connection request", id);
+        }
 
-        return new ConnectionAttachmentFile(attachment.Content, attachment.FileName, attachment.ContentType);
+        var attachment = await db.Set<ConnectionRequestAttachment>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == attachmentId && x.ConnectionRequestId == id, ct)
+            ?? throw new NotFoundException("Connection request attachment", attachmentId);
+
+        if (attachment.Content is not { Length: > 0 } content)
+        {
+            throw new NotFoundException("Connection request attachment content", attachmentId);
+        }
+
+        return new ConnectionAttachmentFile(content, attachment.FileName, attachment.ContentType);
     }
 
-    private async Task<Dictionary<Guid, List<ConnectionRequestAttachmentResponse>>> LoadAttachmentMetadataAsync(
+    private IQueryable<ConnectionRequest> Visible(DataScope scope)
+    {
+        var query = db.Set<ConnectionRequest>();
+        return scope.IsRestricted ? query.Where(x => x.CustomerId == scope.OwnCustomerId) : query;
+    }
+
+    private async Task<Dictionary<Guid, List<AttachmentResponse>>> LoadAttachmentMetadataAsync(
         IReadOnlyCollection<Guid> requestIds, CancellationToken ct)
     {
         var rows = await db.Set<ConnectionRequestAttachment>().AsNoTracking()
-            .Where(a => requestIds.Contains(a.ConnectionRequestId))
-            .OrderBy(a => a.Id)
-            .Select(a => new { a.ConnectionRequestId, a.Id, a.Kind, a.FileName, a.ContentType, a.SizeBytes })
+            .Where(x => requestIds.Contains(x.ConnectionRequestId))
+            .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
+            .Select(x => new { x.ConnectionRequestId, x.Id, x.Kind, x.FileName, x.ContentType, x.SizeBytes, x.CreatedAt, x.HasContent })
             .ToListAsync(ct);
 
         return rows
-            .GroupBy(a => a.ConnectionRequestId)
+            .GroupBy(x => x.ConnectionRequestId)
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .Select(a => new ConnectionRequestAttachmentResponse(
-                        a.Id,
-                        a.Kind,
-                        a.FileName,
-                        a.ContentType,
-                        a.SizeBytes,
-                        ConnectionRequestAttachmentResponse.BuildDownloadUrl(a.ConnectionRequestId, a.Id)))
+                    .Select(x => AttachmentResponse.FromMetadata(
+                        x.ConnectionRequestId, x.Id, x.Kind, x.FileName, x.ContentType, x.SizeBytes, x.CreatedAt, x.HasContent))
                     .ToList());
     }
 
-    private static IReadOnlyList<ConnectionAttachmentData> ReadAttachments(
-        IReadOnlyList<ConnectionRequestAttachmentRequest> attachments)
+    private static IReadOnlyList<AttachmentInput> ReadAttachments(IReadOnlyList<AttachmentRequest> attachments)
     {
-        var result = new List<ConnectionAttachmentData>(attachments.Count);
+        var result = new List<AttachmentInput>(attachments.Count);
         var errors = new Dictionary<string, string[]>();
 
         for (var i = 0; i < attachments.Count; i++)
         {
             var attachment = attachments[i];
-            byte[] content;
-            try
+            byte[]? content = null;
+
+            if (!string.IsNullOrWhiteSpace(attachment.ContentBase64))
             {
-                content = Convert.FromBase64String(attachment.ContentBase64!);
+                try
+                {
+                    content = Convert.FromBase64String(attachment.ContentBase64);
+                }
+                catch (FormatException)
+                {
+                    errors[$"Attachments[{i}].ContentBase64"] = ["The ContentBase64 field is not valid base64."];
+                    continue;
+                }
+
+                if (content.Length == 0)
+                {
+                    errors[$"Attachments[{i}].ContentBase64"] = ["The attachment is empty."];
+                    continue;
+                }
+
+                if (content.LongLength > ConnectionRequest.MaxAttachmentBytes)
+                {
+                    errors[$"Attachments[{i}].ContentBase64"] =
+                        [$"An attachment can be at most {ConnectionRequest.MaxAttachmentBytes / (1024 * 1024)} MB."];
+                    continue;
+                }
             }
-            catch (FormatException)
+
+            var sizeBytes = content?.LongLength ?? attachment.SizeBytes;
+            if (sizeBytes <= 0)
             {
-                errors[$"Attachments[{i}].ContentBase64"] = ["The ContentBase64 field is not valid base64."];
+                errors[$"Attachments[{i}].SizeBytes"] = ["SizeBytes must be greater than 0 when no file content is sent."];
                 continue;
             }
 
-            if (content.Length == 0)
-            {
-                errors[$"Attachments[{i}].ContentBase64"] = ["The attachment is empty."];
-                continue;
-            }
-
-            if (content.LongLength > ConnectionRequest.MaxAttachmentBytes)
-            {
-                errors[$"Attachments[{i}].ContentBase64"] =
-                    [$"An attachment can be at most {ConnectionRequest.MaxAttachmentBytes / (1024 * 1024)} MB."];
-                continue;
-            }
-
-            result.Add(new ConnectionAttachmentData(
+            result.Add(new AttachmentInput(
                 attachment.Kind!.Value,
-                attachment.FileName!.Trim(),
-                string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType.Trim(),
+                attachment.FileName!,
+                attachment.ContentType!,
+                sizeBytes,
                 content));
         }
 
