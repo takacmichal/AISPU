@@ -1,0 +1,25 @@
+# User roles (#135). Admin only: authenticate with an access token of a user having the Admin role.
+@baseUrl = http://localhost:5080
+@token = paste-admin-access-token-here
+@userId = 00000000-0000-0000-0000-000000000000
+
+### List application roles
+GET {{baseUrl}}/api/roles
+Authorization: Bearer {{token}}
+
+### List users with roles (q = e-mail substring)
+GET {{baseUrl}}/api/users?q=example&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Roles of a user
+GET {{baseUrl}}/api/users/{{userId}}/roles
+Authorization: Bearer {{token}}
+
+### Set roles of a user (replaces the whole set; Sales = Obchod, Designer = Projektant, Technician = Technik)
+PUT {{baseUrl}}/api/users/{{userId}}/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["Sales", "Designer"]
+}
