@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
@@ -28,9 +29,13 @@ public sealed class ConnectionRequestsModule : IModule
             .WithName("CreateConnectionRequest")
             .WithSummary("Create a connection request for an installation (state Draft)")
             .WithDescription("Requires the single-line diagram and the owner's consent as attachments. "
-                + "Attachments may carry base64 content (stored and downloadable) or metadata only. "
+                + "Attachments may carry base64 content (stored and downloadable) or metadata only; "
+                + $"at most {ConnectionRequest.MaxAttachments} attachments of {ConnectionRequest.MaxAttachmentBytes / (1024 * 1024)} MB, "
+                + $"request body up to {ConnectionRequest.MaxRequestBodyBytes / (1024 * 1024)} MB. "
                 + "Type is SmallSource up to 10.8 kW rated AC power, otherwise LargeSource.")
             .WithValidation<CreateConnectionRequestRequest>()
+            // Without this the Kestrel default (~30 MB) would reject bodies that the per-attachment limits allow.
+            .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(p => p.RequireRole(WriteRoles));
 
@@ -52,6 +57,7 @@ public sealed class ConnectionRequestsModule : IModule
             .WithSummary("Replace the EIC, power, breaker and attachments of a Draft request")
             .WithDescription("Only a request in state Draft can be edited; anything else gives 409. The installation stays the same.")
             .WithValidation<UpdateConnectionRequestRequest>()
+            .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(p => p.RequireRole(WriteRoles));
@@ -87,9 +93,11 @@ public sealed class ConnectionRequestsModule : IModule
         TypedResults.Ok(await service.UpdateAsync(id, request, ct));
 
     internal static async Task<IResult> DownloadAttachmentAsync(
-        Guid id, Guid attachmentId, IConnectionRequestService service, CancellationToken ct)
+        Guid id, Guid attachmentId, IConnectionRequestService service, HttpContext http, CancellationToken ct)
     {
         var file = await service.DownloadAttachmentAsync(id, attachmentId, ct);
+        // The content type comes from the client; never let the browser sniff something else into executing it.
+        http.Response.Headers["X-Content-Type-Options"] = "nosniff";
         return Results.File(file.Content, file.ContentType, file.FileName);
     }
 }

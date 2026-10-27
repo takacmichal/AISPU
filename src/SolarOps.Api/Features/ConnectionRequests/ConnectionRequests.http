@@ -1,5 +1,7 @@
 # Connection requests (#85). Requires a JWT with role Admin/Operator/Sales (create/update) or any staff role (read).
 # Port matches launchSettings.json (http profile).
+# Limits: 10 attachments, 5 MB each (contentBase64), request body up to ~70 MB. content type must be a bare
+# media type such as application/pdf (no parameters); downloads are served with X-Content-Type-Options: nosniff.
 @baseUrl = http://localhost:5080
 @token = paste-access-token-here
 @installationId = 00000000-0000-0000-0000-000000000000

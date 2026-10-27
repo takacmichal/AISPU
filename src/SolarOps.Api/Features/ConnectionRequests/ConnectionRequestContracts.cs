@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Headers;
 using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.ConnectionRequests;
@@ -15,6 +16,7 @@ public sealed record AttachmentRequest
     [Required, MaxLength(ConnectionRequest.FileNameMaxLength)]
     public string? FileName { get; init; }
 
+    /// <summary>Media type of the file, for example <c>application/pdf</c>; validated, parameters are not allowed.</summary>
     [Required, MaxLength(ConnectionRequest.ContentTypeMaxLength)]
     public string? ContentType { get; init; }
 
@@ -22,7 +24,7 @@ public sealed record AttachmentRequest
     [Range(0, long.MaxValue)]
     public long SizeBytes { get; init; }
 
-    /// <summary>Base64 content of the file; at most 5 MB before encoding.</summary>
+    /// <summary>Base64 content of the file; at most <see cref="ConnectionRequest.MaxAttachmentBytes"/> before encoding.</summary>
     [MaxLength(ConnectionRequest.MaxAttachmentBase64Length)]
     public string? ContentBase64 { get; init; }
 }
@@ -139,6 +141,14 @@ internal static class ConnectionRequestValidation
                     "SizeBytes must be greater than 0 when no file content is sent.",
                     [$"{attachmentsMember}[{index}].SizeBytes"]);
             }
+
+            // The value is echoed back in the Content-Type header of the download endpoint, so it must be a media type.
+            if (!string.IsNullOrWhiteSpace(attachment.ContentType) && !IsMediaType(attachment.ContentType))
+            {
+                yield return new ValidationResult(
+                    "The ContentType field must be a media type such as application/pdf, without parameters.",
+                    [$"{attachmentsMember}[{index}].ContentType"]);
+            }
         }
 
         var missing = ConnectionRequest.RequiredAttachmentKinds
@@ -151,6 +161,17 @@ internal static class ConnectionRequestValidation
                 [attachmentsMember]);
         }
     }
+
+    /// <summary>
+    /// True for a bare media type such as <c>application/pdf</c>: no parameters, no wildcards. Garbage would otherwise
+    /// either break the download response or smuggle something into the <c>Content-Type</c> header.
+    /// </summary>
+    private static bool IsMediaType(string value) =>
+        MediaTypeHeaderValue.TryParse(value, out var mediaType)
+        && mediaType.Parameters.Count == 0
+        && mediaType.MediaType is { } type
+        && !type.Contains('*')
+        && string.Equals(type, value.Trim(), StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Attachment metadata as returned by the API.</summary>

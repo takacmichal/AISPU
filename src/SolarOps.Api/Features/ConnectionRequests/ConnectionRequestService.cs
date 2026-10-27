@@ -186,28 +186,31 @@ internal sealed class ConnectionRequestService(
 
             if (!string.IsNullOrWhiteSpace(attachment.ContentBase64))
             {
-                try
-                {
-                    content = Convert.FromBase64String(attachment.ContentBase64);
-                }
-                catch (FormatException)
+                // Decode into a buffer sized from the string length (already capped by MaxLength) instead of
+                // letting Convert.FromBase64String allocate and throw on bad input.
+                var encoded = attachment.ContentBase64;
+                var buffer = new byte[(encoded.Length / 4) * 3];
+
+                if (!Convert.TryFromBase64String(encoded, buffer, out var written))
                 {
                     errors[$"Attachments[{i}].ContentBase64"] = ["The ContentBase64 field is not valid base64."];
                     continue;
                 }
 
-                if (content.Length == 0)
+                if (written == 0)
                 {
                     errors[$"Attachments[{i}].ContentBase64"] = ["The attachment is empty."];
                     continue;
                 }
 
-                if (content.LongLength > ConnectionRequest.MaxAttachmentBytes)
+                if (written > ConnectionRequest.MaxAttachmentBytes)
                 {
                     errors[$"Attachments[{i}].ContentBase64"] =
                         [$"An attachment can be at most {ConnectionRequest.MaxAttachmentBytes / (1024 * 1024)} MB."];
                     continue;
                 }
+
+                content = buffer[..written];
             }
 
             var sizeBytes = content?.LongLength ?? attachment.SizeBytes;

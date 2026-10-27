@@ -57,13 +57,25 @@ public sealed class ConnectionRequest
     public const int EicMaxLength = 32;
     public const int FileNameMaxLength = 255;
     public const int ContentTypeMaxLength = 127;
-    public const int MaxAttachments = 20;
+
+    /// <summary>
+    /// Attachments per request. Together with <see cref="MaxAttachmentBytes"/> it bounds the request body
+    /// (see <see cref="MaxRequestBodyBytes"/>).
+    /// </summary>
+    public const int MaxAttachments = 10;
 
     /// <summary>Largest file stored with the request; the MVP keeps the bytes in the database.</summary>
     public const long MaxAttachmentBytes = 5 * 1024 * 1024;
 
     /// <summary>Upper bound of the base64 payload of <see cref="MaxAttachmentBytes"/> (4 characters per 3 bytes).</summary>
     public const int MaxAttachmentBase64Length = (int)(((MaxAttachmentBytes + 2) / 3) * 4);
+
+    /// <summary>
+    /// Body limit for create/update: every attachment at its base64 maximum plus room for the other fields.
+    /// The endpoints declare it with <c>[RequestSizeLimit]</c>, because the Kestrel default (~30 MB) would
+    /// reject requests that pass the per-attachment limits.
+    /// </summary>
+    public const long MaxRequestBodyBytes = (MaxAttachments * (long)MaxAttachmentBase64Length) + (64 * 1024);
 
     /// <summary>Attachments every request must have (story #85).</summary>
     public static readonly IReadOnlyList<ConnectionRequestAttachmentKind> RequiredAttachmentKinds =

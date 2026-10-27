@@ -1,5 +1,8 @@
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SolarOps.Api.Features.ConnectionRequests;
 using SolarOps.Api.Features.Customers;
@@ -137,6 +140,44 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
     }
 
     [Fact]
+    public async Task Create_WithInvalidContentType_Returns400()
+    {
+        using var client = Sales();
+        var installation = await NewInstallationAsync(client);
+        var request = NewRequest(installation.Id);
+
+        var response = await client.PostJsonAsync("/api/connection-requests", request with
+        {
+            Attachments =
+            [
+                request.Attachments![0] with { ContentType = "not a media type" },
+                request.Attachments[1],
+            ],
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("ContentType", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public void CreateAndUpdate_DeclareRequestBodyLimit()
+    {
+        var limits = _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.RoutePattern.RawText?.Contains("connection-requests", StringComparison.Ordinal) == true)
+            .Select(e => (
+                Methods: e.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods ?? [],
+                Limit: e.Metadata.GetMetadata<IRequestSizeLimitMetadata>()))
+            .Where(x => x.Limit is not null)
+            .ToList();
+
+        Assert.Equal(2, limits.Count);
+        Assert.All(limits, x => Assert.Equal(ConnectionRequest.MaxRequestBodyBytes, x.Limit!.MaxRequestBodySize));
+        Assert.Contains(limits, x => x.Methods.Contains("POST"));
+        Assert.Contains(limits, x => x.Methods.Contains("PUT"));
+    }
+
+    [Fact]
     public async Task Get_ReturnsRequest_AndMissingIs404()
     {
         using var client = Sales();
@@ -188,6 +229,7 @@ public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : 
         Assert.Equal(HttpStatusCode.OK, download.StatusCode);
         Assert.Equal("application/pdf", download.Content.Headers.ContentType?.MediaType);
         Assert.Contains("schema.pdf", download.Content.Headers.ContentDisposition?.ToString());
+        Assert.Equal("nosniff", download.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Equal("PDF", Encoding.UTF8.GetString(await download.Content.ReadAsByteArrayAsync()));
 
         using var noContent = await client.GetAsync($"/api/connection-requests/{created.Id}/attachments/{consent.Id}");
