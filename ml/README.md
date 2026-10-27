@@ -4,6 +4,17 @@ ML služba SolarOps (FastAPI). Spustenie: `uv run uvicorn solarops_ml.api:app --
 
 Testy a lint (rovnako ako CI `ml.yml`): `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`.
 
+## Simulátor striedačov (`solarops_ml.simulator`, issue #94)
+
+Generuje 5-minútovú telemetriu FVE podľa ADR #185 (`schemaVersion 1.0`, dávky po max. 288 čítaní) z polohy, polohy slnka (čistá numpy/pandas, bez pvlib), sezóny a oblačnosti (AR(1) proces). Výstup je reprodukovateľný cez `--seed` (aj `messageId`). Poruchy: `power_drop` (pokles výkonu o `severity`) a `inverter_fault` (`FAULT`, výkon 0). Labely (`expected_power_w`, `fault_active`, `fault_type`) idú do samostatného CSV, nie do ingest payloadu. Orientácia panelov (`tilt`, `azimuth`) sa berie z `locations.toml` (0 = juh, 180 = sever).
+
+```bash
+cd ml
+uv run python -m solarops_ml.simulator --location alice_springs --start 2024-06-20 --end 2024-06-22 \
+    --seed 42 --fault power_drop,2024-06-20T02:00,2024-06-20T05:00,0.5 \
+    --out data/sim/alice.json --labels-out data/sim/alice_labels.csv
+```
+
 ## Historické počasie (`solarops_ml.weather`)
 
 Sťahuje počasie z [Open-Meteo](https://open-meteo.com) podľa ADR #180 a #189:
