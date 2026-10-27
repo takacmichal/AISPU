@@ -56,3 +56,37 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "targetState": "ComponentsOrdered", "note": "Objednané u dodávateľa" }
+
+### Devices (#83): register a panel (type Panel or Inverter; serial number is globally unique, case-insensitive)
+@deviceId = 00000000-0000-0000-0000-000000000000
+POST {{baseUrl}}/api/installations/{{installationId}}/devices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "Panel", "serialNumber": "JA2410-000123", "manufacturer": "JA Solar", "model": "JAM54S30-450", "powerW": 450 }
+
+### Register an inverter
+POST {{baseUrl}}/api/installations/{{installationId}}/devices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "type": "Inverter", "serialNumber": "FRO-10-778899", "manufacturer": "Fronius", "model": "Symo 10.0-3-M", "powerW": 10000 }
+
+### List installed devices (includeReplaced=true adds replaced ones, type=Panel|Inverter filters)
+GET {{baseUrl}}/api/installations/{{installationId}}/devices?includeReplaced=false
+Authorization: Bearer {{token}}
+
+### Device detail
+GET {{baseUrl}}/api/installations/{{installationId}}/devices/{{deviceId}}
+Authorization: Bearer {{token}}
+
+### Replace a device (old one stays in history as Replaced; 409 if already replaced or the serial is taken)
+POST {{baseUrl}}/api/installations/{{installationId}}/devices/{{deviceId}}/replace
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "serialNumber": "JA2411-000456", "manufacturer": "JA Solar", "model": "JAM54S30-450", "powerW": 450, "reason": "Defective cell, warranty claim" }
+
+### Replacement history of a device (whole chain, oldest first)
+GET {{baseUrl}}/api/installations/{{installationId}}/devices/{{deviceId}}/history
+Authorization: Bearer {{token}}
