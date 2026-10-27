@@ -1,0 +1,37 @@
+# FVE design configuration and yield estimate (#77). Requires a JWT with role Admin/Designer (write)
+# or Admin/Sales/Designer (read). The design must be InDesign (parameters set via PUT /parameters).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@designId = 00000000-0000-0000-0000-000000000000
+@panelId = 00000000-0000-0000-0000-000000000000
+@inverterId = 00000000-0000-0000-0000-000000000000
+
+### Check compatibility and estimate yield without saving
+POST {{baseUrl}}/api/designs/{{designId}}/configuration/preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "panelId": "{{panelId}}",
+  "panelCount": 12,
+  "inverterId": "{{inverterId}}"
+}
+
+### Save the configuration as a new immutable version
+POST {{baseUrl}}/api/designs/{{designId}}/versions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "panelId": "{{panelId}}",
+  "panelCount": 12,
+  "inverterId": "{{inverterId}}"
+}
+
+### List versions (newest first)
+GET {{baseUrl}}/api/designs/{{designId}}/versions
+Authorization: Bearer {{token}}
+
+### Get version 1
+GET {{baseUrl}}/api/designs/{{designId}}/versions/1
+Authorization: Bearer {{token}}
