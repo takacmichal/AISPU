@@ -89,3 +89,7 @@ __pycache__/
 *.egg-info/
 .ipynb_checkpoints/
 ml/data/
+
+# Claude Code (lokálne)
+.claude/worktrees/
+.claude/settings.local.json
