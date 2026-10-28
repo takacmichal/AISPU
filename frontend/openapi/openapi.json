@@ -1252,7 +1252,7 @@
           "Customers"
         ],
         "summary": "List customers",
-        "description": "Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name. Defaults: page 1, pageSize 20 (max 100).",
+        "description": "Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).",
         "operationId": "ListCustomers",
         "parameters": [
           {
@@ -1286,6 +1286,20 @@
               ],
               "format": "int32",
               "default": 20
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],

@@ -11,7 +11,7 @@ public interface ICustomerService
 
     Task<CustomerResponse> GetAsync(Guid id, CancellationToken ct);
 
-    Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, CancellationToken ct);
+    Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, string? sortBy, string? sortDir, CancellationToken ct);
 
     Task<CustomerResponse> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken ct);
 
@@ -42,7 +42,7 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
 
     public const int MaxPageSize = 100;
 
-    public async Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, CancellationToken ct)
+    public async Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, string? sortBy, string? sortDir, CancellationToken ct)
     {
         var errors = new Dictionary<string, string[]>();
         if (page < 1)
@@ -53,6 +53,18 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
         if (pageSize is < 1 or > MaxPageSize)
         {
             errors["pageSize"] = [$"PageSize must be between 1 and {MaxPageSize}."];
+        }
+
+        var sortKey = (sortBy ?? "name").ToLowerInvariant();
+        if (sortKey is not ("name" or "email" or "createdat"))
+        {
+            errors["sortBy"] = ["SortBy must be one of: name, email, createdAt."];
+        }
+
+        var direction = (sortDir ?? "asc").ToLowerInvariant();
+        if (direction is not ("asc" or "desc"))
+        {
+            errors["sortDir"] = ["SortDir must be asc or desc."];
         }
 
         if (errors.Count > 0)
@@ -73,8 +85,15 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
         }
 
         var total = await query.CountAsync(ct);
-        var customers = await query
-            .OrderBy(c => c.SortName).ThenBy(c => c.Id)
+        var descending = direction == "desc";
+        var ordered = sortKey switch
+        {
+            "email" => descending ? query.OrderByDescending(c => c.Email) : query.OrderBy(c => c.Email),
+            "createdat" => descending ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt),
+            _ => descending ? query.OrderByDescending(c => c.SortName) : query.OrderBy(c => c.SortName),
+        };
+        var customers = await ordered
+            .ThenBy(c => c.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

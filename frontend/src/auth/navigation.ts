@@ -38,10 +38,19 @@ export function findItem(path: string): NavItem | undefined {
   return NAVIGATION.find((item) => item.path === path)
 }
 
+/** Exact match, otherwise the longest item whose path is a parent of `path` (so /customers/123 inherits /customers). */
+export function matchItem(path: string): NavItem | undefined {
+  const exact = findItem(path)
+  if (exact) return exact
+  return NAVIGATION.filter((item) => item.path !== '/' && path.startsWith(item.path + '/')).sort(
+    (a, b) => b.path.length - a.path.length,
+  )[0]
+}
+
 /** Breadcrumb trail for a path: Prehľad › parent › item. */
 export function breadcrumbs(path: string): NavItem[] {
   const trail: NavItem[] = []
-  let current = findItem(path)
+  let current = matchItem(path)
   while (current) {
     trail.unshift(current)
     current = current.parent ? findItem(current.parent) : undefined
