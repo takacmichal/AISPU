@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { DataTable, type Column, type SortState } from '../../components/DataTable'
@@ -72,6 +72,9 @@ export default function CustomerListPage() {
   return (
     <section>
       <h2>Zákazníci</h2>
+      <p>
+        <Link to="/customers/new">Nový zákazník</Link>
+      </p>
       <DataTable
         columns={columns}
         rows={current?.items ?? []}
