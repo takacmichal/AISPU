@@ -88,6 +88,17 @@ public sealed class Quote
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>Technical design (another module, id only) the quote was built from; null for a quote entered by hand.</summary>
+    public Guid? DesignId { get; private set; }
+
+    /// <summary>Approved version of the design the lines were taken from.</summary>
+    public int? DesignVersionNumber { get; private set; }
+
+    /// <summary>True when the design changed after the quote was built, so the quote no longer matches it.</summary>
+    public bool NeedsRecalculation { get; private set; }
+
+    public DateTimeOffset? RecalculationRequestedAt { get; private set; }
+
     public IReadOnlyList<QuoteLine> Lines => _lines;
 
     /// <summary>End of the validity period; set when the quote is sent. A sent quote past it expires.</summary>
@@ -110,6 +121,23 @@ public sealed class Quote
 
         TransitionTo(QuoteStatus.Sent, by, note, now);
         ValidUntil = now.AddDays(validityDays);
+    }
+
+    /// <summary>
+    /// Flags a Draft or Sent quote built from a design that has changed. Answered quotes (Accepted, Rejected, Expired)
+    /// and quotes without a design are left alone. Returns true when the quote was changed.
+    /// </summary>
+    public bool MarkForRecalculation(DateTimeOffset now)
+    {
+        if (DesignId is null || NeedsRecalculation || Status is not (QuoteStatus.Draft or QuoteStatus.Sent))
+        {
+            return false;
+        }
+
+        NeedsRecalculation = true;
+        RecalculationRequestedAt = now;
+        UpdatedAt = now;
+        return true;
     }
 
     public void Accept(Guid by, string? note, DateTimeOffset now) => TransitionTo(QuoteStatus.Accepted, by, note, now);
@@ -144,7 +172,9 @@ public sealed class Quote
         decimal vatRatePercent,
         string? note,
         Guid createdBy,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        Guid? designId = null,
+        int? designVersionNumber = null)
     {
         var errors = Validate(lines, vatRatePercent, note);
         if (errors.Count > 0)
@@ -159,6 +189,8 @@ public sealed class Quote
             Status = QuoteStatus.Draft,
             VatRatePercent = vatRatePercent,
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            DesignId = designId,
+            DesignVersionNumber = designVersionNumber,
             CreatedBy = createdBy,
             CreatedAt = now,
             UpdatedAt = now,

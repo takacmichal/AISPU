@@ -20,6 +20,9 @@ internal sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
         builder.Property(q => q.GrossTotal).HasPrecision(16, 2);
 
         builder.HasIndex(q => q.CustomerId);
+
+        // Cross-module reference by id only (no FK): the design lives in the FveDesigns module.
+        builder.HasIndex(q => q.DesignId);
         builder.HasIndex(q => q.Status);
 
         builder.HasMany(q => q.Lines)
