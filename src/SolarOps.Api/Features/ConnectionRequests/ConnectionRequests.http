@@ -94,3 +94,31 @@ Authorization: Bearer {{token}}
 ### 4. send the signed contract to the distributor (ContractSigned to ContractSubmitted; Admin/Designer)
 POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/submit-signed-contract
 Authorization: Bearer {{token}}
+
+### ---- Distributor simulator (#87) ----
+### The distributor is not integrated; these endpoints play its answers. Roles Admin/Operator. Off in Production (404)
+### unless ConnectionRequest:Simulator:Enabled=true. See docs/simulator-distribucky.md.
+### Decision on a Submitted request: Approve (to ContractOffered), RequestInfo or Reject (note required, max 1000 characters).
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/decision
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "decision": "Approve" }
+
+###
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/decision
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "decision": "RequestInfo", "note": "Missing datasheet of the inverter." }
+
+###
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/decision
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "decision": "Reject", "note": "No free grid capacity." }
+
+### The distributor concludes the contract (ContractSubmitted to Concluded)
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/conclude
+Authorization: Bearer {{token}}

@@ -1,7 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SolarOps.Api.Features.ConnectionRequests;
@@ -58,14 +57,13 @@ public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
         return (await response.ReadJsonAsync<ConnectionRequestResponse>())!;
     }
 
-    // Distributor decisions arrive with the simulator (#87); here the entity is moved directly.
-    private Task DecideAsync(Guid id, Action<ConnectionRequest> decide) =>
-        _factory.ExecuteDbAsync(async db =>
-        {
-            var entity = await db.Set<ConnectionRequest>().SingleAsync(x => x.Id == id);
-            decide(entity);
-            await db.SaveChangesAsync();
-        });
+    // The distributor's answer comes from the simulator endpoint (#87), the same path a demo uses.
+    private async Task DecideAsync(Guid id, DistributorDecision decision, string? note = null)
+    {
+        using var op = _factory.CreateApiClient(Guid.CreateVersion7(), Roles.Operator);
+        var response = await op.PostJsonAsync($"/api/connection-requests/{id}/decision", new DistributorDecisionRequest { Decision = decision, Note = note });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 
     [Fact]
     public async Task Draft_HasNoDeadline()
@@ -191,9 +189,9 @@ public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
 
         _clock.Advance(TimeSpan.FromDays(20)); // past the due date, but a decision has been made
         var now = _clock.GetUtcNow();
-        await DecideAsync(info.Id, x => x.RequestInfo("Missing datasheet", now));
-        await DecideAsync(rejected.Id, x => x.Reject("No grid capacity", now));
-        await DecideAsync(offered.Id, x => x.OfferContract(null, now));
+        await DecideAsync(info.Id, DistributorDecision.RequestInfo, "Missing datasheet");
+        await DecideAsync(rejected.Id, DistributorDecision.Reject, "No grid capacity");
+        await DecideAsync(offered.Id, DistributorDecision.Approve);
         using var sales = Sales();
 
         var infoBody = await sales.GetJsonAsync<ConnectionRequestResponse>($"/api/connection-requests/{info.Id}");
@@ -222,7 +220,7 @@ public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
         var draft = await CreateDraftAsync();
         await SubmitAsync(draft.Id);
         _clock.Advance(TimeSpan.FromDays(1)); // Wednesday 2026-10-28
-        await DecideAsync(draft.Id, x => x.RequestInfo("Missing datasheet", _clock.GetUtcNow()));
+        await DecideAsync(draft.Id, DistributorDecision.RequestInfo, "Missing datasheet");
         using var sales = Sales();
 
         var response = await sales.PostAsync($"/api/connection-requests/{draft.Id}/resubmit", null);
@@ -254,7 +252,7 @@ public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
     {
         var draft = await CreateDraftAsync();
         await SubmitAsync(draft.Id);
-        await DecideAsync(draft.Id, x => x.RequestInfo("Wrong EIC", _clock.GetUtcNow()));
+        await DecideAsync(draft.Id, DistributorDecision.RequestInfo, "Wrong EIC");
         using var sales = Sales();
 
         var response = await sales.PutJsonAsync($"/api/connection-requests/{draft.Id}", new UpdateConnectionRequestRequest
@@ -285,7 +283,7 @@ public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
         // Nothing to review or sign before the distributor offers a contract.
         Assert.Equal(HttpStatusCode.Conflict, (await designer.PostAsync($"{url}/review-conditions", null)).StatusCode);
 
-        await DecideAsync(draft.Id, x => x.OfferContract(null, _clock.GetUtcNow()));
+        await DecideAsync(draft.Id, DistributorDecision.Approve);
 
         Assert.Equal(HttpStatusCode.Conflict, (await sales.PostAsync($"{url}/send-contract", null)).StatusCode);
         var reviewed = await (await designer.PostAsync($"{url}/review-conditions", null)).ReadJsonAsync<ConnectionRequestResponse>();
