@@ -98,12 +98,22 @@ describe('CustomerListPage', () => {
   })
 
   it('opens the customer detail on row click', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => page([customer('abc', 'Adamec')])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) =>
+        String(url).includes('/api/customers/abc')
+          ? new Response(JSON.stringify({ ...customer('abc', 'Adamec'), address: { street: 'Hlavná 1', city: 'Nitra', postalCode: '949 01', country: 'SK' } }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          : page([customer('abc', 'Adamec')]),
+      ),
+    )
     renderAt('/customers')
 
     await userEvent.click(await screen.findByText('Adamec'))
 
-    expect(await screen.findByRole('heading', { name: 'Detail zákazníka' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Adamec' })).toBeInTheDocument()
     expect(screen.getByTestId('loc')).toHaveTextContent('/customers/abc')
   })
 

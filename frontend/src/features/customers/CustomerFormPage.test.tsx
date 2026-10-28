@@ -78,7 +78,15 @@ describe('CustomerFormPage', () => {
   })
 
   it('creates a customer, shows a toast and goes to the detail', async () => {
-    const fetchMock = vi.fn().mockImplementation(async () => json({ id: 'new-id', displayName: 'Ján Novák' }, 201))
+    const saved = {
+      id: 'new-id',
+      type: 'Person',
+      status: 'Active',
+      displayName: 'Ján Novák',
+      email: 'jan@test.sk',
+      address: { street: 'Hlavná 12', city: 'Bratislava', postalCode: '811 01', country: 'SK' },
+    }
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => json(saved, init.method === 'POST' ? 201 : 200))
     vi.stubGlobal('fetch', fetchMock)
     const router = renderAt('/customers/new')
 
