@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_61" targetNamespace="http://solarops.example/bpmn" exporter="SolarOps docs (konverzia z solarops-bpmn.drawio)" exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_61">
+    <bpmn:participant id="Participant_61_SolarOps" name="SolarOps (firma)" processRef="Process_61" />
+    <bpmn:participant id="Participant_61_Z" name="Zákazník" />
+    <bpmn:messageFlow id="MessageFlow_61_e9" name="Dopyt" sourceRef="Participant_61_Z" targetRef="StartEvent_61_s" />
+    <bpmn:messageFlow id="MessageFlow_61_e10" name="Cenová ponuka" sourceRef="Task_61_t3" targetRef="Participant_61_Z" />
+    <bpmn:messageFlow id="MessageFlow_61_e11" name="Schválenie / zamietnutie" sourceRef="Participant_61_Z" targetRef="Event_61_c" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_61" name="SolarOps (firma) – #61 Dopyt a ponuka" isExecutable="false">
+    <bpmn:documentation>Roly: Obchod (vykonáva proces), Zákazník (black-box pool).</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_61">
+      <bpmn:lane id="Lane_61_lane0" name="Obchod">
+        <bpmn:flowNodeRef>StartEvent_61_s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_61_t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_61_t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_61_t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_61_c</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_61_g</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_61_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_61_no</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_61_s" name="Dopyt zákazníka">
+      <bpmn:outgoing>Flow_61_e1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_61_s" />
+    </bpmn:startEvent>
+    <bpmn:task id="Task_61_t1" name="Zaznamenať zákazníka a odberné miesto">
+      <bpmn:incoming>Flow_61_e1</bpmn:incoming>
+      <bpmn:outgoing>Flow_61_e2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_61_t2" name="Zostaviť cenovú ponuku z komponentov">
+      <bpmn:incoming>Flow_61_e2</bpmn:incoming>
+      <bpmn:incoming>Flow_61_e8</bpmn:incoming>
+      <bpmn:outgoing>Flow_61_e3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_61_t3" name="Odoslať ponuku zákazníkovi">
+      <bpmn:incoming>Flow_61_e3</bpmn:incoming>
+      <bpmn:outgoing>Flow_61_e4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_61_c" name="Odpoveď zákazníka">
+      <bpmn:incoming>Flow_61_e4</bpmn:incoming>
+      <bpmn:outgoing>Flow_61_e5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_61_c" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="Gateway_61_g" name="Ponuka schválená?">
+      <bpmn:incoming>Flow_61_e5</bpmn:incoming>
+      <bpmn:outgoing>Flow_61_e6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_61_e7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_61_e8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_61_ok" name="Ponuka prijatá → návrh FVE (#62)">
+      <bpmn:incoming>Flow_61_e6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_61_no" name="Ponuka zamietnutá">
+      <bpmn:incoming>Flow_61_e7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_61_e1" name="" sourceRef="StartEvent_61_s" targetRef="Task_61_t1" />
+    <bpmn:sequenceFlow id="Flow_61_e2" name="" sourceRef="Task_61_t1" targetRef="Task_61_t2" />
+    <bpmn:sequenceFlow id="Flow_61_e3" name="" sourceRef="Task_61_t2" targetRef="Task_61_t3" />
+    <bpmn:sequenceFlow id="Flow_61_e4" name="" sourceRef="Task_61_t3" targetRef="Event_61_c" />
+    <bpmn:sequenceFlow id="Flow_61_e5" name="" sourceRef="Event_61_c" targetRef="Gateway_61_g" />
+    <bpmn:sequenceFlow id="Flow_61_e6" name="áno" sourceRef="Gateway_61_g" targetRef="EndEvent_61_ok" />
+    <bpmn:sequenceFlow id="Flow_61_e7" name="nie, zamietnutá" sourceRef="Gateway_61_g" targetRef="EndEvent_61_no" />
+    <bpmn:sequenceFlow id="Flow_61_e8" name="žiada úpravu" sourceRef="Gateway_61_g" targetRef="Task_61_t2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_61">
+    <bpmndi:BPMNPlane id="BPMNPlane_61" bpmnElement="Collaboration_61">
+      <bpmndi:BPMNShape id="Participant_61_SolarOps_di" bpmnElement="Participant_61_SolarOps" isHorizontal="true">
+        <dc:Bounds x="40" y="210" width="1740" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_61_Z_di" bpmnElement="Participant_61_Z" isHorizontal="true">
+        <dc:Bounds x="40" y="70" width="1740" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_61_lane0_di" bpmnElement="Lane_61_lane0" isHorizontal="true">
+        <dc:Bounds x="70" y="210" width="1710" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_61_s_di" bpmnElement="StartEvent_61_s">
+        <dc:Bounds x="182" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="145" y="332" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_61_t1_di" bpmnElement="Task_61_t1">
+        <dc:Bounds x="320" y="280" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_61_t2_di" bpmnElement="Task_61_t2">
+        <dc:Bounds x="510" y="280" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_61_t3_di" bpmnElement="Task_61_t3">
+        <dc:Bounds x="700" y="280" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_61_c_di" bpmnElement="Event_61_c">
+        <dc:Bounds x="942" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="905" y="332" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_61_g_di" bpmnElement="Gateway_61_g">
+        <dc:Bounds x="1128" y="288" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1174" y="313" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_61_ok_di" bpmnElement="EndEvent_61_ok">
+        <dc:Bounds x="1322" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1285" y="260" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_61_no_di" bpmnElement="EndEvent_61_no">
+        <dc:Bounds x="1322" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1285" y="392" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_61_e1_di" bpmnElement="Flow_61_e1">
+        <di:waypoint x="218" y="310" />
+        <di:waypoint x="320" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e2_di" bpmnElement="Flow_61_e2">
+        <di:waypoint x="460" y="310" />
+        <di:waypoint x="510" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e3_di" bpmnElement="Flow_61_e3">
+        <di:waypoint x="650" y="310" />
+        <di:waypoint x="700" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e4_di" bpmnElement="Flow_61_e4">
+        <di:waypoint x="840" y="310" />
+        <di:waypoint x="942" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e5_di" bpmnElement="Flow_61_e5">
+        <di:waypoint x="978" y="310" />
+        <di:waypoint x="1128" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e6_di" bpmnElement="Flow_61_e6">
+        <di:waypoint x="1172" y="310" />
+        <di:waypoint x="1322" y="310" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1230.5" y="294" width="33" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e7_di" bpmnElement="Flow_61_e7">
+        <di:waypoint x="1150" y="332" />
+        <di:waypoint x="1150" y="370" />
+        <di:waypoint x="1322" y="370" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1177.5" y="354" width="117" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_61_e8_di" bpmnElement="Flow_61_e8">
+        <di:waypoint x="1150" y="288" />
+        <di:waypoint x="1150" y="258" />
+        <di:waypoint x="580" y="258" />
+        <di:waypoint x="580" y="280" />
+        <bpmndi:BPMNLabel><dc:Bounds x="817" y="242" width="96" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_61_e9_di" bpmnElement="MessageFlow_61_e9">
+        <di:waypoint x="200.08" y="120" />
+        <di:waypoint x="200" y="292" />
+        <bpmndi:BPMNLabel><dc:Bounds x="205.04" y="158" width="47" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_61_e10_di" bpmnElement="MessageFlow_61_e10">
+        <di:waypoint x="770" y="280" />
+        <di:waypoint x="769.93" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="661.965" y="158" width="103" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_61_e11_di" bpmnElement="MessageFlow_61_e11">
+        <di:waypoint x="959.938" y="120" />
+        <di:waypoint x="960" y="292" />
+        <bpmndi:BPMNLabel><dc:Bounds x="964.969" y="158" width="170" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

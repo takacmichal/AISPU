@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_L1" targetNamespace="http://solarops.example/bpmn" exporter="SolarOps docs (konverzia z solarops-bpmn.drawio)" exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_L1">
+    <bpmn:participant id="Participant_L1_SolarOps" name="SolarOps (firma)" processRef="Process_L1" />
+    <bpmn:participant id="Participant_L1_Z" name="Zákazník" />
+    <bpmn:participant id="Participant_L1_D" name="Distribučka" />
+    <bpmn:messageFlow id="MessageFlow_L1_e9" name="Dopyt" sourceRef="Participant_L1_Z" targetRef="StartEvent_L1_s" />
+    <bpmn:messageFlow id="MessageFlow_L1_e10" name="Cenová ponuka" sourceRef="Task_L1_a" targetRef="Participant_L1_Z" />
+    <bpmn:messageFlow id="MessageFlow_L1_e11" name="Podpísaná zmluva a záloha" sourceRef="Participant_L1_Z" targetRef="Task_L1_c" />
+    <bpmn:messageFlow id="MessageFlow_L1_e12" name="Žiadosť o pripojenie" sourceRef="Task_L1_d" targetRef="Participant_L1_D" />
+    <bpmn:messageFlow id="MessageFlow_L1_e13" name="Zmluva o pripojení" sourceRef="Participant_L1_D" targetRef="Task_L1_d" />
+    <bpmn:messageFlow id="MessageFlow_L1_e14" name="Oznámenie o pripojení" sourceRef="Participant_L1_D" targetRef="Task_L1_f" />
+    <bpmn:messageFlow id="MessageFlow_L1_e15" name="Protokol o odovzdaní" sourceRef="Task_L1_f" targetRef="Participant_L1_Z" />
+    <bpmn:messageFlow id="MessageFlow_L1_e16" name="Hlásenie poruchy" sourceRef="Participant_L1_Z" targetRef="Task_L1_g" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_L1" name="SolarOps (firma) – L1 Prehľad" isExecutable="false">
+    <bpmn:documentation>Kolaborácia L1: SolarOps (lanes Obchod, Projektant, Technik) a black-box účastníci Zákazník a Distribučka.</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_L1">
+      <bpmn:lane id="Lane_L1_lane0" name="Obchod">
+        <bpmn:flowNodeRef>StartEvent_L1_s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_L1_a</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_L1_c</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_L1_lane1" name="Projektant">
+        <bpmn:flowNodeRef>Task_L1_b</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_L1_d</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_L1_lane2" name="Technik">
+        <bpmn:flowNodeRef>Task_L1_e</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_L1_f</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_L1_g</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_L1_x</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_L1_s" name="Dopyt zákazníka">
+      <bpmn:outgoing>Flow_L1_e1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_L1_s" />
+    </bpmn:startEvent>
+    <bpmn:task id="Task_L1_a" name="Dopyt a cenová ponuka (#61)">
+      <bpmn:incoming>Flow_L1_e1</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_b" name="Návrh FVE projektantom (#62)">
+      <bpmn:incoming>Flow_L1_e2</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_c" name="Uzatvorenie zmluvy a platba zálohy (#63)">
+      <bpmn:incoming>Flow_L1_e3</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_d" name="Žiadosť o pripojenie k distribučke (#64)">
+      <bpmn:incoming>Flow_L1_e4</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_e" name="Inštalácia a revízia (#65)">
+      <bpmn:incoming>Flow_L1_e5</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_f" name="Uvedenie do prevádzky a odovzdanie (#66)">
+      <bpmn:incoming>Flow_L1_e6</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_L1_g" name="Servis a prediktívna údržba (#67, #68)">
+      <bpmn:incoming>Flow_L1_e7</bpmn:incoming>
+      <bpmn:outgoing>Flow_L1_e8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_L1_x" name="FVE v prevádzke">
+      <bpmn:incoming>Flow_L1_e8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_L1_e1" name="" sourceRef="StartEvent_L1_s" targetRef="Task_L1_a" />
+    <bpmn:sequenceFlow id="Flow_L1_e2" name="" sourceRef="Task_L1_a" targetRef="Task_L1_b" />
+    <bpmn:sequenceFlow id="Flow_L1_e3" name="" sourceRef="Task_L1_b" targetRef="Task_L1_c" />
+    <bpmn:sequenceFlow id="Flow_L1_e4" name="" sourceRef="Task_L1_c" targetRef="Task_L1_d" />
+    <bpmn:sequenceFlow id="Flow_L1_e5" name="" sourceRef="Task_L1_d" targetRef="Task_L1_e" />
+    <bpmn:sequenceFlow id="Flow_L1_e6" name="" sourceRef="Task_L1_e" targetRef="Task_L1_f" />
+    <bpmn:sequenceFlow id="Flow_L1_e7" name="" sourceRef="Task_L1_f" targetRef="Task_L1_g" />
+    <bpmn:sequenceFlow id="Flow_L1_e8" name="" sourceRef="Task_L1_g" targetRef="EndEvent_L1_x" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_L1">
+    <bpmndi:BPMNPlane id="BPMNPlane_L1" bpmnElement="Collaboration_L1">
+      <bpmndi:BPMNShape id="Participant_L1_SolarOps_di" bpmnElement="Participant_L1_SolarOps" isHorizontal="true">
+        <dc:Bounds x="40" y="210" width="1930" height="390" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_L1_Z_di" bpmnElement="Participant_L1_Z" isHorizontal="true">
+        <dc:Bounds x="40" y="70" width="1930" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_L1_D_di" bpmnElement="Participant_L1_D" isHorizontal="true">
+        <dc:Bounds x="40" y="690" width="1930" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_L1_lane0_di" bpmnElement="Lane_L1_lane0" isHorizontal="true">
+        <dc:Bounds x="70" y="210" width="1900" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_L1_lane1_di" bpmnElement="Lane_L1_lane1" isHorizontal="true">
+        <dc:Bounds x="70" y="340" width="1900" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_L1_lane2_di" bpmnElement="Lane_L1_lane2" isHorizontal="true">
+        <dc:Bounds x="70" y="470" width="1900" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_L1_s_di" bpmnElement="StartEvent_L1_s">
+        <dc:Bounds x="182" y="257" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="145" y="297" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_a_di" bpmnElement="Task_L1_a">
+        <dc:Bounds x="320" y="245" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_b_di" bpmnElement="Task_L1_b">
+        <dc:Bounds x="510" y="375" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_c_di" bpmnElement="Task_L1_c">
+        <dc:Bounds x="700" y="245" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_d_di" bpmnElement="Task_L1_d">
+        <dc:Bounds x="890" y="375" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_e_di" bpmnElement="Task_L1_e">
+        <dc:Bounds x="1080" y="505" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_f_di" bpmnElement="Task_L1_f">
+        <dc:Bounds x="1270" y="505" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_L1_g_di" bpmnElement="Task_L1_g">
+        <dc:Bounds x="1460" y="505" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_L1_x_di" bpmnElement="EndEvent_L1_x">
+        <dc:Bounds x="1702" y="517" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1665" y="557" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_L1_e1_di" bpmnElement="Flow_L1_e1">
+        <di:waypoint x="218" y="275" />
+        <di:waypoint x="320" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e2_di" bpmnElement="Flow_L1_e2">
+        <di:waypoint x="460" y="275" />
+        <di:waypoint x="485" y="275" />
+        <di:waypoint x="485" y="405" />
+        <di:waypoint x="510" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e3_di" bpmnElement="Flow_L1_e3">
+        <di:waypoint x="650" y="405" />
+        <di:waypoint x="675" y="405" />
+        <di:waypoint x="675" y="275" />
+        <di:waypoint x="700" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e4_di" bpmnElement="Flow_L1_e4">
+        <di:waypoint x="840" y="275" />
+        <di:waypoint x="865" y="275" />
+        <di:waypoint x="865" y="405" />
+        <di:waypoint x="890" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e5_di" bpmnElement="Flow_L1_e5">
+        <di:waypoint x="1030" y="405" />
+        <di:waypoint x="1055" y="405" />
+        <di:waypoint x="1055" y="535" />
+        <di:waypoint x="1080" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e6_di" bpmnElement="Flow_L1_e6">
+        <di:waypoint x="1220" y="535" />
+        <di:waypoint x="1270" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e7_di" bpmnElement="Flow_L1_e7">
+        <di:waypoint x="1410" y="535" />
+        <di:waypoint x="1460" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_L1_e8_di" bpmnElement="Flow_L1_e8">
+        <di:waypoint x="1600" y="535" />
+        <di:waypoint x="1702" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e9_di" bpmnElement="MessageFlow_L1_e9">
+        <di:waypoint x="199.997" y="120" />
+        <di:waypoint x="200" y="257" />
+        <bpmndi:BPMNLabel><dc:Bounds x="204.999" y="158" width="47" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e10_di" bpmnElement="MessageFlow_L1_e10">
+        <di:waypoint x="390" y="245" />
+        <di:waypoint x="389.909" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="281.954" y="158" width="103" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e11_di" bpmnElement="MessageFlow_L1_e11">
+        <di:waypoint x="769.926" y="120" />
+        <di:waypoint x="770" y="245" />
+        <bpmndi:BPMNLabel><dc:Bounds x="774.963" y="158" width="170" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e12_di" bpmnElement="MessageFlow_L1_e12">
+        <di:waypoint x="925" y="435" />
+        <di:waypoint x="924.905" y="690" />
+        <bpmndi:BPMNLabel><dc:Bounds x="767.953" y="638" width="152" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e13_di" bpmnElement="MessageFlow_L1_e13">
+        <di:waypoint x="994.964" y="690" />
+        <di:waypoint x="995" y="435" />
+        <bpmndi:BPMNLabel><dc:Bounds x="999.982" y="638" width="138" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e14_di" bpmnElement="MessageFlow_L1_e14">
+        <di:waypoint x="1312.06" y="690" />
+        <di:waypoint x="1312" y="565" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1317.03" y="638" width="159" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e15_di" bpmnElement="MessageFlow_L1_e15">
+        <di:waypoint x="1368" y="505" />
+        <di:waypoint x="1368.03" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1211.02" y="158" width="152" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_L1_e16_di" bpmnElement="MessageFlow_L1_e16">
+        <di:waypoint x="1529.96" y="120" />
+        <di:waypoint x="1530" y="505" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1534.98" y="158" width="124" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

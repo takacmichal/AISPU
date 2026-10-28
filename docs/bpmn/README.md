@@ -7,6 +7,7 @@ Modely hlavných procesov firmy (Epic #2). Zdroj je jeden súbor draw.io s 9 str
 | [`solarops-bpmn.drawio`](solarops-bpmn.drawio) | zdrojový súbor, otvoriť v [draw.io](https://app.diagrams.net) alebo draw.io desktop |
 | [`solarops-bpmn.drawio.pdf`](solarops-bpmn.drawio.pdf) | všetky strany na odovzdanie (PDF s vloženým diagramom, dá sa otvoriť v draw.io) |
 | [`png/`](png) | náhľady strán (PNG s vloženým diagramom) |
+| [`bpmn/`](bpmn/README.md) | modely ako `.bpmn` (BPMN 2.0 XML, jeden proces na súbor) + PNG a mapovanie rolí (#186) |
 | [`mapovanie-entit.md`](mapovanie-entit.md) | prepojenie úloh na entity, stavy a endpointy (#69) |
 
 ## Konvencie

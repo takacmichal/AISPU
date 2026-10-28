@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_65" targetNamespace="http://solarops.example/bpmn" exporter="SolarOps docs (konverzia z solarops-bpmn.drawio)" exporterVersion="1.0">
+  <bpmn:error id="Error_65_b1" name="Chýba alebo je chybný komponent" errorCode="ERR_65_b1" />
+  <bpmn:error id="Error_65_b2" name="Revízia neúspešná" errorCode="ERR_65_b2" />
+  <bpmn:collaboration id="Collaboration_65">
+    <bpmn:participant id="Participant_65_SolarOps" name="SolarOps (firma)" processRef="Process_65" />
+    <bpmn:participant id="Participant_65_Z" name="Zákazník" />
+    <bpmn:messageFlow id="MessageFlow_65_e11" name="Termín inštalácie" sourceRef="Task_65_t1" targetRef="Participant_65_Z" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_65" name="SolarOps (firma) – #65 Inštalácia" isExecutable="false">
+    <bpmn:documentation>Roly: Obchod (plánovanie, objednávka komponentov), Technik (montáž, revízia), Zákazník (black-box pool; dostáva termín).</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_65">
+      <bpmn:lane id="Lane_65_lane0" name="Obchod">
+        <bpmn:flowNodeRef>StartEvent_65_s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_65_t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_65_t2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_65_lane1" name="Technik">
+        <bpmn:flowNodeRef>Task_65_t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_65_sp1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_65_f1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_65_sp2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_65_f2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_65_x</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>BoundaryEvent_65_b1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>BoundaryEvent_65_b2</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_65_s" name="Zmluva o pripojení uzavretá">
+      <bpmn:outgoing>Flow_65_e1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_65_t1" name="Naplánovať inštaláciu a termín">
+      <bpmn:incoming>Flow_65_e1</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_65_t2" name="Objednať komponenty">
+      <bpmn:incoming>Flow_65_e2</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_65_t3" name="Prevziať panely a invertory (sériové čísla)">
+      <bpmn:incoming>Flow_65_e3</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:subProcess id="SubProcess_65_sp1" name="Montáž FVE (konštrukcia, panely, stringy, invertor)">
+      <bpmn:incoming>Flow_65_e4</bpmn:incoming>
+      <bpmn:incoming>Flow_65_e8</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e5</bpmn:outgoing>
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="BoundaryEvent_65_b1" name="Chýba alebo je chybný komponent" attachedToRef="SubProcess_65_sp1" cancelActivity="true">
+      <bpmn:outgoing>Flow_65_e7</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrDef_65_b1" errorRef="Error_65_b1" />
+    </bpmn:boundaryEvent>
+    <bpmn:task id="Task_65_f1" name="Doobjednať alebo vymeniť komponent">
+      <bpmn:incoming>Flow_65_e7</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:subProcess id="SubProcess_65_sp2" name="Revízia (odborná prehliadka a skúška)">
+      <bpmn:incoming>Flow_65_e5</bpmn:incoming>
+      <bpmn:incoming>Flow_65_e10</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e6</bpmn:outgoing>
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="BoundaryEvent_65_b2" name="Revízia neúspešná" attachedToRef="SubProcess_65_sp2" cancelActivity="true">
+      <bpmn:outgoing>Flow_65_e9</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrDef_65_b2" errorRef="Error_65_b2" />
+    </bpmn:boundaryEvent>
+    <bpmn:task id="Task_65_f2" name="Odstrániť nedostatky">
+      <bpmn:incoming>Flow_65_e9</bpmn:incoming>
+      <bpmn:outgoing>Flow_65_e10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_65_x" name="Inštalácia dokončená, revízna správa vydaná">
+      <bpmn:incoming>Flow_65_e6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_65_e1" name="" sourceRef="StartEvent_65_s" targetRef="Task_65_t1" />
+    <bpmn:sequenceFlow id="Flow_65_e2" name="" sourceRef="Task_65_t1" targetRef="Task_65_t2" />
+    <bpmn:sequenceFlow id="Flow_65_e3" name="" sourceRef="Task_65_t2" targetRef="Task_65_t3" />
+    <bpmn:sequenceFlow id="Flow_65_e4" name="" sourceRef="Task_65_t3" targetRef="SubProcess_65_sp1" />
+    <bpmn:sequenceFlow id="Flow_65_e5" name="" sourceRef="SubProcess_65_sp1" targetRef="SubProcess_65_sp2" />
+    <bpmn:sequenceFlow id="Flow_65_e6" name="" sourceRef="SubProcess_65_sp2" targetRef="EndEvent_65_x" />
+    <bpmn:sequenceFlow id="Flow_65_e7" name="" sourceRef="BoundaryEvent_65_b1" targetRef="Task_65_f1" />
+    <bpmn:sequenceFlow id="Flow_65_e8" name="" sourceRef="Task_65_f1" targetRef="SubProcess_65_sp1" />
+    <bpmn:sequenceFlow id="Flow_65_e9" name="" sourceRef="BoundaryEvent_65_b2" targetRef="Task_65_f2" />
+    <bpmn:sequenceFlow id="Flow_65_e10" name="" sourceRef="Task_65_f2" targetRef="SubProcess_65_sp2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_65">
+    <bpmndi:BPMNPlane id="BPMNPlane_65" bpmnElement="Collaboration_65">
+      <bpmndi:BPMNShape id="Participant_65_SolarOps_di" bpmnElement="Participant_65_SolarOps" isHorizontal="true">
+        <dc:Bounds x="40" y="210" width="1740" height="380" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_65_Z_di" bpmnElement="Participant_65_Z" isHorizontal="true">
+        <dc:Bounds x="40" y="70" width="1740" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_65_lane0_di" bpmnElement="Lane_65_lane0" isHorizontal="true">
+        <dc:Bounds x="70" y="210" width="1710" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_65_lane1_di" bpmnElement="Lane_65_lane1" isHorizontal="true">
+        <dc:Bounds x="70" y="340" width="1710" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_65_s_di" bpmnElement="StartEvent_65_s">
+        <dc:Bounds x="182" y="257" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="145" y="297" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_65_t1_di" bpmnElement="Task_65_t1">
+        <dc:Bounds x="320" y="245" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_65_t2_di" bpmnElement="Task_65_t2">
+        <dc:Bounds x="510" y="245" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_65_t3_di" bpmnElement="Task_65_t3">
+        <dc:Bounds x="700" y="385" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_65_sp1_di" bpmnElement="SubProcess_65_sp1" isExpanded="false">
+        <dc:Bounds x="890" y="385" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_65_b1_di" bpmnElement="BoundaryEvent_65_b1">
+        <dc:Bounds x="982" y="427" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1020" y="448" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_65_f1_di" bpmnElement="Task_65_f1">
+        <dc:Bounds x="890" y="505" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_65_sp2_di" bpmnElement="SubProcess_65_sp2" isExpanded="false">
+        <dc:Bounds x="1175" y="385" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_65_b2_di" bpmnElement="BoundaryEvent_65_b2">
+        <dc:Bounds x="1267" y="427" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1305" y="448" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_65_f2_di" bpmnElement="Task_65_f2">
+        <dc:Bounds x="1175" y="505" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_65_x_di" bpmnElement="EndEvent_65_x">
+        <dc:Bounds x="1512" y="397" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1475" y="437" width="110" height="42" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_65_e1_di" bpmnElement="Flow_65_e1">
+        <di:waypoint x="218" y="275" />
+        <di:waypoint x="320" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e2_di" bpmnElement="Flow_65_e2">
+        <di:waypoint x="460" y="275" />
+        <di:waypoint x="510" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e3_di" bpmnElement="Flow_65_e3">
+        <di:waypoint x="650" y="275" />
+        <di:waypoint x="675" y="275" />
+        <di:waypoint x="675" y="415" />
+        <di:waypoint x="700" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e4_di" bpmnElement="Flow_65_e4">
+        <di:waypoint x="840" y="415" />
+        <di:waypoint x="890" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e5_di" bpmnElement="Flow_65_e5">
+        <di:waypoint x="1030" y="415" />
+        <di:waypoint x="1175" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e6_di" bpmnElement="Flow_65_e6">
+        <di:waypoint x="1315" y="415" />
+        <di:waypoint x="1512" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e7_di" bpmnElement="Flow_65_e7">
+        <di:waypoint x="1000" y="463" />
+        <di:waypoint x="999.998" y="505" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e8_di" bpmnElement="Flow_65_e8">
+        <di:waypoint x="920.002" y="505" />
+        <di:waypoint x="920.002" y="445" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e9_di" bpmnElement="Flow_65_e9">
+        <di:waypoint x="1285" y="463" />
+        <di:waypoint x="1285" y="505" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_65_e10_di" bpmnElement="Flow_65_e10">
+        <di:waypoint x="1205" y="505" />
+        <di:waypoint x="1205" y="445" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_65_e11_di" bpmnElement="MessageFlow_65_e11">
+        <di:waypoint x="390" y="245" />
+        <di:waypoint x="389.914" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="253.957" y="158" width="131" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

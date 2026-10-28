@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_63" targetNamespace="http://solarops.example/bpmn" exporter="SolarOps docs (konverzia z solarops-bpmn.drawio)" exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_63">
+    <bpmn:participant id="Participant_63_SolarOps" name="SolarOps (firma)" processRef="Process_63" />
+    <bpmn:participant id="Participant_63_Z" name="Zákazník" />
+    <bpmn:messageFlow id="MessageFlow_63_e16" name="Zmluva" sourceRef="Task_63_t3" targetRef="Participant_63_Z" />
+    <bpmn:messageFlow id="MessageFlow_63_e17" name="Podpísaná zmluva" sourceRef="Participant_63_Z" targetRef="Event_63_c1" />
+    <bpmn:messageFlow id="MessageFlow_63_e18" name="Úhrada zálohy" sourceRef="Participant_63_Z" targetRef="Event_63_c2" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_63" name="SolarOps (firma) – #63 Zmluva a záloha" isExecutable="false">
+    <bpmn:documentation>Roly: Obchod (vykonáva proces), Zákazník (black-box pool; podpisuje a platí zálohu).</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_63">
+      <bpmn:lane id="Lane_63_lane0" name="Obchod">
+        <bpmn:flowNodeRef>StartEvent_63_s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_63_g1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_63_c1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_63_m1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_63_g2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_63_c2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_63_m2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_63_t6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_63_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_63_no</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_63_s" name="Návrh FVE schválený">
+      <bpmn:outgoing>Flow_63_e1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_63_t1" name="Vytvoriť zmluvu z prijatej ponuky">
+      <bpmn:incoming>Flow_63_e1</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_63_t2" name="Vygenerovať PDF zmluvy">
+      <bpmn:incoming>Flow_63_e2</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_63_t3" name="Odoslať zmluvu zákazníkovi">
+      <bpmn:incoming>Flow_63_e3</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:eventBasedGateway id="Gateway_63_g1" name="Čakať na podpis">
+      <bpmn:incoming>Flow_63_e4</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e5</bpmn:outgoing>
+      <bpmn:outgoing>Flow_63_e12</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="Event_63_c1" name="Podpísaná zmluva">
+      <bpmn:incoming>Flow_63_e5</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_63_c1" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_63_m1" name="Lehota na podpis vypršala">
+      <bpmn:incoming>Flow_63_e12</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e14</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_63_m1" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_63_t4" name="Zaznamenať podpis">
+      <bpmn:incoming>Flow_63_e6</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_63_t5" name="Vystaviť zálohovú faktúru">
+      <bpmn:incoming>Flow_63_e7</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:eventBasedGateway id="Gateway_63_g2" name="Čakať na úhradu">
+      <bpmn:incoming>Flow_63_e8</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_63_e13</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="Event_63_c2" name="Záloha uhradená">
+      <bpmn:incoming>Flow_63_e9</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e10</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_63_c2" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_63_m2" name="Splatnosť vypršala">
+      <bpmn:incoming>Flow_63_e13</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e15</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_63_m2" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_63_t6" name="Zaznamenať úhradu zálohy">
+      <bpmn:incoming>Flow_63_e10</bpmn:incoming>
+      <bpmn:outgoing>Flow_63_e11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_63_ok" name="Zmluva podpísaná a záloha uhradená">
+      <bpmn:incoming>Flow_63_e11</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_63_no" name="Zmluva nepodpísaná / zanikla">
+      <bpmn:incoming>Flow_63_e14</bpmn:incoming>
+      <bpmn:incoming>Flow_63_e15</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_63_e1" name="" sourceRef="StartEvent_63_s" targetRef="Task_63_t1" />
+    <bpmn:sequenceFlow id="Flow_63_e2" name="" sourceRef="Task_63_t1" targetRef="Task_63_t2" />
+    <bpmn:sequenceFlow id="Flow_63_e3" name="" sourceRef="Task_63_t2" targetRef="Task_63_t3" />
+    <bpmn:sequenceFlow id="Flow_63_e4" name="" sourceRef="Task_63_t3" targetRef="Gateway_63_g1" />
+    <bpmn:sequenceFlow id="Flow_63_e5" name="" sourceRef="Gateway_63_g1" targetRef="Event_63_c1" />
+    <bpmn:sequenceFlow id="Flow_63_e6" name="" sourceRef="Event_63_c1" targetRef="Task_63_t4" />
+    <bpmn:sequenceFlow id="Flow_63_e7" name="" sourceRef="Task_63_t4" targetRef="Task_63_t5" />
+    <bpmn:sequenceFlow id="Flow_63_e8" name="" sourceRef="Task_63_t5" targetRef="Gateway_63_g2" />
+    <bpmn:sequenceFlow id="Flow_63_e9" name="" sourceRef="Gateway_63_g2" targetRef="Event_63_c2" />
+    <bpmn:sequenceFlow id="Flow_63_e10" name="" sourceRef="Event_63_c2" targetRef="Task_63_t6" />
+    <bpmn:sequenceFlow id="Flow_63_e11" name="" sourceRef="Task_63_t6" targetRef="EndEvent_63_ok" />
+    <bpmn:sequenceFlow id="Flow_63_e12" name="" sourceRef="Gateway_63_g1" targetRef="Event_63_m1" />
+    <bpmn:sequenceFlow id="Flow_63_e13" name="" sourceRef="Gateway_63_g2" targetRef="Event_63_m2" />
+    <bpmn:sequenceFlow id="Flow_63_e14" name="" sourceRef="Event_63_m1" targetRef="EndEvent_63_no" />
+    <bpmn:sequenceFlow id="Flow_63_e15" name="" sourceRef="Event_63_m2" targetRef="EndEvent_63_no" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_63">
+    <bpmndi:BPMNPlane id="BPMNPlane_63" bpmnElement="Collaboration_63">
+      <bpmndi:BPMNShape id="Participant_63_SolarOps_di" bpmnElement="Participant_63_SolarOps" isHorizontal="true">
+        <dc:Bounds x="40" y="210" width="2500" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_63_Z_di" bpmnElement="Participant_63_Z" isHorizontal="true">
+        <dc:Bounds x="40" y="70" width="2500" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_63_lane0_di" bpmnElement="Lane_63_lane0" isHorizontal="true">
+        <dc:Bounds x="70" y="210" width="2470" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_63_s_di" bpmnElement="StartEvent_63_s">
+        <dc:Bounds x="182" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="145" y="362" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t1_di" bpmnElement="Task_63_t1">
+        <dc:Bounds x="320" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t2_di" bpmnElement="Task_63_t2">
+        <dc:Bounds x="510" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t3_di" bpmnElement="Task_63_t3">
+        <dc:Bounds x="700" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_63_g1_di" bpmnElement="Gateway_63_g1">
+        <dc:Bounds x="938" y="318" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="905" y="300" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_63_c1_di" bpmnElement="Event_63_c1">
+        <dc:Bounds x="1132" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1095" y="362" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_63_m1_di" bpmnElement="Event_63_m1">
+        <dc:Bounds x="1132" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1172" y="391" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t4_di" bpmnElement="Task_63_t4">
+        <dc:Bounds x="1270" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t5_di" bpmnElement="Task_63_t5">
+        <dc:Bounds x="1460" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_63_g2_di" bpmnElement="Gateway_63_g2">
+        <dc:Bounds x="1698" y="318" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1665" y="300" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_63_c2_di" bpmnElement="Event_63_c2">
+        <dc:Bounds x="1892" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1855" y="362" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_63_m2_di" bpmnElement="Event_63_m2">
+        <dc:Bounds x="1892" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1932" y="391" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_63_t6_di" bpmnElement="Task_63_t6">
+        <dc:Bounds x="2030" y="310" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_63_ok_di" bpmnElement="EndEvent_63_ok">
+        <dc:Bounds x="2272" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2235" y="290" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_63_no_di" bpmnElement="EndEvent_63_no">
+        <dc:Bounds x="2272" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2312" y="391" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_63_e1_di" bpmnElement="Flow_63_e1">
+        <di:waypoint x="218" y="340" />
+        <di:waypoint x="320" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e2_di" bpmnElement="Flow_63_e2">
+        <di:waypoint x="460" y="340" />
+        <di:waypoint x="510" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e3_di" bpmnElement="Flow_63_e3">
+        <di:waypoint x="650" y="340" />
+        <di:waypoint x="700" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e4_di" bpmnElement="Flow_63_e4">
+        <di:waypoint x="840" y="340" />
+        <di:waypoint x="938" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e5_di" bpmnElement="Flow_63_e5">
+        <di:waypoint x="982" y="340" />
+        <di:waypoint x="1132" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e6_di" bpmnElement="Flow_63_e6">
+        <di:waypoint x="1168" y="340" />
+        <di:waypoint x="1270" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e7_di" bpmnElement="Flow_63_e7">
+        <di:waypoint x="1410" y="340" />
+        <di:waypoint x="1460" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e8_di" bpmnElement="Flow_63_e8">
+        <di:waypoint x="1600" y="340" />
+        <di:waypoint x="1698" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e9_di" bpmnElement="Flow_63_e9">
+        <di:waypoint x="1742" y="340" />
+        <di:waypoint x="1892" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e10_di" bpmnElement="Flow_63_e10">
+        <di:waypoint x="1928" y="340" />
+        <di:waypoint x="2030" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e11_di" bpmnElement="Flow_63_e11">
+        <di:waypoint x="2170" y="340" />
+        <di:waypoint x="2272" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e12_di" bpmnElement="Flow_63_e12">
+        <di:waypoint x="960" y="362" />
+        <di:waypoint x="960" y="405" />
+        <di:waypoint x="1132" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e13_di" bpmnElement="Flow_63_e13">
+        <di:waypoint x="1720" y="362" />
+        <di:waypoint x="1720" y="405" />
+        <di:waypoint x="1892" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e14_di" bpmnElement="Flow_63_e14">
+        <di:waypoint x="1150" y="423" />
+        <di:waypoint x="1150" y="445" />
+        <di:waypoint x="2290" y="445" />
+        <di:waypoint x="2290" y="423" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_63_e15_di" bpmnElement="Flow_63_e15">
+        <di:waypoint x="1910" y="423" />
+        <di:waypoint x="1910" y="445" />
+        <di:waypoint x="2290" y="445" />
+        <di:waypoint x="2290" y="423" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_63_e16_di" bpmnElement="MessageFlow_63_e16">
+        <di:waypoint x="770" y="310" />
+        <di:waypoint x="770" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="711" y="158" width="54" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_63_e17_di" bpmnElement="MessageFlow_63_e17">
+        <di:waypoint x="1150" y="120" />
+        <di:waypoint x="1150" y="322" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1155" y="158" width="124" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_63_e18_di" bpmnElement="MessageFlow_63_e18">
+        <di:waypoint x="1910" y="120" />
+        <di:waypoint x="1910" y="322" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1915" y="158" width="103" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

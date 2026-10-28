@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_66" targetNamespace="http://solarops.example/bpmn" exporter="SolarOps docs (konverzia z solarops-bpmn.drawio)" exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_66">
+    <bpmn:participant id="Participant_66_SolarOps" name="SolarOps (firma)" processRef="Process_66" />
+    <bpmn:participant id="Participant_66_Z" name="Zákazník" />
+    <bpmn:participant id="Participant_66_D" name="Distribučka" />
+    <bpmn:messageFlow id="MessageFlow_66_e12" name="Funkčná skúška a protokol" sourceRef="Task_66_t1" targetRef="Participant_66_D" />
+    <bpmn:messageFlow id="MessageFlow_66_e13" name="Montáž elektromera" sourceRef="Participant_66_D" targetRef="Event_66_c1" />
+    <bpmn:messageFlow id="MessageFlow_66_e14" name="Oznámenie o pripojení" sourceRef="Participant_66_D" targetRef="Event_66_c2" />
+    <bpmn:messageFlow id="MessageFlow_66_e15" name="Podklady k zmluve o dodávke" sourceRef="Task_66_t2" targetRef="Participant_66_Z" />
+    <bpmn:messageFlow id="MessageFlow_66_e16" name="Preberací protokol" sourceRef="Task_66_t4" targetRef="Participant_66_Z" />
+    <bpmn:messageFlow id="MessageFlow_66_e17" name="Podpísaný protokol" sourceRef="Participant_66_Z" targetRef="Event_66_c3" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_66" name="SolarOps (firma) – #66 Uvedenie do prevádzky" isExecutable="false">
+    <bpmn:documentation>Roly: Technik (funkčná skúška, spustenie, odovzdanie), Obchod (podklady k zmluve o dodávke, preberací protokol), Zákazník a Distribučka (black-box pooly).</bpmn:documentation>
+    <bpmn:laneSet id="LaneSet_66">
+      <bpmn:lane id="Lane_66_lane0" name="Obchod">
+        <bpmn:flowNodeRef>Task_66_t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_66_c3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_66_x</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_66_lane1" name="Technik">
+        <bpmn:flowNodeRef>StartEvent_66_s</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_66_g1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_66_t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_66_j</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_66_c1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_66_c2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_66_t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_66_t4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Annotation_66_nt</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_66_s" name="Revízia v poriadku">
+      <bpmn:outgoing>Flow_66_e1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_66_g1" name="Väčší zdroj?">
+      <bpmn:incoming>Flow_66_e1</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_66_e3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_66_t1" name="Vykonať funkčnú skúšku s distribučkou">
+      <bpmn:incoming>Flow_66_e2</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_66_j" name="">
+      <bpmn:incoming>Flow_66_e3</bpmn:incoming>
+      <bpmn:incoming>Flow_66_e4</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_66_t2" name="Pripraviť podklady k zmluve o dodávke">
+      <bpmn:incoming>Flow_66_e5</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_66_c1" name="Elektromer namontovaný (do 5 pr. dní)">
+      <bpmn:incoming>Flow_66_e6</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_66_c1" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_66_c2" name="Oznámenie o pripojení">
+      <bpmn:incoming>Flow_66_e7</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_66_c2" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_66_t3" name="Spustiť FVE a overiť výrobu">
+      <bpmn:incoming>Flow_66_e8</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_66_t4" name="Odovzdať FVE a preberací protokol zákazníkovi">
+      <bpmn:incoming>Flow_66_e9</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_66_c3" name="Podpísaný preberací protokol">
+      <bpmn:incoming>Flow_66_e10</bpmn:incoming>
+      <bpmn:outgoing>Flow_66_e11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_66_c3" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="EndEvent_66_x" name="FVE v prevádzke: aktivovať monitoring">
+      <bpmn:incoming>Flow_66_e11</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MsgDef_66_x" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_66_e1" name="" sourceRef="StartEvent_66_s" targetRef="Gateway_66_g1" />
+    <bpmn:sequenceFlow id="Flow_66_e2" name="áno" sourceRef="Gateway_66_g1" targetRef="Task_66_t1" />
+    <bpmn:sequenceFlow id="Flow_66_e3" name="nie" sourceRef="Gateway_66_g1" targetRef="Gateway_66_j" />
+    <bpmn:sequenceFlow id="Flow_66_e4" name="" sourceRef="Task_66_t1" targetRef="Gateway_66_j" />
+    <bpmn:sequenceFlow id="Flow_66_e5" name="" sourceRef="Gateway_66_j" targetRef="Task_66_t2" />
+    <bpmn:sequenceFlow id="Flow_66_e6" name="" sourceRef="Task_66_t2" targetRef="Event_66_c1" />
+    <bpmn:sequenceFlow id="Flow_66_e7" name="" sourceRef="Event_66_c1" targetRef="Event_66_c2" />
+    <bpmn:sequenceFlow id="Flow_66_e8" name="" sourceRef="Event_66_c2" targetRef="Task_66_t3" />
+    <bpmn:sequenceFlow id="Flow_66_e9" name="" sourceRef="Task_66_t3" targetRef="Task_66_t4" />
+    <bpmn:sequenceFlow id="Flow_66_e10" name="" sourceRef="Task_66_t4" targetRef="Event_66_c3" />
+    <bpmn:sequenceFlow id="Flow_66_e11" name="" sourceRef="Event_66_c3" targetRef="EndEvent_66_x" />
+    <bpmn:textAnnotation id="Annotation_66_nt"><bpmn:text>Ďalej: servis z hlásenia (#67), automatická detekcia podvýroby (#68)</bpmn:text></bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_66">
+    <bpmndi:BPMNPlane id="BPMNPlane_66" bpmnElement="Collaboration_66">
+      <bpmndi:BPMNShape id="Participant_66_SolarOps_di" bpmnElement="Participant_66_SolarOps" isHorizontal="true">
+        <dc:Bounds x="40" y="210" width="2500" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_66_Z_di" bpmnElement="Participant_66_Z" isHorizontal="true">
+        <dc:Bounds x="40" y="70" width="2500" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_66_D_di" bpmnElement="Participant_66_D" isHorizontal="true">
+        <dc:Bounds x="40" y="560" width="2500" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_66_lane0_di" bpmnElement="Lane_66_lane0" isHorizontal="true">
+        <dc:Bounds x="70" y="210" width="2470" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_66_lane1_di" bpmnElement="Lane_66_lane1" isHorizontal="true">
+        <dc:Bounds x="70" y="340" width="2470" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_66_s_di" bpmnElement="StartEvent_66_s">
+        <dc:Bounds x="182" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="145" y="427" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_66_g1_di" bpmnElement="Gateway_66_g1">
+        <dc:Bounds x="368" y="383" width="44" height="44" />
+        <bpmndi:BPMNLabel><dc:Bounds x="335" y="431" width="110" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_66_t1_di" bpmnElement="Task_66_t1">
+        <dc:Bounds x="510" y="375" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_66_j_di" bpmnElement="Gateway_66_j">
+        <dc:Bounds x="748" y="383" width="44" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_66_t2_di" bpmnElement="Task_66_t2">
+        <dc:Bounds x="890" y="245" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_66_c1_di" bpmnElement="Event_66_c1">
+        <dc:Bounds x="1132" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1018" y="384" width="110" height="42" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_66_c2_di" bpmnElement="Event_66_c2">
+        <dc:Bounds x="1322" y="387" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1285" y="355" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_66_t3_di" bpmnElement="Task_66_t3">
+        <dc:Bounds x="1460" y="375" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_66_t4_di" bpmnElement="Task_66_t4">
+        <dc:Bounds x="1650" y="375" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_66_c3_di" bpmnElement="Event_66_c3">
+        <dc:Bounds x="1892" y="257" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1778" y="261" width="110" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_66_x_di" bpmnElement="EndEvent_66_x">
+        <dc:Bounds x="2082" y="257" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2045" y="297" width="110" height="42" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annotation_66_nt_di" bpmnElement="Annotation_66_nt">
+        <dc:Bounds x="2015" y="380" width="170" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_66_e1_di" bpmnElement="Flow_66_e1">
+        <di:waypoint x="218" y="405" />
+        <di:waypoint x="368" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e2_di" bpmnElement="Flow_66_e2">
+        <di:waypoint x="412" y="405" />
+        <di:waypoint x="510" y="405" />
+        <bpmndi:BPMNLabel><dc:Bounds x="444.5" y="389" width="33" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e3_di" bpmnElement="Flow_66_e3">
+        <di:waypoint x="390" y="383" />
+        <di:waypoint x="390" y="361" />
+        <di:waypoint x="770" y="361" />
+        <di:waypoint x="770" y="383" />
+        <bpmndi:BPMNLabel><dc:Bounds x="563.5" y="345" width="33" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e4_di" bpmnElement="Flow_66_e4">
+        <di:waypoint x="650" y="405" />
+        <di:waypoint x="748" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e5_di" bpmnElement="Flow_66_e5">
+        <di:waypoint x="792" y="405" />
+        <di:waypoint x="841" y="405" />
+        <di:waypoint x="841" y="275" />
+        <di:waypoint x="890" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e6_di" bpmnElement="Flow_66_e6">
+        <di:waypoint x="1030" y="275" />
+        <di:waypoint x="1150" y="275" />
+        <di:waypoint x="1150" y="387" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e7_di" bpmnElement="Flow_66_e7">
+        <di:waypoint x="1168" y="405" />
+        <di:waypoint x="1322" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e8_di" bpmnElement="Flow_66_e8">
+        <di:waypoint x="1358" y="405" />
+        <di:waypoint x="1460" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e9_di" bpmnElement="Flow_66_e9">
+        <di:waypoint x="1600" y="405" />
+        <di:waypoint x="1650" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e10_di" bpmnElement="Flow_66_e10">
+        <di:waypoint x="1790" y="405" />
+        <di:waypoint x="1910" y="405" />
+        <di:waypoint x="1910" y="293" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_66_e11_di" bpmnElement="Flow_66_e11">
+        <di:waypoint x="1928" y="275" />
+        <di:waypoint x="2082" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e12_di" bpmnElement="MessageFlow_66_e12">
+        <di:waypoint x="580" y="435" />
+        <di:waypoint x="580" y="560" />
+        <bpmndi:BPMNLabel><dc:Bounds x="405" y="508" width="170" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e13_di" bpmnElement="MessageFlow_66_e13">
+        <di:waypoint x="1150" y="560" />
+        <di:waypoint x="1150" y="423" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1155" y="508" width="138" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e14_di" bpmnElement="MessageFlow_66_e14">
+        <di:waypoint x="1340" y="560" />
+        <di:waypoint x="1340" y="423" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1345" y="508" width="159" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e15_di" bpmnElement="MessageFlow_66_e15">
+        <di:waypoint x="960" y="245" />
+        <di:waypoint x="960" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="785" y="158" width="170" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e16_di" bpmnElement="MessageFlow_66_e16">
+        <di:waypoint x="1720" y="375" />
+        <di:waypoint x="1720" y="120" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1577" y="158" width="138" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_66_e17_di" bpmnElement="MessageFlow_66_e17">
+        <di:waypoint x="1910" y="120" />
+        <di:waypoint x="1910" y="257" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1915" y="158" width="138" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
