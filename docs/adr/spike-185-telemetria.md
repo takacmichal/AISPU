@@ -255,3 +255,8 @@ Tvrdenia o bežnom 5/15-min intervale dataloggerov a o PVGIS/verejných dataseto
 6. ML: feature set (očakávaný vs. nameraný výkon, string pomery), delenie train/test podľa inštalácie a času, baseline detektor podvýroby.
 7. Rozhodnutie o nočných vzorkách a lokálnom čase pre `dayWh`; dokument kontraktu (OpenAPI + JSON Schema v repozitári).
 8. (Voliteľné) adaptér pre reálny striedač: Fronius Solar API alebo SunSpec Modbus -> náš kontrakt.
+
+## Príloha
+
+- JSON Schema kontraktu: [spike-185-telemetry.schema.json](assets/spike-185-telemetry.schema.json)
+- Príklad payloadu (3 záznamy: noc, MPPT, FAULT; validný voči schéme): [spike-185-telemetry-example.json](assets/spike-185-telemetry-example.json)
