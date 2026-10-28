@@ -5,7 +5,7 @@ namespace SolarOps.Api.Features.ConnectionRequests;
 /// <summary>
 /// Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). #85 produces <c>Draft</c>; #86 adds
 /// <c>Submitted</c>, <c>InfoRequested</c>, <c>Rejected</c>, <c>ContractOffered</c> ("schválená"), <c>ContractSigned</c> and
-/// <c>ContractSubmitted</c>; <c>Concluded</c> is the distributor's final act (simulator #87).
+/// <c>ContractSubmitted</c>; <c>Concluded</c> is the distributor's final act (#87).
 /// </summary>
 public enum ConnectionRequestState
 {
@@ -238,6 +238,14 @@ public sealed class ConnectionRequest
     {
         EnsureState(ConnectionRequestState.ContractSigned, "submitted with the signed contract");
         State = ConnectionRequestState.ContractSubmitted;
+        UpdatedAt = now;
+    }
+
+    /// <summary>The distributor concludes the connection contract (ContractSubmitted to Concluded).</summary>
+    public void Conclude(DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.ContractSubmitted, "concluded");
+        State = ConnectionRequestState.Concluded;
         UpdatedAt = now;
     }
 

@@ -52,6 +52,7 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsWrite` | Admin, Sales, Operator | `POST /api/connection-requests`, `PUT /api/connection-requests/{id}` |
 | `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
+| `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
 
 `Customer` je v `InstallationsRead` a `ConnectionRequestsRead`, ale vidí **len vlastné záznamy**:
 obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná politika. Politika rozhoduje,

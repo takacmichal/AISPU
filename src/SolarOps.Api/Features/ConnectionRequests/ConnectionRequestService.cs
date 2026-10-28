@@ -37,6 +37,12 @@ public interface IConnectionRequestService
     /// <summary>ContractSigned to ContractSubmitted.</summary>
     Task<ConnectionRequestResponse> SubmitSignedContractAsync(Guid id, CancellationToken ct);
 
+    /// <summary>Distributor's decision on a submitted request (Submitted to ContractOffered, InfoRequested or Rejected). Used by the simulator.</summary>
+    Task<ConnectionRequestResponse> RecordDecisionAsync(Guid id, DistributorDecisionRequest decision, CancellationToken ct);
+
+    /// <summary>The distributor concludes the contract (ContractSubmitted to Concluded). Used by the simulator.</summary>
+    Task<ConnectionRequestResponse> ConcludeAsync(Guid id, CancellationToken ct);
+
     Task<ConnectionAttachmentFile> DownloadAttachmentAsync(Guid id, Guid attachmentId, CancellationToken ct);
 }
 
@@ -176,6 +182,28 @@ internal sealed class ConnectionRequestService(
 
     public Task<ConnectionRequestResponse> SubmitSignedContractAsync(Guid id, CancellationToken ct) =>
         TransitionAsync(id, (request, now) => request.SubmitSignedContract(now), ct);
+
+    public Task<ConnectionRequestResponse> RecordDecisionAsync(Guid id, DistributorDecisionRequest decision, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) =>
+        {
+            switch (decision.Decision)
+            {
+                case DistributorDecision.Approve:
+                    request.OfferContract(decision.Note, now);
+                    break;
+                case DistributorDecision.RequestInfo:
+                    request.RequestInfo(decision.Note!, now);
+                    break;
+                case DistributorDecision.Reject:
+                    request.Reject(decision.Note!, now);
+                    break;
+                default:
+                    throw new RequestValidationException(nameof(DistributorDecisionRequest.Decision), "Unknown decision.");
+            }
+        }, ct);
+
+    public Task<ConnectionRequestResponse> ConcludeAsync(Guid id, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) => request.Conclude(now), ct);
 
     private async Task<ConnectionRequestResponse> TransitionAsync(
         Guid id, Action<ConnectionRequest, DateTimeOffset> transition, CancellationToken ct)

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using SolarOps.Api.Features.ConnectionRequests;
 using SolarOps.Api.Infrastructure.Errors;
 
@@ -244,5 +245,40 @@ public sealed class ConnectionRequestDeadlineTests
         Assert.Throws<DomainException>(() => Submitted().ReviewConditions(Now));
         Assert.Throws<DomainException>(() => Submitted().SendContract(Now));
         Assert.Throws<DomainException>(() => Submitted().CustomerSigned(Now));
+    }
+
+    [Fact]
+    public void Conclude_AfterSignedContractWasSubmitted_FinishesTheProcess()
+    {
+        var request = Offered();
+        request.ReviewConditions(Now);
+        request.SendContract(Now);
+        request.CustomerSigned(Now);
+        request.SubmitSignedContract(Now);
+
+        request.Conclude(Now.AddDays(1));
+
+        Assert.Equal(ConnectionRequestState.Concluded, request.State);
+        Assert.Equal(Now.AddDays(1), request.UpdatedAt);
+        Assert.Throws<DomainException>(() => request.Conclude(Now));
+    }
+
+    [Fact]
+    public void Conclude_BeforeSignedContractWasSubmitted_Throws() =>
+        Assert.Throws<DomainException>(() => Offered().Conclude(Now));
+
+    [Fact]
+    public void DecisionRequest_RequiresNoteForRequestInfoAndReject()
+    {
+        static bool Valid(DistributorDecision decision, string? note)
+        {
+            var request = new DistributorDecisionRequest { Decision = decision, Note = note };
+            return Validator.TryValidateObject(request, new ValidationContext(request), [], true);
+        }
+
+        Assert.False(Valid(DistributorDecision.Reject, null));
+        Assert.False(Valid(DistributorDecision.RequestInfo, " "));
+        Assert.True(Valid(DistributorDecision.Approve, null));
+        Assert.True(Valid(DistributorDecision.Reject, "No capacity"));
     }
 }
