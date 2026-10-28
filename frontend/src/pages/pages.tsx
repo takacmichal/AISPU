@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { findItem } from '../auth/navigation'
+import { safeReturnUrl } from '../auth/session'
 
 export function LoginPage() {
-  const { session, signIn } = useAuth()
+  const { session, signIn, signOutReason } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
+  const [params] = useSearchParams()
+  const returnUrl = safeReturnUrl(params.get('returnUrl'))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (session) return <Navigate to="/" replace />
+  if (session) return <Navigate to={returnUrl} replace />
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -19,7 +21,7 @@ export function LoginPage() {
     setError(null)
     try {
       await signIn(String(form.get('email')), String(form.get('password')))
-      navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true })
+      navigate(returnUrl, { replace: true })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Prihlásenie zlyhalo.')
       setBusy(false)
@@ -29,6 +31,7 @@ export function LoginPage() {
   return (
     <main className="app">
       <h1>Prihlásenie</h1>
+      {signOutReason === 'expired' && <p role="status">Platnosť relácie vypršala, prihláste sa znova.</p>}
       <form onSubmit={onSubmit}>
         <label>
           E-mail
