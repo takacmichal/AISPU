@@ -34,6 +34,8 @@ interface Api {
   supplyPoints: ReturnType<typeof sp>[]
   calls: { method: string; url: string; body?: unknown }[]
   loadError?: boolean
+  /** When set, the supply point list request waits for this promise (keeps the loading state visible). */
+  gate?: Promise<void>
   mutate?: (method: string, url: string) => Response | undefined
 }
 
@@ -45,6 +47,7 @@ function stubApi(state: Api) {
       const path = new URL(String(url)).pathname
       state.calls.push({ method, url: String(url), body: init.body ? JSON.parse(String(init.body)) : undefined })
       if (path === '/api/customers/c1') return json(customer)
+      if (path.endsWith('/supply-points') && method === 'GET') await state.gate
       if (path.endsWith('/supply-points') && method === 'GET') return state.loadError ? new Response(null, { status: 500 }) : json(state.supplyPoints)
       const custom = state.mutate?.(method, path)
       if (custom) return custom
@@ -100,11 +103,14 @@ describe('CustomerDetailPage', () => {
   })
 
   it('shows a loading state per tab and a load error', async () => {
-    const state: Api = { supplyPoints: [], calls: [], loadError: true }
+    let release = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const state: Api = { supplyPoints: [], calls: [], loadError: true, gate }
     stubApi(state)
     renderAt('/customers/c1?tab=supply-points')
 
     expect(await screen.findByText('Načítavam odberné miesta…')).toBeInTheDocument()
+    release()
     expect(await screen.findByText('Odberné miesta sa nepodarilo načítať.')).toBeInTheDocument()
   })
 
