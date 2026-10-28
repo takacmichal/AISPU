@@ -20,17 +20,26 @@ function normalizeField(name: string): string {
   return name.replace(/(^|\.)([A-Z])/g, (_, dot: string, c: string) => dot + c.toLowerCase())
 }
 
-export async function toApiError(response: Response): Promise<ApiError> {
-  let title = `HTTP ${response.status}`
+interface ProblemBody {
+  title?: string
+  detail?: string
+  errors?: Record<string, string[]>
+}
+
+/** Builds an ApiError from an already parsed ProblemDetails body (e.g. `error` of the typed client). */
+export function problemToApiError(status: number, body: unknown): ApiError {
+  const problem = (typeof body === 'object' && body !== null ? body : {}) as ProblemBody
   const fieldErrors: FieldErrors = {}
-  try {
-    const body = (await response.json()) as { title?: string; detail?: string; errors?: Record<string, string[]> }
-    title = body.detail ?? body.title ?? title
-    for (const [field, messages] of Object.entries(body.errors ?? {})) {
-      fieldErrors[normalizeField(field)] = messages
-    }
-  } catch {
-    // body is not JSON; keep the status based message
+  for (const [field, messages] of Object.entries(problem.errors ?? {})) {
+    fieldErrors[normalizeField(field)] = messages
   }
-  return new ApiError(response.status, title, fieldErrors)
+  return new ApiError(status, problem.detail ?? problem.title ?? `HTTP ${status}`, fieldErrors)
+}
+
+export async function toApiError(response: Response): Promise<ApiError> {
+  try {
+    return problemToApiError(response.status, await response.json())
+  } catch {
+    return problemToApiError(response.status, null)
+  }
 }
