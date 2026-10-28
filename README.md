@@ -48,6 +48,19 @@ Connection string pre `dotnet run` je v `src/SolarOps.Api/appsettings.Developmen
 
 JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lokálny vývojový kľúč v `appsettings.Development.json`. Mimo Development ho nastav cez premennú `Jwt__SigningKey` (napr. `openssl rand -base64 48`), inak API nenaštartuje.
 
+## Frontend: generovaný API klient
+
+Typy API sa generujú z OpenAPI (`frontend/openapi/openapi.json`) do `frontend/src/api/generated/` (negeneruj ručne, needituj). Typovaný klient je `api` v `frontend/src/api/client.ts`.
+
+```bash
+# po zmene API: spusti API, stiahni špecifikáciu a vygeneruj typy, oboje commitni
+cd frontend
+pnpm api:fetch      # OPENAPI_URL prepíše predvolené http://localhost:5080/openapi/v1.json
+pnpm api:generate
+```
+
+`pnpm build` (aj CI) zlyhá, ak sa vygenerované typy nezhodujú so špecifikáciou (`pnpm api:check`), a `tsc` zlyhá, ak kód používa zmenený kontrakt.
+
 ## Testy
 
 ```bash
