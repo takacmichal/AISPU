@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using SolarOps.Api.Features.DeviceKeys;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Tests.Infrastructure;
 
@@ -18,6 +19,9 @@ public sealed class AuthorizationEndpointsTests(PostgresFixture postgres) : IDis
 {
     /// <summary>Endpoints that are anonymous on purpose; everything else must have a policy.</summary>
     private static readonly string[] AnonymousPrefixes = ["api/auth/", "api/system/"];
+
+    /// <summary>Devices authenticate with an API key, not a role (#96), so their policy is not part of the role matrix.</summary>
+    private const string DevicePolicy = DeviceApiKeyDefaults.PolicyName;
 
     private readonly ApiFactory _factory = new(postgres);
 
@@ -45,6 +49,11 @@ public sealed class AuthorizationEndpointsTests(PostgresFixture postgres) : IDis
             }
 
             var policy = Assert.Single(PoliciesOf(endpoint));
+            if (policy == DevicePolicy)
+            {
+                continue;
+            }
+
             Assert.True(
                 AuthorizationPolicies.Matrix.ContainsKey(policy),
                 $"Endpoint '{route}' uses policy '{policy}' which is missing from {nameof(AuthorizationPolicies.Matrix)}.");
@@ -54,7 +63,7 @@ public sealed class AuthorizationEndpointsTests(PostgresFixture postgres) : IDis
     [Fact]
     public void EveryPolicy_IsUsedByAtLeastOneEndpoint()
     {
-        var used = ApiEndpoints().SelectMany(PoliciesOf).ToHashSet(StringComparer.Ordinal);
+        var used = ApiEndpoints().SelectMany(PoliciesOf).Where(policy => policy != DevicePolicy).ToHashSet(StringComparer.Ordinal);
 
         Assert.Equal(
             AuthorizationPolicies.All.Order(StringComparer.Ordinal),

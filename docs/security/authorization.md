@@ -33,7 +33,7 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 
 | Politika | Povolené roly | Endpointy |
 |---|---|---|
-| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles` |
+| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles`, `GET`, `POST` a `POST …/rotate` na `/api/installations/{installationId}/api-keys`, `DELETE /api/installations/{installationId}/api-keys/{keyId}` |
 | `CustomersRead` | Admin, Sales, Designer, Technician, Operator | `GET /api/customers`, `GET /api/customers/{id}`, `GET /api/customers/{customerId}/supply-points`, `GET /api/customers/{customerId}/supply-points/{id}` |
 | `CustomersWrite` | Admin, Sales | `POST /api/customers`, `PUT /api/customers/{id}`, `POST /api/customers/{id}/archive`, `POST /api/customers/{id}/reactivate`, `POST/PUT/DELETE /api/customers/{customerId}/supply-points/…` |
 | `CatalogRead` | Admin, Sales, Designer, Operator | `GET /api/components`, `GET /api/components/{id}` |
@@ -52,11 +52,14 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsWrite` | Admin, Sales, Operator | `POST /api/connection-requests`, `PUT /api/connection-requests/{id}` |
 | `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
-| `TelemetryIngest` | Admin, Operator | `POST /api/telemetry` (dočasne, kým zariadenia nepoužívajú API kľúče, #96) |
 
 `Customer` je v `InstallationsRead` a `ConnectionRequestsRead`, ale vidí **len vlastné záznamy**:
 obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná politika. Politika rozhoduje,
 či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti.
+
+### Zariadenia (API kľúč)
+
+`POST /api/telemetry` nepoužíva rolu, ale API kľúč inštalácie v hlavičke `X-Api-Key` (#96). Politika `DeviceIngest` je preto mimo matice rolí a test ju výslovne vynecháva. Kľúč platí len pre svoju inštaláciu (iná dáva `403`), chýbajúci alebo zrušený kľúč dáva `401`.
 
 ## Ako pridať alebo zmeniť endpoint
 
