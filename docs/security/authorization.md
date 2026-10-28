@@ -49,6 +49,8 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `InstallationsField` | Admin, Designer, Technician, Operator | `POST /api/installations/{id}/transitions`, `POST /api/installations/{installationId}/devices`, `POST /api/installations/{installationId}/devices/{deviceId}/replace` |
 | `ConnectionRequestsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/connection-requests`, `GET /api/connection-requests/{id}`, `GET /api/connection-requests/{id}/attachments/{attachmentId}` |
 | `ConnectionRequestsWrite` | Admin, Sales, Operator | `POST /api/connection-requests`, `PUT /api/connection-requests/{id}` |
+| `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
+| `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
 | `TelemetryIngest` | Admin, Operator | `POST /api/telemetry` (dočasne, kým zariadenia nepoužívajú API kľúče, #96) |
 
 `Customer` je v `InstallationsRead` a `ConnectionRequestsRead`, ale vidí **len vlastné záznamy**:

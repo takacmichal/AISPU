@@ -2,7 +2,11 @@ using SolarOps.Api.Infrastructure.Errors;
 
 namespace SolarOps.Api.Features.ConnectionRequests;
 
-/// <summary>Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). Only <c>Draft</c> is produced by #85; the rest follows with #86 and #87.</summary>
+/// <summary>
+/// Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). #85 produces <c>Draft</c>; #86 adds
+/// <c>Submitted</c>, <c>InfoRequested</c>, <c>Rejected</c>, <c>ContractOffered</c> ("schválená"), <c>ContractSigned</c> and
+/// <c>ContractSubmitted</c>; <c>Concluded</c> is the distributor's final act (simulator #87).
+/// </summary>
 public enum ConnectionRequestState
 {
     Draft,
@@ -57,6 +61,7 @@ public sealed class ConnectionRequest
     public const int EicMaxLength = 32;
     public const int FileNameMaxLength = 255;
     public const int ContentTypeMaxLength = 127;
+    public const int DecisionNoteMaxLength = 1000;
 
     /// <summary>
     /// Attachments per request. Together with <see cref="MaxAttachmentBytes"/> it bounds the request body
@@ -114,6 +119,24 @@ public sealed class ConnectionRequest
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>Moment of the last (re)submission to the distributor; starts the proposal deadline.</summary>
+    public DateTimeOffset? SubmittedAt { get; private set; }
+
+    /// <summary>Last day on which the distributor should answer; fixed at submission from the configured deadlines.</summary>
+    public DateOnly? ProposalDueDate { get; private set; }
+
+    /// <summary>Moment of the distributor's last decision (info request, rejection, contract offer).</summary>
+    public DateTimeOffset? DecidedAt { get; private set; }
+
+    /// <summary>Reason of the rejection or what must be completed; optional for a contract offer.</summary>
+    public string? DecisionNote { get; private set; }
+
+    /// <summary>Moment the technical conditions of the offered contract were checked (BPMN #64); required before the contract is sent.</summary>
+    public DateTimeOffset? ConditionsReviewedAt { get; private set; }
+
+    /// <summary>Moment the contract was sent to the customer; required before the customer's signature is recorded.</summary>
+    public DateTimeOffset? ContractSentAt { get; private set; }
+
     public IReadOnlyList<ConnectionRequestAttachment> Attachments => _attachments;
 
     // smallSourceMaxKw: upper bound of a small source in kW (10.8 by ADR #217, configurable).
@@ -150,7 +173,107 @@ public sealed class ConnectionRequest
         return request;
     }
 
-    /// <summary>Edits a request that has not been submitted yet; replaces the attachment set as a whole.</summary>
+    /// <summary>Submits a prepared request to the distributor (Draft to Submitted); <paramref name="proposalDueDate"/> starts the deadline.</summary>
+    public void Submit(DateOnly proposalDueDate, DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.Draft, "submitted");
+        MarkSubmitted(proposalDueDate, now);
+    }
+
+    /// <summary>Sends the corrected request again (InfoRequested to Submitted); the deadline starts anew.</summary>
+    public void Resubmit(DateOnly proposalDueDate, DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.InfoRequested, "resubmitted");
+        MarkSubmitted(proposalDueDate, now);
+        DecidedAt = null;
+        DecisionNote = null;
+    }
+
+    /// <summary>Decision of the distributor: the request must be completed (Submitted to InfoRequested).</summary>
+    public void RequestInfo(string note, DateTimeOffset now) => Decide(ConnectionRequestState.InfoRequested, RequireNote(note), now);
+
+    /// <summary>Decision of the distributor: the request is refused (Submitted to Rejected).</summary>
+    public void Reject(string reason, DateTimeOffset now) => Decide(ConnectionRequestState.Rejected, RequireNote(reason), now);
+
+    /// <summary>Decision of the distributor: approved, a contract is offered (Submitted to ContractOffered).</summary>
+    public void OfferContract(string? note, DateTimeOffset now) =>
+        Decide(ConnectionRequestState.ContractOffered, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), now);
+
+    /// <summary>Checks the technical conditions of the offered contract (stays in ContractOffered).</summary>
+    public void ReviewConditions(DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.ContractOffered, "reviewed");
+        ConditionsReviewedAt = now;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Sends the offered contract to the customer (stays in ContractOffered); the conditions must be reviewed first.</summary>
+    public void SendContract(DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.ContractOffered, "sent to the customer");
+        if (ConditionsReviewedAt is null)
+        {
+            throw new DomainException("The technical conditions must be reviewed before the contract is sent to the customer.");
+        }
+
+        ContractSentAt = now;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Records the customer's signature (ContractOffered to ContractSigned); the contract must have been sent.</summary>
+    public void CustomerSigned(DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.ContractOffered, "marked as signed");
+        if (ContractSentAt is null)
+        {
+            throw new DomainException("The contract must be sent to the customer before the signature is recorded.");
+        }
+
+        State = ConnectionRequestState.ContractSigned;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Sends the signed contract to the distributor (ContractSigned to ContractSubmitted).</summary>
+    public void SubmitSignedContract(DateTimeOffset now)
+    {
+        EnsureState(ConnectionRequestState.ContractSigned, "submitted with the signed contract");
+        State = ConnectionRequestState.ContractSubmitted;
+        UpdatedAt = now;
+    }
+
+    private void MarkSubmitted(DateOnly proposalDueDate, DateTimeOffset now)
+    {
+        State = ConnectionRequestState.Submitted;
+        SubmittedAt = now;
+        ProposalDueDate = proposalDueDate;
+        UpdatedAt = now;
+    }
+
+    private void Decide(ConnectionRequestState next, string? note, DateTimeOffset now)
+    {
+        if (State != ConnectionRequestState.Submitted)
+        {
+            throw new DomainException($"A connection request in state {State} cannot be moved to {next}; only a submitted request awaits a decision.");
+        }
+
+        State = next;
+        DecisionNote = note;
+        DecidedAt = now;
+        UpdatedAt = now;
+    }
+
+    private void EnsureState(ConnectionRequestState expected, string action)
+    {
+        if (State != expected)
+        {
+            throw new DomainException($"A connection request in state {State} cannot be {action}; it must be in state {expected}.");
+        }
+    }
+
+    private static string RequireNote(string note) =>
+        string.IsNullOrWhiteSpace(note) ? throw new DomainException("A note is required.") : note.Trim();
+
+    /// <summary>Edits a request before it is submitted or while the distributor waits for completion; replaces the attachment set as a whole.</summary>
     public void Update(
         string eicCode,
         decimal ratedAcPowerKw,
@@ -159,7 +282,7 @@ public sealed class ConnectionRequest
         IReadOnlyCollection<AttachmentInput> attachments,
         DateTimeOffset now)
     {
-        if (State != ConnectionRequestState.Draft)
+        if (State is not (ConnectionRequestState.Draft or ConnectionRequestState.InfoRequested))
         {
             throw new DomainException($"A connection request in state {State} can no longer be edited.");
         }
