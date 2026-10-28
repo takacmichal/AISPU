@@ -44,7 +44,7 @@ function stubApi(state: Api) {
     'fetch',
     vi.fn().mockImplementation(async (url: string, init: RequestInit = {}) => {
       const method = init.method ?? 'GET'
-      const path = new URL(String(url)).pathname
+      const path = new URL(String(url), 'http://localhost').pathname
       state.calls.push({ method, url: String(url), body: init.body ? JSON.parse(String(init.body)) : undefined })
       if (path === '/api/customers/c1') return json(customer)
       if (path.endsWith('/supply-points') && method === 'GET') await state.gate
