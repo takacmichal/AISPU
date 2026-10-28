@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using SolarOps.Api.Infrastructure.Errors;
+using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
 
@@ -23,20 +24,20 @@ public sealed class DevicesModule : IModule
             .WithDescription("By default only installed devices; includeReplaced=true adds replaced ones. Filter: type (Panel, Inverter).")
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapGet("/{deviceId:guid}", Get)
             .WithName("GetInstallationDevice")
             .WithSummary("Get a device")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapGet("/{deviceId:guid}/history", History)
             .WithName("GetInstallationDeviceHistory")
             .WithSummary("Replacement history of a device")
             .WithDescription("The whole chain of devices the given one belongs to (replaced predecessors and successors), oldest first.")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapPost("/", Add)
             .WithName("AddInstallationDevice")
@@ -45,7 +46,7 @@ public sealed class DevicesModule : IModule
             .WithValidation<AddDeviceRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
 
         group.MapPost("/{deviceId:guid}/replace", Replace)
             .WithName("ReplaceInstallationDevice")
@@ -54,7 +55,7 @@ public sealed class DevicesModule : IModule
             .WithValidation<ReplaceDeviceRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
     }
 
     internal static async Task<Ok<IReadOnlyList<DeviceResponse>>> List(

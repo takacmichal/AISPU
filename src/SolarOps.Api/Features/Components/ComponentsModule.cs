@@ -8,10 +8,6 @@ namespace SolarOps.Api.Features.Components;
 /// <summary>Catalog of panels, inverters and labor with prices (#73): <c>/api/components</c>.</summary>
 public sealed class ComponentsModule : IModule
 {
-    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator];
-
-    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Sales];
-
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IComponentService, ComponentService>();
@@ -26,20 +22,20 @@ public sealed class ComponentsModule : IModule
             .WithSummary("List catalog components")
             .WithDescription("Filters: type, active (true offers only active components, as quotes need), q (code, name, manufacturer). Ordered by type name and component name.")
             .ProducesValidationProblem()
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogRead);
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetComponent")
             .WithSummary("Get a component by id")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogRead);
 
         group.MapPost("/", CreateAsync)
             .WithName("CreateComponent")
             .WithSummary("Create a component (active)")
             .WithValidation<CreateComponentRequest>()
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogWrite);
 
         group.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateComponent")
@@ -48,21 +44,21 @@ public sealed class ComponentsModule : IModule
             .WithValidation<UpdateComponentRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogWrite);
 
         group.MapPost("/{id:guid}/deactivate", DeactivateAsync)
             .WithName("DeactivateComponent")
             .WithSummary("Deactivate a component (no longer offered in quotes)")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogWrite);
 
         group.MapPost("/{id:guid}/activate", ActivateAsync)
             .WithName("ActivateComponent")
             .WithSummary("Activate a component")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CatalogWrite);
     }
 
     internal static async Task<Ok<IReadOnlyList<ComponentResponse>>> ListAsync(

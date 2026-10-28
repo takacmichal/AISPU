@@ -7,12 +7,6 @@ namespace SolarOps.Api.Features.FveDesigns;
 /// <summary>Technical PV design (feature #20, BPMN #62): site survey, roof/consumption inputs, configuration, approval.</summary>
 public sealed class FveDesignsModule : IModule
 {
-    /// <summary>Roles that may read designs and start new ones.</summary>
-    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer];
-
-    /// <summary>Roles that do the technical design work (BPMN lane "Projektant").</summary>
-    internal static readonly string[] DesignerRoles = [Roles.Admin, Roles.Designer];
-
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         // Swap for a PVGIS / prediction-service client by registering another IYieldEstimator.
@@ -27,56 +21,56 @@ public sealed class FveDesignsModule : IModule
             .WithName("CreateFveDesign")
             .WithSummary("Request a PV design for a customer's supply point (status Requested)")
             .WithValidation<CreateFveDesignRequest>()
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsRead);
 
         group.MapGet("/", FveDesignEndpoints.List)
             .WithName("ListFveDesigns")
             .WithSummary("List designs, optionally filtered by status, customer or supply point")
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsRead);
 
         group.MapGet("/{id:guid}", FveDesignEndpoints.Get)
             .WithName("GetFveDesign")
             .WithSummary("Get a design with its roof and consumption parameters")
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsRead);
 
         group.MapPost("/{id:guid}/site-survey", FveDesignEndpoints.RecordSiteSurvey)
             .WithName("RecordFveDesignSiteSurvey")
             .WithSummary("Record the site survey result (Requested → SiteSurveyDone)")
             .WithValidation<SiteSurveyRequest>()
-            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsWrite);
 
         group.MapPost("/{id:guid}/mark-infeasible", FveDesignEndpoints.MarkInfeasible)
             .WithName("MarkFveDesignInfeasible")
             .WithSummary("Mark the site as not feasible (SiteSurveyDone → Infeasible)")
             .WithValidation<MarkInfeasibleRequest>()
-            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsWrite);
 
         group.MapPut("/{id:guid}/parameters", FveDesignEndpoints.UpdateParameters)
             .WithName("UpdateFveDesignParameters")
             .WithSummary("Set roof planes, consumption and location (SiteSurveyDone/InDesign → InDesign)")
             .WithValidation<UpdateDesignParametersRequest>()
-            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsWrite);
 
         group.MapPost("/{id:guid}/configuration/preview", FveDesignVersionEndpoints.Preview)
             .WithName("PreviewFveDesignConfiguration")
             .WithSummary("Check panel/inverter compatibility and estimate annual yield without saving")
             .WithValidation<ConfigureDesignRequest>()
-            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsWrite);
 
         group.MapPost("/{id:guid}/versions", FveDesignVersionEndpoints.Save)
             .WithName("SaveFveDesignVersion")
             .WithSummary("Save the configuration as a new immutable version (400 when incompatible, 409 when the design is not InDesign)")
             .WithValidation<ConfigureDesignRequest>()
-            .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsWrite);
 
         group.MapGet("/{id:guid}/versions", FveDesignVersionEndpoints.List)
             .WithName("ListFveDesignVersions")
             .WithSummary("List saved configuration versions, newest first")
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsRead);
 
         group.MapGet("/{id:guid}/versions/{number:int}", FveDesignVersionEndpoints.Get)
             .WithName("GetFveDesignVersion")
             .WithSummary("Get one saved configuration version")
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.DesignsRead);
     }
 }
