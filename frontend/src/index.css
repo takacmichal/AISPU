@@ -132,3 +132,33 @@ body {
 .toast--error {
   background: #b91c1c;
 }
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabs [role='tab'][aria-selected='true'] {
+  background: #f59e0b;
+  font-weight: 600;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 40%);
+}
+
+.dialog {
+  width: min(32rem, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background: #fff;
+}
