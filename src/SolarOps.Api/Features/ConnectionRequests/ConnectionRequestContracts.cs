@@ -217,7 +217,10 @@ public sealed record AttachmentResponse(
         $"/api/connection-requests/{requestId}/attachments/{attachmentId}";
 }
 
-/// <summary>Connection request with its attachments.</summary>
+/// <summary>
+/// Connection request with its attachments and deadline. <c>ProposalRemainingDays</c> (calendar days, negative when late) and
+/// <c>ProposalOverdue</c> are set only while the request waits for the distributor (state <c>Submitted</c>).
+/// </summary>
 public sealed record ConnectionRequestResponse(
     Guid Id,
     Guid InstallationId,
@@ -230,21 +233,36 @@ public sealed record ConnectionRequestResponse(
     ConnectionRequestState State,
     IReadOnlyList<AttachmentResponse> Attachments,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? SubmittedAt,
+    DateOnly? ProposalDueDate,
+    int? ProposalRemainingDays,
+    bool ProposalOverdue,
+    DateTimeOffset? DecidedAt,
+    string? DecisionNote,
+    DateTimeOffset? ConditionsReviewedAt,
+    DateTimeOffset? ContractSentAt)
 {
-    internal static ConnectionRequestResponse From(ConnectionRequest x) => From(
+    internal static ConnectionRequestResponse From(ConnectionRequest x, DateOnly today) => From(
         x,
         x.Attachments
             .OrderBy(a => a.CreatedAt).ThenBy(a => a.Id)
             .Select(a => AttachmentResponse.From(x.Id, a))
-            .ToList());
+            .ToList(),
+        today);
 
     internal static ConnectionRequestResponse From(
         ConnectionRequest x,
-        IReadOnlyList<AttachmentResponse> attachments) => new(
-        x.Id, x.InstallationId, x.CustomerId, x.SupplyPointId, x.EicCode, x.RatedAcPowerKw, x.MainBreakerAmps, x.Type, x.State,
-        attachments,
-        x.CreatedAt, x.UpdatedAt);
+        IReadOnlyList<AttachmentResponse> attachments,
+        DateOnly today)
+    {
+        var deadline = ConnectionRequestDeadlines.Evaluate(x.State, x.ProposalDueDate, today);
+        return new(
+            x.Id, x.InstallationId, x.CustomerId, x.SupplyPointId, x.EicCode, x.RatedAcPowerKw, x.MainBreakerAmps, x.Type, x.State,
+            attachments,
+            x.CreatedAt, x.UpdatedAt,
+            x.SubmittedAt, x.ProposalDueDate, deadline.RemainingDays, deadline.IsOverdue, x.DecidedAt, x.DecisionNote, x.ConditionsReviewedAt, x.ContractSentAt);
+    }
 }
 
 /// <summary>File returned by the attachment download endpoint.</summary>

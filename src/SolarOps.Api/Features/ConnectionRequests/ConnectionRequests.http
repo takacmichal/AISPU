@@ -44,7 +44,7 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/api/connection-requests/{{connectionRequestId}}
 Authorization: Bearer {{token}}
 
-### Replace the EIC, power, breaker and attachments of a Draft request
+### Replace the EIC, power, breaker and attachments of a Draft or InfoRequested request
 PUT {{baseUrl}}/api/connection-requests/{{connectionRequestId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -61,4 +61,36 @@ Content-Type: application/json
 
 ### Download an attachment (only when contentBase64 was sent)
 GET {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/attachments/{{attachmentId}}
+Authorization: Bearer {{token}}
+
+### Submit to the distributor (Draft to Submitted; role Admin/Designer). Starts the proposal deadline:
+### 10 working days (small source) or 30 calendar days (larger source), see section ConnectionRequest in appsettings.
+### Response: state, submittedAt, proposalDueDate, proposalRemainingDays (negative when late), proposalOverdue.
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/submit
+Authorization: Bearer {{token}}
+
+### Send the completed request again after the distributor asked for more (InfoRequested to Submitted; role Admin/Operator/Sales/Designer).
+### Correct the request with PUT first. The deadline restarts.
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/resubmit
+Authorization: Bearer {{token}}
+
+### Requests awaiting the distributor past their deadline (to chase the distributor)
+GET {{baseUrl}}/api/connection-requests?overdue=true
+Authorization: Bearer {{token}}
+
+### After the distributor offered a contract (state ContractOffered; the offer comes from the simulator, #87):
+### 1. check the technical conditions (Admin/Designer)
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/review-conditions
+Authorization: Bearer {{token}}
+
+### 2. send the contract to the customer (Admin/Operator/Sales/Designer; 409 until the conditions are reviewed)
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/send-contract
+Authorization: Bearer {{token}}
+
+### 3. record the customer's signature (ContractOffered to ContractSigned; 409 until the contract is sent)
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/customer-signed
+Authorization: Bearer {{token}}
+
+### 4. send the signed contract to the distributor (ContractSigned to ContractSubmitted; Admin/Designer)
+POST {{baseUrl}}/api/connection-requests/{{connectionRequestId}}/submit-signed-contract
 Authorization: Bearer {{token}}
