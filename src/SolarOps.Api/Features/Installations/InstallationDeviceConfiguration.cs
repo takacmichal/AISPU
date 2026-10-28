@@ -26,6 +26,14 @@ internal sealed class InstallationDeviceConfiguration : IEntityTypeConfiguration
         builder.HasIndex(x => x.ReplacesDeviceId).IsUnique().HasDatabaseName(ReplacesIndexName);
         builder.HasIndex(x => new { x.InstallationId, x.Status });
 
+        builder.HasIndex(x => x.StringId);
+
+        // A string with panels cannot be deleted (the service checks it and answers 409).
+        builder.HasOne<PanelString>()
+            .WithMany()
+            .HasForeignKey(x => x.StringId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne<Installation>()
             .WithMany()
             .HasForeignKey(x => x.InstallationId)

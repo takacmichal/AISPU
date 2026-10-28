@@ -90,3 +90,38 @@ Content-Type: application/json
 ### Replacement history of a device (whole chain, oldest first)
 GET {{baseUrl}}/api/installations/{{installationId}}/devices/{{deviceId}}/history
 Authorization: Bearer {{token}}
+
+### Strings (#84): define a string (number = strings[].id in telemetry, mpptInput optional)
+@stringId = 00000000-0000-0000-0000-000000000000
+POST {{baseUrl}}/api/installations/{{installationId}}/strings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "number": 1, "name": "South roof", "mpptInput": 1 }
+
+### Update a string
+PUT {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "number": 1, "name": "South roof", "mpptInput": 2 }
+
+### Put a panel into the string (moves it if it is in another string)
+PUT {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}/panels/{{deviceId}}
+Authorization: Bearer {{token}}
+
+### Take a panel out of the string
+DELETE {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}/panels/{{deviceId}}
+Authorization: Bearer {{token}}
+
+### Panel layout: strings with panels, summed power per string, unassigned panels
+GET {{baseUrl}}/api/installations/{{installationId}}/strings
+Authorization: Bearer {{token}}
+
+### String detail
+GET {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}
+Authorization: Bearer {{token}}
+
+### Delete an empty string (409 when it still has panels)
+DELETE {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}
+Authorization: Bearer {{token}}

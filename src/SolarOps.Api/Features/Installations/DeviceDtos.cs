@@ -77,11 +77,12 @@ public sealed record DeviceResponse(
     Guid? RemovedBy,
     string? RemovalReason,
     Guid? ReplacedByDeviceId,
-    Guid? ReplacesDeviceId)
+    Guid? ReplacesDeviceId,
+    Guid? StringId)
 {
     internal static DeviceResponse From(InstallationDevice x) => new(
         x.Id, x.InstallationId, x.Type, x.SerialNumber, x.Manufacturer, x.Model, x.PowerW, x.Status, x.RegisteredBy,
-        x.RegisteredAt, x.RemovedAt, x.RemovedBy, x.RemovalReason, x.ReplacedByDeviceId, x.ReplacesDeviceId);
+        x.RegisteredAt, x.RemovedAt, x.RemovedBy, x.RemovalReason, x.ReplacedByDeviceId, x.ReplacesDeviceId, x.StringId);
 }
 
 /// <summary>Result of a replacement: the device taken out and the one installed in its place.</summary>
