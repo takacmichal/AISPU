@@ -1,33 +1,80 @@
-import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { AuthProvider } from './auth/AuthContext'
+import { breadcrumbs, menuItems } from './auth/navigation'
+import type { Session } from './auth/session'
 
-describe('App', () => {
-  afterEach(() => vi.unstubAllGlobals())
+function session(...roles: string[]): Session {
+  return { email: 'user@solarops.test', roles, accessToken: 'a', refreshToken: 'r' }
+}
 
-  it('renders title and API info', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ name: 'SolarOps API', version: '1.0.0', environment: 'Development', serverTime: '' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
-      ),
-    )
+function renderAt(path: string, s: Session | null) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AuthProvider initialSession={s}>
+        <App />
+      </AuthProvider>
+    </MemoryRouter>,
+  )
+}
 
-    render(<App />)
-
-    expect(screen.getByRole('heading', { name: 'SolarOps' })).toBeInTheDocument()
-    expect(await screen.findByText(/SolarOps API v1\.0\.0/)).toBeInTheDocument()
-  })
-
-  it('shows error when API is unavailable', async () => {
+describe('role navigation', () => {
+  beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })))
     vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => vi.unstubAllGlobals())
 
-    render(<App />)
+  it('config yields different menus per role', () => {
+    const labels = (role: string) => menuItems([role]).map((i) => i.label)
+    expect(labels('Sales')).toContain('Zákazníci')
+    expect(labels('Sales')).not.toContain('Servisné tikety')
+    expect(labels('Technician')).toContain('Servisné tikety')
+    expect(labels('Customer')).toEqual(['Prehľad', 'Moje elektrárne'])
+    expect(labels('Admin')).toContain('Používatelia a roly')
+    expect(labels('Admin')).not.toContain('Administrácia')
+  })
 
+  it('shows only allowed items in the menu', () => {
+    renderAt('/', session('Sales'))
+    const nav = screen.getByRole('navigation', { name: 'Hlavná navigácia' })
+    expect(within(nav).getByRole('link', { name: 'Zákazníci' })).toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: 'Servisné tikety' })).not.toBeInTheDocument()
+  })
+
+  it('guards unauthorized routes with 403', () => {
+    renderAt('/tickets', session('Sales'))
+    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+  })
+
+  it('redirects anonymous users to login', () => {
+    renderAt('/customers', null)
+    expect(screen.getByRole('heading', { name: 'Prihlásenie' })).toBeInTheDocument()
+  })
+
+  it('renders breadcrumbs for nested routes', () => {
+    renderAt('/admin/users', session('Admin'))
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumbs' })
+    expect(within(crumbs).getByText('Používatelia a roly')).toHaveAttribute('aria-current', 'page')
+    expect(within(crumbs).getByRole('link', { name: 'Prehľad' })).toBeInTheDocument()
+    expect(breadcrumbs('/admin/users').map((i) => i.label)).toEqual(['Prehľad', 'Administrácia', 'Používatelia a roly'])
+  })
+
+  it('marks the current menu link active', () => {
+    renderAt('/customers', session('Admin'))
+    const nav = screen.getByRole('navigation', { name: 'Hlavná navigácia' })
+    expect(within(nav).getByRole('link', { name: 'Zákazníci' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('shows 404 for unknown routes', () => {
+    renderAt('/nope', session('Admin'))
+    expect(screen.getByRole('heading', { name: /404/ })).toBeInTheDocument()
+  })
+
+  it('renders the dashboard API status', async () => {
+    renderAt('/', session('Admin'))
     expect(await screen.findByRole('alert')).toHaveTextContent('API je nedostupné.')
   })
 })
