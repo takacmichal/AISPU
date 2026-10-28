@@ -389,7 +389,7 @@ export interface paths {
         };
         /**
          * List customers
-         * @description Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name. Defaults: page 1, pageSize 20 (max 100).
+         * @description Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).
          */
         get: operations["ListCustomers"];
         put?: never;
@@ -2732,6 +2732,8 @@ export interface operations {
                 q?: string;
                 page?: number | string;
                 pageSize?: number | string;
+                sortBy?: string;
+                sortDir?: string;
             };
             header?: never;
             path?: never;

@@ -34,7 +34,7 @@ public sealed class CustomersModule : IModule
         group.MapGet("/", ListAsync)
             .WithName("ListCustomers")
             .WithSummary("List customers")
-            .WithDescription("Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name. Defaults: page 1, pageSize 20 (max 100).")
+            .WithDescription("Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).")
             .ProducesValidationProblem()
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
@@ -74,8 +74,8 @@ public sealed class CustomersModule : IModule
     }
 
     internal static async Task<Ok<CustomerListResponse>> ListAsync(
-        ICustomerService service, CancellationToken ct, string? q = null, int page = 1, int pageSize = 20) =>
-        TypedResults.Ok(await service.ListAsync(q, page, pageSize, ct));
+        ICustomerService service, CancellationToken ct, string? q = null, int page = 1, int pageSize = 20, string? sortBy = null, string? sortDir = null) =>
+        TypedResults.Ok(await service.ListAsync(q, page, pageSize, sortBy, sortDir, ct));
 
     internal static async Task<Ok<CustomerResponse>> GetAsync(Guid id, ICustomerService service, CancellationToken ct) =>
         TypedResults.Ok(await service.GetAsync(id, ct));

@@ -228,6 +228,33 @@ public sealed class CustomerEndpointsTests(PostgresFixture postgres) : IDisposab
         Assert.Equal(["c@example.sk"], second.Items.Select(c => c.Email));
     }
 
+    [Fact]
+    public async Task List_SortsByRequestedColumnAndDirection()
+    {
+        using var client = Sales();
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("c@example.sk", lastName: "Zelený"));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("a@example.sk", lastName: "Adamec"));
+        await CustomerTestData.CreateAsync(client, CustomerTestData.Person("b@example.sk", lastName: "Mráz"));
+
+        var byNameDesc = await client.GetJsonAsync<CustomerListResponse>("/api/customers?sortBy=name&sortDir=desc");
+        var byEmail = await client.GetJsonAsync<CustomerListResponse>("/api/customers?sortBy=email");
+
+        Assert.Equal(["c@example.sk", "b@example.sk", "a@example.sk"], byNameDesc.Items.Select(c => c.Email));
+        Assert.Equal(["a@example.sk", "b@example.sk", "c@example.sk"], byEmail.Items.Select(c => c.Email));
+    }
+
+    [Theory]
+    [InlineData("sortBy=nope")]
+    [InlineData("sortDir=sideways")]
+    public async Task List_RejectsUnknownSort(string query)
+    {
+        using var client = Sales();
+
+        using var response = await client.GetAsync($"/api/customers?{query}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("adam", "a@example.sk")]
     [InlineData("BRATIA", "b@example.sk")]
