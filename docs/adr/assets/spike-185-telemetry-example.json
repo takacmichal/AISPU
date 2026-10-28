@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0",
+  "installationId": "6f1c2b9e-3d4a-4e57-9a1b-0c8d7e2f5a10",
+  "sentAt": "2026-06-21T10:05:02Z",
+  "source": "simulator",
+  "readings": [
+    {
+      "deviceId": "b7e0a1d2-58c3-4f9e-8a46-2d1c3e4f5a60",
+      "timestamp": "2026-06-21T02:00:00Z",
+      "intervalSec": 300,
+      "status": "SLEEPING",
+      "vendorStatusCode": null,
+      "events": [],
+      "acPowerW": 0,
+      "dcPowerW": 0,
+      "acVoltageV": 231.4,
+      "acCurrentA": 0,
+      "gridFrequencyHz": 50.01,
+      "temperatureC": 17.5,
+      "totalEnergyWh": 18234560,
+      "dayEnergyWh": 0,
+      "strings": [
+        { "index": 1, "voltageV": 0, "currentA": 0, "powerW": 0 },
+        { "index": 2, "voltageV": 0, "currentA": 0, "powerW": 0 }
+      ]
+    },
+    {
+      "deviceId": "b7e0a1d2-58c3-4f9e-8a46-2d1c3e4f5a60",
+      "timestamp": "2026-06-21T10:00:00Z",
+      "intervalSec": 300,
+      "status": "MPPT",
+      "vendorStatusCode": null,
+      "events": [],
+      "acPowerW": 4182.5,
+      "dcPowerW": 4279.0,
+      "acVoltageV": 233.2,
+      "acCurrentA": 17.94,
+      "gridFrequencyHz": 49.98,
+      "temperatureC": 47.3,
+      "totalEnergyWh": 18241830,
+      "dayEnergyWh": 7270,
+      "strings": [
+        { "index": 1, "voltageV": 412.6, "currentA": 5.31, "powerW": 2190.9 },
+        { "index": 2, "voltageV": 409.8, "currentA": 5.10, "powerW": 2090.0 }
+      ]
+    },
+    {
+      "deviceId": "b7e0a1d2-58c3-4f9e-8a46-2d1c3e4f5a60",
+      "timestamp": "2026-06-21T10:05:00Z",
+      "intervalSec": 300,
+      "status": "FAULT",
+      "vendorStatusCode": 4097,
+      "events": ["GROUND_FAULT"],
+      "acPowerW": 0,
+      "dcPowerW": null,
+      "acVoltageV": 233.0,
+      "acCurrentA": 0,
+      "gridFrequencyHz": 49.99,
+      "temperatureC": 48.1,
+      "totalEnergyWh": 18241830,
+      "dayEnergyWh": 7270,
+      "strings": [
+        { "index": 1, "voltageV": 415.0, "currentA": 0, "powerW": 0 },
+        { "index": 2, "voltageV": null, "currentA": null, "powerW": null }
+      ]
+    }
+  ]
+}

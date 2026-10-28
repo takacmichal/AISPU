@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/takacmichal/AISPU/docs/adr/assets/spike-185-telemetry.schema.json",
+  "title": "SolarOps inverter telemetry batch",
+  "description": "Ingest contract shared by the simulator and real gateways (ADR #185). Timestamps are UTC, 5-minute grid, physical units in field names. Uniqueness key of a reading is (deviceId, timestamp).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "installationId", "sentAt", "source", "readings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "installationId": { "type": "string", "format": "uuid" },
+    "sentAt": { "$ref": "#/$defs/utcTimestamp" },
+    "source": { "enum": ["simulator", "gateway"], "description": "Origin of the data; lets ML exclude or weight simulated rows." },
+    "readings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 288,
+      "items": { "$ref": "#/$defs/reading" }
+    }
+  },
+  "$defs": {
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$",
+      "description": "ISO 8601, UTC only (suffix Z)."
+    },
+    "nullableNumber": { "type": ["number", "null"] },
+    "reading": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deviceId", "timestamp", "intervalSec", "status", "acPowerW", "totalEnergyWh"],
+      "properties": {
+        "deviceId": { "type": "string", "format": "uuid" },
+        "timestamp": {
+          "$ref": "#/$defs/utcTimestamp",
+          "description": "END of the averaging window, aligned to the 5-minute UTC grid (minutes divisible by 5, seconds 0)."
+        },
+        "intervalSec": { "type": "integer", "minimum": 1, "maximum": 3600, "description": "Length of the averaging window; 300 by default." },
+        "status": {
+          "enum": ["OFF", "SLEEPING", "STARTING", "MPPT", "THROTTLED", "SHUTTING_DOWN", "FAULT", "STANDBY"],
+          "description": "SunSpec model 101/103 St enum (1..8)."
+        },
+        "vendorStatusCode": { "type": ["integer", "null"], "description": "Raw vendor status/fault code (SunSpec StVnd or vendor register)." },
+        "events": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" }, "uniqueItems": true, "description": "Active event names, e.g. GROUND_FAULT, OVER_TEMP." },
+        "acPowerW": { "type": "number", "description": "Mean AC active power over the window, W. Zero at night." },
+        "dcPowerW": { "$ref": "#/$defs/nullableNumber", "description": "Mean total DC input power, W." },
+        "acVoltageV": { "$ref": "#/$defs/nullableNumber" },
+        "acCurrentA": { "$ref": "#/$defs/nullableNumber" },
+        "gridFrequencyHz": { "$ref": "#/$defs/nullableNumber" },
+        "temperatureC": { "$ref": "#/$defs/nullableNumber", "description": "Inverter cabinet/heatsink temperature, deg C." },
+        "totalEnergyWh": { "type": "number", "minimum": 0, "description": "Lifetime produced energy, Wh, monotonic (SunSpec WH). Daily energy is derived server-side." },
+        "dayEnergyWh": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional device-reported energy since local midnight of the installation time zone. Informative only; not a source of truth."
+        },
+        "strings": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["index"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 1 },
+              "voltageV": { "$ref": "#/$defs/nullableNumber" },
+              "currentA": { "$ref": "#/$defs/nullableNumber" },
+              "powerW": { "$ref": "#/$defs/nullableNumber" }
+            }
+          },
+          "description": "Per DC input (MPPT / string), SunSpec model 160 style."
+        }
+      }
+    }
+  }
+}
