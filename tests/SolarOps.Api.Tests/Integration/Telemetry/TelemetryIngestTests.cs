@@ -6,6 +6,7 @@ using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Features.Telemetry;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Tests.Infrastructure;
+using SolarOps.Api.Tests.Integration.DeviceKeys;
 using InstallationsTestData = SolarOps.Api.Tests.Integration.Installations.InstallationsTestData;
 
 namespace SolarOps.Api.Tests.Integration.Telemetry;
@@ -25,6 +26,10 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     }
 
     private HttpClient Operator() => _factory.CreateApiClient(Guid.CreateVersion7(), Roles.Operator);
+
+    /// <summary>Client authenticated only by the API key of <paramref name="installationId"/>.</summary>
+    private async Task<HttpClient> DeviceAsync(Guid installationId) =>
+        _factory.CreateDeviceClient((await _factory.IssueKeyAsync(installationId)).ApiKey);
 
     private async Task<(Guid InstallationId, Guid InverterId)> SeedAsync(string serial = "INV-0001")
     {
@@ -73,7 +78,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Accepts_a_new_batch_and_stores_readings()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 0), Reading(inverter, 1)));
 
@@ -100,7 +105,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Resending_the_same_batch_is_idempotent()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
         var batch = Batch(installation, Reading(inverter, 0), Reading(inverter, 1));
 
         (await client.PostJsonAsync(Url, batch)).EnsureSuccessStatusCode();
@@ -115,7 +120,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Overlapping_batch_stores_only_new_readings()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
         (await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 0), Reading(inverter, 1)))).EnsureSuccessStatusCode();
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 1), Reading(inverter, 2)));
@@ -128,7 +133,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Duplicates_inside_one_batch_are_stored_once()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 0), Reading(inverter, 0)));
 
@@ -145,7 +150,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Rejects_invalid_timestamp_with_detail(string timestamp, string key)
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 0, timestamp)));
 
@@ -158,7 +163,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Rejects_future_timestamp()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
         var future = DateTimeOffset.UtcNow.AddDays(1);
         var timestamp = new DateTimeOffset(future.Year, future.Month, future.Day, future.Hour, 0, 0, TimeSpan.Zero).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
@@ -171,7 +176,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task One_invalid_reading_rejects_the_whole_batch_and_names_it()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter, 0), Reading(inverter, 1, status: "BROKEN")));
 
@@ -186,7 +191,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Rejects_missing_required_fields_and_wrong_envelope()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
         var body = new Dictionary<string, object?>
         {
             ["schemaVersion"] = "2.0",
@@ -209,7 +214,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Rejects_empty_and_oversized_batches()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var empty = await client.PostJsonAsync(Url, Batch(installation));
         Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
@@ -224,7 +229,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     public async Task Accepts_a_full_day_batch()
     {
         var (installation, inverter) = await SeedAsync();
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
         var readings = Enumerable.Range(0, TelemetryBatchRequest.MaxReadings).Select(i => Reading(inverter, i)).ToArray();
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, readings));
@@ -238,7 +243,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     {
         var (installation, _) = await SeedAsync("INV-0001");
         var (_, foreignInverter) = await SeedAsync("INV-0002");
-        using var client = Operator();
+        using var client = await DeviceAsync(installation);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(foreignInverter)));
 
@@ -252,6 +257,7 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     {
         var (installation, _) = await SeedAsync();
         using var op = Operator();
+        using var device = await DeviceAsync(installation);
         using var panelResponse = await op.PostJsonAsync($"/api/installations/{installation}/devices", new AddDeviceRequest
         {
             Type = DeviceType.Panel,
@@ -262,22 +268,11 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
         });
         var panel = (await panelResponse.ReadJsonAsync<DeviceResponse>())!.Id;
 
-        using var unknown = await op.PostJsonAsync(Url, Batch(installation, Reading(Guid.CreateVersion7())));
-        using var asPanel = await op.PostJsonAsync(Url, Batch(installation, Reading(panel)));
+        using var unknown = await device.PostJsonAsync(Url, Batch(installation, Reading(Guid.CreateVersion7())));
+        using var asPanel = await device.PostJsonAsync(Url, Batch(installation, Reading(panel)));
 
         Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, asPanel.StatusCode);
-    }
-
-    [Fact]
-    public async Task Unknown_installation_is_404()
-    {
-        var (_, inverter) = await SeedAsync();
-        using var client = Operator();
-
-        using var response = await client.PostJsonAsync(Url, Batch(Guid.CreateVersion7(), Reading(inverter)));
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -292,16 +287,57 @@ public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
     }
 
     [Theory]
+    [InlineData("sok_nonsense")]
+    [InlineData("not-a-key")]
+    [InlineData("sok_00000000000000000000000000000000_AAAA")] // well formed, unknown id
+    public async Task Unknown_or_malformed_key_is_401(string apiKey)
+    {
+        var (installation, inverter) = await SeedAsync();
+        using var client = _factory.CreateDeviceClient(apiKey);
+
+        using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter)));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(0, await CountRowsAsync());
+    }
+
+    [Fact]
+    public async Task Key_with_wrong_secret_is_401()
+    {
+        var (installation, inverter) = await SeedAsync();
+        var issued = await _factory.IssueKeyAsync(installation);
+        var forged = issued.ApiKey[..^4] + "AAAA";
+        using var client = _factory.CreateDeviceClient(forged);
+
+        using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter)));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Key_of_another_installation_is_403()
+    {
+        var (installation, _) = await SeedAsync("INV-0001");
+        var (otherInstallation, otherInverter) = await SeedAsync("INV-0002");
+        using var client = await DeviceAsync(installation);
+
+        using var response = await client.PostJsonAsync(Url, Batch(otherInstallation, Reading(otherInverter)));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(0, await CountRowsAsync());
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin)]
+    [InlineData(Roles.Operator)]
     [InlineData(Roles.Customer)]
-    [InlineData(Roles.Sales)]
-    [InlineData(Roles.Technician)]
-    public async Task Other_roles_are_403(string role)
+    public async Task Logged_in_user_without_a_key_is_401(string role)
     {
         var (installation, inverter) = await SeedAsync();
         using var client = _factory.CreateApiClient(Guid.CreateVersion7(), role);
 
         using var response = await client.PostJsonAsync(Url, Batch(installation, Reading(inverter)));
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
