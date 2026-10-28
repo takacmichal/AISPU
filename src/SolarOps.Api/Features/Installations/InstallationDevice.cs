@@ -2,7 +2,7 @@ using SolarOps.Api.Infrastructure.Errors;
 
 namespace SolarOps.Api.Features.Installations;
 
-/// <summary>Kind of a traced device (#83). Strings and panel layout are a separate story (#84).</summary>
+/// <summary>Kind of a traced device (#83). Strings and panel layout: <see cref="PanelString"/> (#84).</summary>
 public enum DeviceType
 {
     Panel,
@@ -66,6 +66,9 @@ public sealed class InstallationDevice
     /// <summary>The device this one replaced.</summary>
     public Guid? ReplacesDeviceId { get; private set; }
 
+    /// <summary>String the panel belongs to (#84); null for inverters, replaced devices and not yet placed panels.</summary>
+    public Guid? StringId { get; private set; }
+
     public static string NormalizeSerial(string serialNumber) => serialNumber.Trim().ToUpperInvariant();
 
     public static InstallationDevice Register(
@@ -117,6 +120,10 @@ public sealed class InstallationDevice
         var replacement = Register(InstallationId, Type, serialNumber, manufacturer, model, powerW, replacedBy, now);
         replacement.ReplacesDeviceId = Id;
 
+        // The new panel takes over the place of the old one in the layout.
+        replacement.StringId = StringId;
+        StringId = null;
+
         Status = DeviceStatus.Replaced;
         RemovedAt = now;
         RemovedBy = replacedBy;
@@ -124,6 +131,24 @@ public sealed class InstallationDevice
         ReplacedByDeviceId = replacement.Id;
         return replacement;
     }
+
+    /// <summary>Puts an installed panel into a string; a panel belongs to exactly one string, so this also moves it.</summary>
+    public void AssignToString(Guid stringId)
+    {
+        if (Type != DeviceType.Panel)
+        {
+            throw new DomainException($"Device '{SerialNumber}' is not a panel; only panels belong to a string.");
+        }
+
+        if (Status != DeviceStatus.Installed)
+        {
+            throw new DomainException($"Device '{SerialNumber}' has been replaced and cannot be assigned to a string.");
+        }
+
+        StringId = stringId;
+    }
+
+    public void RemoveFromString() => StringId = null;
 
     private static void Validate(string serialNumber, string manufacturer, string model, int powerW, string? reason)
     {
