@@ -14,6 +14,9 @@ public sealed class ContractsModule : IModule
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
+        // Community license (ADR spike #219: school project, company under the revenue limit).
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+        services.AddSingleton<IContractPdfGenerator, QuestPdfContractGenerator>();
         services.AddScoped<IContractService, ContractService>();
     }
 
@@ -61,6 +64,14 @@ public sealed class ContractsModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(p => p.RequireRole(ReadRoles));
 
+        group.MapPost("/{id:guid}/pdf", GeneratePdfAsync)
+            .WithName("GenerateContractPdf")
+            .WithSummary("Generate the contract as a PDF (application/pdf)")
+            .WithDescription("Parties, items and totals of the contract; Slovak, A4. Generated from the current data on each call, nothing is stored.")
+            .Produces(StatusCodes.Status200OK, contentType: "application/pdf")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+
         group.MapGet("/", ListAsync)
             .WithName("ListContracts")
             .WithSummary("List contracts")
@@ -72,6 +83,12 @@ public sealed class ContractsModule : IModule
     {
         var contract = await service.CreateAsync(request, ct);
         return TypedResults.Created($"/api/contracts/{contract.Id}", contract);
+    }
+
+    internal static async Task<FileContentHttpResult> GeneratePdfAsync(Guid id, IContractService service, CancellationToken ct)
+    {
+        var pdf = await service.GeneratePdfAsync(id, ct);
+        return TypedResults.File(pdf.Content, "application/pdf", pdf.FileName);
     }
 
     internal static async Task<Ok<ContractResponse>> GetAsync(Guid id, IContractService service, CancellationToken ct) =>
