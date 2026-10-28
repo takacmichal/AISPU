@@ -16,6 +16,18 @@ public sealed class ConnectionRequestOptions
 
     [ValidateObjectMembers]
     public LargeSourceDeadlines LargeSource { get; set; } = new();
+
+    public DistributorSimulatorOptions Simulator { get; set; } = new();
+}
+
+/// <summary>Mock of the distributor (#87): endpoints <c>decision</c> and <c>conclude</c>.</summary>
+public sealed class DistributorSimulatorOptions
+{
+    /// <summary>
+    /// <c>true</c>/<c>false</c> forces the simulator on/off (<c>ConnectionRequest:Simulator:Enabled</c>).
+    /// Not set: on in every environment except Production.
+    /// </summary>
+    public bool? Enabled { get; set; }
 }
 
 /// <summary>Deadlines of a small source (up to 10.8 kW).</summary>

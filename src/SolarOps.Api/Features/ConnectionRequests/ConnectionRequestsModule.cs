@@ -21,6 +21,9 @@ public sealed class ConnectionRequestsModule : IModule
     /// <summary>Back-office steps (lane Obchod/Operátor): resubmit, send the contract, record the signature. ADR #207 gives Sales T and Designer RWT.</summary>
     internal static readonly string[] ResubmitRoles = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer];
 
+    /// <summary>The simulated distributor is operated by the back office or an admin (BPMN lane Distribučka is an external party, #87).</summary>
+    internal static readonly string[] SimulatorRoles = [Roles.Admin, Roles.Operator];
+
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<ConnectionRequestOptions>()
@@ -119,6 +122,27 @@ public sealed class ConnectionRequestsModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(p => p.RequireRole(SubmitRoles));
 
+        group.MapPost("/{id:guid}/decision", DecisionAsync)
+            .WithName("SimulateDistributorDecision")
+            .WithSummary("Simulate the distributor's answer to a submitted request (mock, #87)")
+            .WithDescription("Body: decision (Approve, RequestInfo, Reject) and note (required for RequestInfo and Reject). "
+                + "Submitted moves to ContractOffered, InfoRequested or Rejected, the same transition a real answer would cause; any other state gives 409. "
+                + "Available in every environment except Production unless ConnectionRequest:Simulator:Enabled says otherwise (then 404).")
+            .WithValidation<DistributorDecisionRequest>()
+            .AddEndpointFilter<DistributorSimulatorFilter>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(SimulatorRoles));
+
+        group.MapPost("/{id:guid}/conclude", ConcludeAsync)
+            .WithName("SimulateDistributorConclusion")
+            .WithSummary("Simulate that the distributor concluded the contract (ContractSubmitted to Concluded, mock, #87)")
+            .WithDescription("Same availability as the decision endpoint.")
+            .AddEndpointFilter<DistributorSimulatorFilter>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(SimulatorRoles));
+
         group.MapGet("/{id:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync)
             .WithName("DownloadConnectionRequestAttachment")
             .WithSummary("Download the content of one attachment")
@@ -167,6 +191,13 @@ public sealed class ConnectionRequestsModule : IModule
 
     internal static async Task<Ok<ConnectionRequestResponse>> SubmitSignedContractAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
         TypedResults.Ok(await service.SubmitSignedContractAsync(id, ct));
+
+    internal static async Task<Ok<ConnectionRequestResponse>> DecisionAsync(
+        Guid id, DistributorDecisionRequest request, IConnectionRequestService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.RecordDecisionAsync(id, request, ct));
+
+    internal static async Task<Ok<ConnectionRequestResponse>> ConcludeAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ConcludeAsync(id, ct));
 
     internal static async Task<IResult> DownloadAttachmentAsync(
         Guid id, Guid attachmentId, IConnectionRequestService service, HttpContext http, CancellationToken ct)
