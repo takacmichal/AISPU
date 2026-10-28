@@ -22,9 +22,15 @@ public interface IContractService
     Task<ContractResponse> RecordDepositAsync(Guid id, RecordDepositRequest request, CancellationToken ct);
 
     Task<IReadOnlyList<ContractAuditEntryResponse>> AuditAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Renders the contract as a PDF. The PDF is not stored; it is generated from the current data on each call.</summary>
+    Task<ContractPdfFile> GeneratePdfAsync(Guid id, CancellationToken ct);
 }
 
-public sealed class ContractService(AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider) : IContractService
+/// <summary>A generated contract PDF with the file name to download it under.</summary>
+public sealed record ContractPdfFile(byte[] Content, string FileName);
+
+public sealed class ContractService(AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider, IContractPdfGenerator pdfGenerator) : IContractService
 {
     public async Task<ContractResponse> CreateAsync(CreateContractRequest request, CancellationToken ct)
     {
@@ -149,6 +155,17 @@ public sealed class ContractService(AppDbContext db, ICurrentUser currentUser, T
             .OrderBy(e => e.PerformedAt).ThenBy(e => e.Id)
             .ToListAsync(ct);
         return entries.ConvertAll(ContractAuditEntryResponse.FromEntity);
+    }
+
+    public async Task<ContractPdfFile> GeneratePdfAsync(Guid id, CancellationToken ct)
+    {
+        var contract = await db.Set<Contract>().AsNoTracking().Include(c => c.Lines).FirstOrDefaultAsync(c => c.Id == id, ct)
+            ?? throw new NotFoundException("Contract", id);
+        var customer = await db.Set<Customer>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == contract.CustomerId, ct)
+            ?? throw new DomainException("The customer of the contract no longer exists.");
+
+        var content = pdfGenerator.Generate(ContractPdfModel.From(contract, customer));
+        return new ContractPdfFile(content, $"{contract.Number}.pdf");
     }
 
     private static DateOnly Today(DateTimeOffset now) => DateOnly.FromDateTime(now.UtcDateTime);

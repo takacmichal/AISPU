@@ -222,4 +222,53 @@ public sealed class ContractEndpointsTests(PostgresFixture postgres) : IDisposab
         Assert.Equal(HttpStatusCode.OK, (await designer.GetAsync("/api/contracts")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/contracts")).StatusCode);
     }
+
+    [Fact]
+    public async Task Pdf_ReturnsPdfFileNamedByContractNumber()
+    {
+        using var client = Sales();
+        var quote = await NewQuoteAsync(client, await NewCustomerAsync(client));
+        using var created = await CreateContractAsync(client, quote.Id);
+        var contract = await created.ReadJsonAsync<ContractResponse>();
+
+        using var response = await client.PostAsync($"/api/contracts/{contract.Id}/pdf", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal($"{contract.Number}.pdf", response.Content.Headers.ContentDisposition?.FileName);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(bytes, 0, 5));
+    }
+
+    [Fact]
+    public async Task Pdf_UnknownContract_Returns404()
+    {
+        using var client = Sales();
+
+        using var response = await client.PostAsync($"/api/contracts/{Guid.CreateVersion7()}/pdf", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Pdf_Anonymous_Returns401()
+    {
+        using var client = _factory.CreateApiClient();
+
+        using var response = await client.PostAsync($"/api/contracts/{Guid.CreateVersion7()}/pdf", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(Roles.Technician)]
+    [InlineData(Roles.Customer)]
+    public async Task Pdf_WithoutReadRole_Returns403(string role)
+    {
+        using var client = _factory.CreateApiClient(Guid.CreateVersion7(), role);
+
+        using var response = await client.PostAsync($"/api/contracts/{Guid.CreateVersion7()}/pdf", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
