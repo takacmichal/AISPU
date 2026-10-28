@@ -84,4 +84,25 @@ public sealed class FveDesignVersionTests
 
         Assert.Throws<DomainException>(() => Create(inverter: inverter));
     }
+
+    [Fact]
+    public void Create_WrongInverterType_ThrowsValidation()
+    {
+        var panelAsInverter = Component(ComponentType.Panel, "PAN-X", 450);
+
+        var ex = Assert.Throws<RequestValidationException>(() => Create(inverter: panelAsInverter));
+
+        Assert.Contains("InverterId", ex.Errors.Keys);
+        Assert.DoesNotContain("PanelId", ex.Errors.Keys);
+    }
+
+    [Fact]
+    public void Create_BothComponentsWrongType_ReportsBoth()
+    {
+        var ex = Assert.Throws<RequestValidationException>(() => Create(
+            panel: Component(ComponentType.Inverter, "INV-A", 5000), inverter: Component(ComponentType.Panel, "PAN-A", 450)));
+
+        Assert.Contains("PanelId", ex.Errors.Keys);
+        Assert.Contains("InverterId", ex.Errors.Keys);
+    }
 }

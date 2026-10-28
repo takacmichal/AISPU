@@ -59,4 +59,19 @@ public sealed class DesignCompatibilityTests
         Assert.False(result.IsCompatible);
         Assert.NotEmpty(result.Errors);
     }
+
+    [Theory]
+    [InlineData(10, 0, 5000)]
+    [InlineData(10, 450, 0)]
+    [InlineData(10, -450, 5000)]
+    public void Check_NonPositivePower_IsIncompatibleWithZeroedResult(int count, int panelW, int inverterW)
+    {
+        var result = DesignCompatibility.Check(count, panelW, inverterW);
+
+        Assert.False(result.IsCompatible);
+        Assert.Equal(0, result.DcPowerKwp);
+        Assert.Equal(0, result.AcPowerKw);
+        Assert.Equal(0, result.DcAcRatio);
+        Assert.NotEmpty(result.Errors);
+    }
 }
