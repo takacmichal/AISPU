@@ -32,6 +32,9 @@ public sealed class AuthModule : IModule
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) => ConfigureBearer(bearer, jwtOptions.Value));
 
+        // Role policies and the authenticated-by-default fallback (#136); modules reference the policy names only.
+        services.AddAuthorization(AuthorizationPolicies.Configure);
+
         services.AddScoped<IAccessTokenService, AccessTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthService, AuthService>();

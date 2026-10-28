@@ -20,7 +20,7 @@ public sealed class UserRolesModule : IModule
             .WithTags("Roles")
             .WithName("ListRoles")
             .WithSummary("List application roles")
-            .RequireAuthorization(p => p.RequireRole(Roles.Admin));
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
 
         var users = endpoints.MapGroup("/api/users").WithTags("Roles");
 
@@ -29,13 +29,13 @@ public sealed class UserRolesModule : IModule
             .WithSummary("List users with their roles")
             .WithDescription("Filter q matches e-mail (case-insensitive substring). Ordered by e-mail. Defaults: page 1, pageSize 20 (max 100).")
             .ProducesValidationProblem()
-            .RequireAuthorization(p => p.RequireRole(Roles.Admin));
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
 
         users.MapGet("/{id:guid}/roles", GetRolesAsync)
             .WithName("GetUserRoles")
             .WithSummary("Get roles of a user")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(Roles.Admin));
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
 
         users.MapPut("/{id:guid}/roles", SetRolesAsync)
             .WithName("SetUserRoles")
@@ -46,7 +46,7 @@ public sealed class UserRolesModule : IModule
             .WithValidation<SetUserRolesRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(Roles.Admin));
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
     }
 
     internal static Ok<IReadOnlyList<string>> ListRoles() => TypedResults.Ok(Roles.All);

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using SolarOps.Api.Features.Customers;
+using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
 
@@ -21,13 +22,13 @@ public sealed class SupplyPointsModule : IModule
             .WithName("ListSupplyPoints")
             .WithSummary("List the supply points of a customer")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(CustomersModule.ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.CustomersRead);
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetSupplyPoint")
             .WithSummary("Get a supply point")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(CustomersModule.ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.CustomersRead);
 
         group.MapPost("/", CreateAsync)
             .WithName("CreateSupplyPoint")
@@ -36,7 +37,7 @@ public sealed class SupplyPointsModule : IModule
             .WithValidation<CreateSupplyPointRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(CustomersModule.WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CustomersWrite);
 
         group.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateSupplyPoint")
@@ -44,7 +45,7 @@ public sealed class SupplyPointsModule : IModule
             .WithValidation<UpdateSupplyPointRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(CustomersModule.WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CustomersWrite);
 
         group.MapDelete("/{id:guid}", DeleteAsync)
             .WithName("DeleteSupplyPoint")
@@ -52,7 +53,7 @@ public sealed class SupplyPointsModule : IModule
             .WithDescription("Returns 409 when an installation, FVE design or connection request uses the supply point.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(CustomersModule.WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.CustomersWrite);
     }
 
     internal static async Task<Ok<IReadOnlyList<SupplyPointResponse>>> ListAsync(Guid customerId, ISupplyPointService service, CancellationToken ct) =>

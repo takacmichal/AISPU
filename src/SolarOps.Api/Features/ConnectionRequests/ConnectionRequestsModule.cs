@@ -9,12 +9,6 @@ namespace SolarOps.Api.Features.ConnectionRequests;
 /// <summary>Requests to connect a PV plant to the distribution grid (#85, ADR #217): <c>/api/connection-requests</c>.</summary>
 public sealed class ConnectionRequestsModule : IModule
 {
-    /// <summary>Preparing the documents (BPMN #64, lane Obchod/Operátor).</summary>
-    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Operator, Roles.Sales];
-
-    /// <summary>Back office and the designer (lane Projektant); a customer sees only its own request (see <c>ICustomerScope</c>).</summary>
-    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer];
-
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<ConnectionRequestOptions>().Bind(configuration.GetSection(ConnectionRequestOptions.SectionName));
@@ -37,20 +31,20 @@ public sealed class ConnectionRequestsModule : IModule
             // Without this the Kestrel default (~30 MB) would reject bodies that the per-attachment limits allow.
             .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsWrite);
 
         group.MapGet("/", ListAsync)
             .WithName("ListConnectionRequests")
             .WithSummary("List connection requests")
             .WithDescription("Filters: installationId, customerId, state. Newest first. A customer sees only its own requests.")
             .ProducesValidationProblem()
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsRead);
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetConnectionRequest")
             .WithSummary("Get a connection request with its attachments")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsRead);
 
         group.MapPut("/{id:guid}", UpdateAsync)
             .WithName("UpdateConnectionRequest")
@@ -60,14 +54,14 @@ public sealed class ConnectionRequestsModule : IModule
             .WithMetadata(new RequestSizeLimitAttribute(ConnectionRequest.MaxRequestBodyBytes))
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsWrite);
 
         group.MapGet("/{id:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync)
             .WithName("DownloadConnectionRequestAttachment")
             .WithSummary("Download the content of one attachment")
             .WithDescription("Only attachments sent with base64 content can be downloaded; metadata-only attachments give 404.")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsRead);
     }
 
     internal static async Task<Created<ConnectionRequestResponse>> CreateAsync(

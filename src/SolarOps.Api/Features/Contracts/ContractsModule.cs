@@ -8,10 +8,6 @@ namespace SolarOps.Api.Features.Contracts;
 /// <summary>Contracts made from accepted quotes (#79) with signature and deposit (#81): <c>/api/contracts</c>.</summary>
 public sealed class ContractsModule : IModule
 {
-    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator];
-
-    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Sales];
-
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IContractService, ContractService>();
@@ -28,13 +24,13 @@ public sealed class ContractsModule : IModule
                 + "A quote that is not Accepted, or that already has a contract, gives 409.")
             .WithValidation<CreateContractRequest>()
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsWrite);
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetContract")
             .WithSummary("Get a contract with its lines and totals")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsRead);
 
         group.MapPost("/{id:guid}/sign", SignAsync)
             .WithName("SignContract")
@@ -44,7 +40,7 @@ public sealed class ContractsModule : IModule
             .WithValidation<SignContractRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsWrite);
 
         group.MapPost("/{id:guid}/deposit/pay", RecordDepositAsync)
             .WithName("RecordContractDeposit")
@@ -53,19 +49,19 @@ public sealed class ContractsModule : IModule
             .WithValidation<RecordDepositRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsWrite);
 
         group.MapGet("/{id:guid}/audit", AuditAsync)
             .WithName("GetContractAudit")
             .WithSummary("Audit trail of the contract (created, signed, deposit paid), oldest first")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsRead);
 
         group.MapGet("/", ListAsync)
             .WithName("ListContracts")
             .WithSummary("List contracts")
             .WithDescription("Filters: customerId, quoteId, status. Newest first.")
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsRead);
     }
 
     internal static async Task<Created<ContractResponse>> CreateAsync(CreateContractRequest request, IContractService service, CancellationToken ct)

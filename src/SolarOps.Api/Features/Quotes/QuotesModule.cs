@@ -8,10 +8,6 @@ namespace SolarOps.Api.Features.Quotes;
 /// <summary>Quotes built from the component catalog (#74) with a status workflow (#75): <c>/api/quotes</c>.</summary>
 public sealed class QuotesModule : IModule
 {
-    internal static readonly string[] ReadRoles = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator];
-
-    internal static readonly string[] WriteRoles = [Roles.Admin, Roles.Sales];
-
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<QuoteOptions>().Bind(configuration.GetSection(QuoteOptions.SectionName));
@@ -30,13 +26,13 @@ public sealed class QuotesModule : IModule
                 + "net, VAT and gross totals are computed by the server. Inactive components and archived customers give 409.")
             .WithValidation<CreateQuoteRequest>()
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesWrite);
 
         group.MapGet("/{id:guid}", GetAsync)
             .WithName("GetQuote")
             .WithSummary("Get a quote with its lines and totals")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesRead);
 
         group.MapPost("/{id:guid}/send", SendAsync)
             .WithName("SendQuote")
@@ -44,7 +40,7 @@ public sealed class QuotesModule : IModule
             .WithDescription("Optional body: validityDays (1 to 365, default 30) and note. The quote expires when the validity ends.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesWrite);
 
         group.MapPost("/{id:guid}/accept", AcceptAsync)
             .WithName("AcceptQuote")
@@ -52,27 +48,27 @@ public sealed class QuotesModule : IModule
             .WithDescription("A quote past its validity is refused with 409 and marked Expired.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesWrite);
 
         group.MapPost("/{id:guid}/reject", RejectAsync)
             .WithName("RejectQuote")
             .WithSummary("Record that the customer rejected the quote (Sent to Rejected)")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(WriteRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesWrite);
 
         group.MapGet("/{id:guid}/history", HistoryAsync)
             .WithName("GetQuoteHistory")
             .WithSummary("Status change history of the quote, oldest first")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesRead);
 
         group.MapGet("/", ListAsync)
             .WithName("ListQuotes")
             .WithSummary("List quotes")
             .WithDescription("Filters: customerId, status. Newest first.")
             .ProducesValidationProblem()
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.QuotesRead);
     }
 
     internal static async Task<Created<QuoteResponse>> CreateAsync(CreateQuoteRequest request, IQuoteService service, CancellationToken ct)

@@ -54,7 +54,7 @@ BPMN modely (Sprint 0) majú lanes Obchod, Projektant, Technik a externé pooly 
 | Alerty, telemetria (`Alert`) | RWT | R | R | R | RWT | R own |
 | Notifikácie | RWT | R | R | R | RWT | R own |
 
-Autorizácia sa implementuje politikami (`RequireRole`) na endpointoch (#136) a filtrom "vlastné dáta" pre `Customer` (#137). Matica je návrh a pri implementácii sa môže spresniť; zmeny sa zapisujú sem.
+Autorizácia sa implementuje politikami (`AuthorizationPolicies`) na endpointoch (#136) a filtrom "vlastné dáta" pre `Customer` (#137). Implementovaná matica politika × roly × endpointy je v [`docs/security/authorization.md`](../security/authorization.md); táto tabuľka ostáva návrh, ktorý sa pri ďalších zmenách spresňuje.
 
 ### Jednotný model stavov a auditu
 

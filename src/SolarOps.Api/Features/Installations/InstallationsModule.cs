@@ -6,19 +6,6 @@ using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Installations;
 
-/// <summary>Role sets of the Installations module (#207).</summary>
-public static class InstallationRoles
-{
-    /// <summary>Back office and field staff read all installations; a customer only its own (see <c>ICustomerScope</c>).</summary>
-    public static readonly string[] Read = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer];
-
-    /// <summary>Planning an installation (BPMN #65, lane Obchod/Operátor, story #82 Projektant).</summary>
-    public static readonly string[] Plan = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer];
-
-    /// <summary>Field work: state changes, devices, strings.</summary>
-    public static readonly string[] Field = [Roles.Admin, Roles.Operator, Roles.Designer, Roles.Technician];
-}
-
 /// <summary>Installations (#82): planning, scheduling, technicians and the installation lifecycle.</summary>
 public sealed class InstallationsModule : IModule
 {
@@ -36,20 +23,20 @@ public sealed class InstallationsModule : IModule
             .WithSummary("List installations")
             .WithDescription("Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician).")
             .ProducesValidationProblem()
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapGet("/{id:guid}", Get)
             .WithName("GetInstallation")
             .WithSummary("Get an installation with its state history")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapPost("/", Create)
             .WithName("CreateInstallation")
             .WithSummary("Create an installation for a contract and supply point (state Planned)")
             .WithValidation<CreateInstallationRequest>()
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Plan));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsPlan);
 
         group.MapPut("/{id:guid}", Update)
             .WithName("UpdateInstallation")
@@ -57,7 +44,7 @@ public sealed class InstallationsModule : IModule
             .WithValidation<UpdateInstallationRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Plan));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsPlan);
 
         group.MapPut("/{id:guid}/schedule", Schedule)
             .WithName("ScheduleInstallation")
@@ -65,7 +52,7 @@ public sealed class InstallationsModule : IModule
             .WithValidation<ScheduleInstallationRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Plan));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsPlan);
 
         group.MapPut("/{id:guid}/technicians", AssignTechnicians)
             .WithName("AssignInstallationTechnicians")
@@ -73,7 +60,7 @@ public sealed class InstallationsModule : IModule
             .WithValidation<AssignTechniciansRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Plan));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsPlan);
 
         group.MapPost("/{id:guid}/transitions", Transition)
             .WithName("TransitionInstallation")
@@ -82,7 +69,7 @@ public sealed class InstallationsModule : IModule
             .WithValidation<InstallationTransitionRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
     }
 
     internal static async Task<Ok<IReadOnlyList<InstallationResponse>>> List(
