@@ -191,4 +191,77 @@ public sealed class QuoteTests
         Assert.Equal(QuoteStatus.Expired, quote.Status);
         Assert.Null(last.ChangedBy);
     }
+
+    [Fact]
+    public void Create_FromDesign_RecordsDesignLink()
+    {
+        var designId = Guid.CreateVersion7();
+
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now, designId, 3);
+
+        Assert.Equal(designId, quote.DesignId);
+        Assert.Equal(3, quote.DesignVersionNumber);
+        Assert.False(quote.NeedsRecalculation);
+    }
+
+    [Fact]
+    public void Create_WithoutDesign_HasNoLink()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now);
+
+        Assert.Null(quote.DesignId);
+        Assert.Null(quote.DesignVersionNumber);
+    }
+
+    [Fact]
+    public void MarkForRecalculation_DraftLinkedToDesign_SetsFlag()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now, Guid.CreateVersion7(), 1);
+
+        var changed = quote.MarkForRecalculation(Now.AddDays(1));
+
+        Assert.True(changed);
+        Assert.True(quote.NeedsRecalculation);
+        Assert.Equal(Now.AddDays(1), quote.RecalculationRequestedAt);
+        Assert.Equal(Now.AddDays(1), quote.UpdatedAt);
+    }
+
+    [Fact]
+    public void MarkForRecalculation_SentQuote_SetsFlag()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now, Guid.CreateVersion7(), 1);
+        quote.Send(30, UserId, null, Now);
+
+        Assert.True(quote.MarkForRecalculation(Now.AddDays(1)));
+        Assert.Equal(QuoteStatus.Sent, quote.Status);
+    }
+
+    [Fact]
+    public void MarkForRecalculation_AlreadyMarked_ReturnsFalse()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now, Guid.CreateVersion7(), 1);
+        quote.MarkForRecalculation(Now);
+
+        Assert.False(quote.MarkForRecalculation(Now.AddDays(1)));
+        Assert.Equal(Now, quote.RecalculationRequestedAt);
+    }
+
+    [Fact]
+    public void MarkForRecalculation_AcceptedQuote_IsIgnored()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now, Guid.CreateVersion7(), 1);
+        quote.Send(30, UserId, null, Now);
+        quote.Accept(UserId, null, Now);
+
+        Assert.False(quote.MarkForRecalculation(Now.AddDays(1)));
+        Assert.False(quote.NeedsRecalculation);
+    }
+
+    [Fact]
+    public void MarkForRecalculation_QuoteWithoutDesign_IsIgnored()
+    {
+        var quote = Quote.Create(CustomerId, [Panel()], 23m, null, UserId, Now);
+
+        Assert.False(quote.MarkForRecalculation(Now));
+    }
 }

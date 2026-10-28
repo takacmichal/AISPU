@@ -82,7 +82,10 @@ public sealed record QuoteResponse(
     decimal GrossTotal,
     Guid CreatedBy,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    Guid? DesignId,
+    int? DesignVersionNumber,
+    bool NeedsRecalculation)
 {
     public static QuoteResponse FromEntity(Quote q) => new(
         q.Id,
@@ -99,7 +102,10 @@ public sealed record QuoteResponse(
         q.GrossTotal,
         q.CreatedBy,
         q.CreatedAt,
-        q.UpdatedAt);
+        q.UpdatedAt,
+        q.DesignId,
+        q.DesignVersionNumber,
+        q.NeedsRecalculation);
 }
 
 /// <summary>Optional body of <c>POST /api/quotes/{id}/send</c>.</summary>

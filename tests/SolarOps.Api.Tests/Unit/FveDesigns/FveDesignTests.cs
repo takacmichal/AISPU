@@ -150,4 +150,110 @@ public sealed class FveDesignTests
         Assert.Throws<DomainException>(() =>
             design.UpdateParameters(48, 17, 4000, ConsumptionProfile.Household, [], Now));
     }
+
+    private static readonly Guid ApproverId = Guid.CreateVersion7();
+
+    [Fact]
+    public void Approve_InDesignWithVersion_RecordsApprover()
+    {
+        var design = DesignInDesign();
+
+        design.Approve(2, ApproverId, Now.AddDays(2));
+
+        Assert.Equal(FveDesignStatus.Approved, design.Status);
+        Assert.Equal(ApproverId, design.ApprovedBy);
+        Assert.Equal(Now.AddDays(2), design.ApprovedAt);
+        Assert.Equal(2, design.ApprovedVersionNumber);
+        Assert.Equal(Now.AddDays(2), design.UpdatedAt);
+    }
+
+    [Fact]
+    public void Approve_WithoutSavedVersion_Throws()
+    {
+        var design = DesignInDesign();
+
+        Assert.Throws<DomainException>(() => design.Approve(null, ApproverId, Now));
+        Assert.Equal(FveDesignStatus.InDesign, design.Status);
+    }
+
+    [Theory]
+    [InlineData(FveDesignStatus.Requested)]
+    [InlineData(FveDesignStatus.SiteSurveyDone)]
+    [InlineData(FveDesignStatus.Infeasible)]
+    [InlineData(FveDesignStatus.Approved)]
+    public void Approve_NotInDesign_Throws(FveDesignStatus status)
+    {
+        var design = status switch
+        {
+            FveDesignStatus.Requested => NewDesign(),
+            FveDesignStatus.SiteSurveyDone => SurveyedDesign(),
+            FveDesignStatus.Infeasible => InfeasibleDesign(),
+            _ => ApprovedDesign(),
+        };
+
+        Assert.Throws<DomainException>(() => design.Approve(1, ApproverId, Now));
+    }
+
+    [Fact]
+    public void Rework_FromApproved_ReopensDesignAndClearsApproval()
+    {
+        var design = ApprovedDesign();
+
+        design.Rework("Zákazník chce väčší invertor", ApproverId, Now.AddDays(3));
+
+        Assert.Equal(FveDesignStatus.InDesign, design.Status);
+        Assert.Null(design.ApprovedBy);
+        Assert.Null(design.ApprovedAt);
+        Assert.Null(design.ApprovedVersionNumber);
+        Assert.Equal("Zákazník chce väčší invertor", design.ReworkReason);
+        Assert.Equal(ApproverId, design.ReworkBy);
+        Assert.Equal(Now.AddDays(3), design.ReworkAt);
+    }
+
+    [Fact]
+    public void Rework_FromInDesign_StaysInDesignAndRecordsReason()
+    {
+        var design = DesignInDesign();
+
+        design.Rework("Chýba tienenie komína", ApproverId, Now);
+
+        Assert.Equal(FveDesignStatus.InDesign, design.Status);
+        Assert.Equal("Chýba tienenie komína", design.ReworkReason);
+    }
+
+    [Fact]
+    public void Rework_BeforeDesignPhase_Throws()
+    {
+        Assert.Throws<DomainException>(() => SurveyedDesign().Rework("x", ApproverId, Now));
+    }
+
+    [Fact]
+    public void UpdateParameters_AfterApproval_Throws()
+    {
+        var design = ApprovedDesign();
+
+        Assert.Throws<DomainException>(() =>
+            design.UpdateParameters(48, 17, 4000, ConsumptionProfile.Household, [SouthPlane()], Now));
+    }
+
+    private static FveDesign SurveyedDesign()
+    {
+        var design = NewDesign();
+        design.RecordSiteSurvey("ok", UserId, Now);
+        return design;
+    }
+
+    private static FveDesign InfeasibleDesign()
+    {
+        var design = SurveyedDesign();
+        design.MarkInfeasible("Tienenie", Now);
+        return design;
+    }
+
+    private static FveDesign ApprovedDesign()
+    {
+        var design = DesignInDesign();
+        design.Approve(1, ApproverId, Now);
+        return design;
+    }
 }

@@ -35,3 +35,20 @@ Authorization: Bearer {{token}}
 ### Get version 1
 GET {{baseUrl}}/api/designs/{{designId}}/versions/1
 Authorization: Bearer {{token}}
+
+### Approve the design (Admin/Sales); the newest saved version becomes the approved one
+POST {{baseUrl}}/api/designs/{{designId}}/approve
+Authorization: Bearer {{token}}
+
+### Send the design back to the designer (Admin/Sales); withdraws an approval and marks linked quotes for recalculation
+POST {{baseUrl}}/api/designs/{{designId}}/rework
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Zákazník chce väčší výkon"
+}
+
+### Create a Draft quote from the approved design (Admin/Sales)
+POST {{baseUrl}}/api/designs/{{designId}}/quote
+Authorization: Bearer {{token}}

@@ -44,6 +44,13 @@ public sealed record MarkInfeasibleRequest
     public string? Reason { get; init; }
 }
 
+/// <summary>Reason why the design does not satisfy yet and goes back to the designer.</summary>
+public sealed record ReworkDesignRequest
+{
+    [Required, MinLength(1), MaxLength(FveDesignLimits.NotesMaxLength)]
+    public string? Reason { get; init; }
+}
+
 /// <summary>Roof, consumption and location inputs of the design.</summary>
 public sealed record UpdateDesignParametersRequest : IValidatableObject
 {
@@ -138,6 +145,12 @@ public sealed record RoofPlaneResponse(
 
 public sealed record SiteSurveyResponse(string? Notes, Guid? SurveyedBy, DateTimeOffset? SurveyedAt);
 
+/// <summary>Who approved the design, when, and which configuration version was approved.</summary>
+public sealed record ApprovalResponse(Guid ApprovedBy, DateTimeOffset ApprovedAt, int VersionNumber);
+
+/// <summary>Last request to rework the design.</summary>
+public sealed record ReworkResponse(string Reason, Guid? RequestedBy, DateTimeOffset? RequestedAt);
+
 public sealed record FveDesignResponse(
     Guid Id,
     Guid CustomerId,
@@ -151,6 +164,8 @@ public sealed record FveDesignResponse(
     double? AnnualConsumptionKwh,
     ConsumptionProfile? ConsumptionProfile,
     IReadOnlyList<RoofPlaneResponse> RoofPlanes,
+    ApprovalResponse? Approval,
+    ReworkResponse? LastRework,
     Guid CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
@@ -170,6 +185,8 @@ public sealed record FveDesignResponse(
         d.RoofPlanes
             .Select(p => new RoofPlaneResponse(p.Name, p.AzimuthDeg, p.TiltDeg, p.UsableAreaM2, p.ShadingLossPercent, p.RoofType))
             .ToList(),
+        d is { ApprovedBy: { } by, ApprovedAt: { } at, ApprovedVersionNumber: { } version } ? new ApprovalResponse(by, at, version) : null,
+        d.ReworkReason is null ? null : new ReworkResponse(d.ReworkReason, d.ReworkBy, d.ReworkAt),
         d.CreatedBy,
         d.CreatedAt,
         d.UpdatedAt);

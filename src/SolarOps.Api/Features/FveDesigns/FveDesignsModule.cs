@@ -1,3 +1,4 @@
+using SolarOps.Api.Features.Quotes;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
@@ -12,6 +13,13 @@ public sealed class FveDesignsModule : IModule
 
     /// <summary>Roles that do the technical design work (BPMN lane "Projektant").</summary>
     internal static readonly string[] DesignerRoles = [Roles.Admin, Roles.Designer];
+
+    /// <summary>
+    /// Roles that decide whether the design suits (BPMN lane "Obchod", ADR #207: Sales approves and sends back)
+    /// and that turn an approved design into a quote.
+    /// TODO(after #335): replace with the named authorization policy.
+    /// </summary>
+    internal static readonly string[] ApproverRoles = [Roles.Admin, Roles.Sales];
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -68,6 +76,33 @@ public sealed class FveDesignsModule : IModule
             .WithSummary("Save the configuration as a new immutable version (400 when incompatible, 409 when the design is not InDesign)")
             .WithValidation<ConfigureDesignRequest>()
             .RequireAuthorization(p => p.RequireRole(DesignerRoles));
+
+        group.MapPost("/{id:guid}/approve", FveDesignEndpoints.Approve)
+            .WithName("ApproveFveDesign")
+            .WithSummary("Approve the design (InDesign → Approved); the newest saved version becomes the approved one")
+            .WithDescription("409 when the design is not InDesign or has no saved configuration version. The approver is recorded in the response (approval).")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(ApproverRoles));
+
+        group.MapPost("/{id:guid}/rework", FveDesignEndpoints.Rework)
+            .WithName("ReworkFveDesign")
+            .WithSummary("Send the design back to the designer (InDesign/Approved → InDesign)")
+            .WithDescription("Withdraws an existing approval. Draft and Sent quotes built from the design are marked as needing recalculation.")
+            .WithValidation<ReworkDesignRequest>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(ApproverRoles));
+
+        group.MapPost("/{id:guid}/quote", FveDesignEndpoints.CreateQuote)
+            .WithName("CreateQuoteFromFveDesign")
+            .WithSummary("Create a Draft quote from the approved design")
+            .WithDescription("Lines are the panels and the inverter of the approved version, priced as saved in that version. "
+                + "409 when the design is not Approved or its customer is archived; 400 when the customer does not exist.")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(p => p.RequireRole(QuotesModule.WriteRoles));
 
         group.MapGet("/{id:guid}/versions", FveDesignVersionEndpoints.List)
             .WithName("ListFveDesignVersions")

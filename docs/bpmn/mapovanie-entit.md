@@ -47,8 +47,8 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Zadať parametre strechy a spotreby | P | `FveDesign` → `InDesign` | `PUT /api/designs/{id}/parameters` | #76 |
 | Navrhnúť konfiguráciu FVE a odhad výroby | P | `FveDesign` (`InDesign`), vypočítaný odhad výroby | `POST /api/designs/{id}/calculate` | #77 |
 | Vypracovať jednopólovú schému | P | `FveDesign` (`InDesign`), príloha schémy | `POST /api/designs/{id}/attachments` | #77 |
-| Schváliť návrh (brána "Návrh vyhovuje?" áno) | O | `FveDesign` → `Approved`; nie → `InDesign` (prepracovať) | `POST /api/designs/{id}/approve`, `POST /api/designs/{id}/rework` | #78 |
-| Previazať návrh s ponukou | O | `FveDesign.QuoteId` ↔ `Quote` (`Accepted`) | `PUT /api/designs/{id}/quote` | #78 |
+| Schváliť návrh (brána "Návrh vyhovuje?" áno) | O | `FveDesign` → `Approved`; nie → `InDesign` (prepracovať) | `POST /api/designs/{id}/approve`, `POST /api/designs/{id}/rework` (implementované v #78; schvaľuje Admin/Obchod, schválenie eviduje autora a verziu) | #78 |
+| Previazať návrh s ponukou | O | `Quote.DesignId` + `DesignVersionNumber` (väzba je na ponuke, nie na návrhu); zmena návrhu nastaví `Quote.NeedsRecalculation` | `POST /api/designs/{id}/quote` (vytvorí `Draft` ponuku zo schváleného návrhu) | #78 |
 
 ## #63 Uzatvorenie zmluvy a platba zálohy
 
