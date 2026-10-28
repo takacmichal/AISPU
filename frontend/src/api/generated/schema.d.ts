@@ -880,6 +880,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/customers/{customerId}/supply-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the supply points of a customer */
+        get: operations["ListSupplyPoints"];
+        put?: never;
+        /**
+         * Add a supply point to a customer
+         * @description A customer can have several supply points. The EIC code must have a valid format and be unique (409 otherwise).
+         */
+        post: operations["CreateSupplyPoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{customerId}/supply-points/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a supply point */
+        get: operations["GetSupplyPoint"];
+        /** Update a supply point */
+        put: operations["UpdateSupplyPoint"];
+        post?: never;
+        /**
+         * Delete a supply point
+         * @description Returns 409 when an installation, FVE design or connection request uses the supply point.
+         */
+        delete: operations["DeleteSupplyPoint"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/info": {
         parameters: {
             query?: never;
@@ -1262,6 +1305,18 @@ export interface components {
              */
             vatRatePercent?: null | number | string;
             note?: null | string;
+        };
+        CreateSupplyPointRequest: {
+            /** @description Optional label, e.g. "Rodinný dom". */
+            name?: null | string;
+            /** @description EIC code of the metering point (16 characters, e.g. "24ZSS1234567890A"); whitespace is ignored. */
+            eicCode: null | string;
+            address: null | components["schemas"]["AddressDto"];
+            /**
+             * Format: int32
+             * @description Rated current of the main circuit breaker in amperes (1-1000).
+             */
+            mainBreakerAmps: null | number | string;
         };
         /** @description Page of customers returned by `GET /api/customers`. */
         CustomerListResponse: {
@@ -1717,6 +1772,22 @@ export interface components {
             /** Format: date-time */
             surveyedAt: null | string;
         };
+        /** @description Supply point returned by the API. */
+        SupplyPointResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            customerId: string;
+            name: null | string;
+            eicCode: string;
+            address: components["schemas"]["AddressDto"];
+            /** Format: int32 */
+            mainBreakerAmps: number | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         /** @description Basic information about the running API. */
         SystemInfoResponse: {
             name: string;
@@ -1809,6 +1880,18 @@ export interface components {
             /** Format: double */
             plannedPowerKwp?: null | number | string;
             note?: null | string;
+        };
+        UpdateSupplyPointRequest: {
+            /** @description Optional label, e.g. "Rodinný dom". */
+            name?: null | string;
+            /** @description EIC code of the metering point (16 characters, e.g. "24ZSS1234567890A"); whitespace is ignored. */
+            eicCode: null | string;
+            address: null | components["schemas"]["AddressDto"];
+            /**
+             * Format: int32
+             * @description Rated current of the main circuit breaker in amperes (1-1000).
+             */
+            mainBreakerAmps: null | number | string;
         };
         /** @description Account of a user. */
         UserResponse: {
@@ -4059,6 +4142,215 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListSupplyPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyPointResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateSupplyPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSupplyPointRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyPointResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSupplyPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyPointResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateSupplyPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSupplyPointRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyPointResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteSupplyPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
