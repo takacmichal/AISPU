@@ -8,6 +8,7 @@ Nové ADR pridávaj v rovnakom formáte (Kontext, Možnosti, Rozhodnutie, Dôsle
 | #178 | [Dataset výroby FVE](spike-178-dataset-vyroby.md) | DKA Solar Centre Alice Springs 2023 a 2024 (5 min, reálne poruchy; licencia s limitom 5 000 buniek, treba súhlas), záloha NREL PVDAQ (CC BY 4.0) |
 | #180 | [Zdroj počasia](spike-180-pocasie.md) | Open-Meteo: Historical Forecast API na tréning (Alice Springs aj SR, overené 2023 až 2024), Forecast API v prevádzke, hodinový join v UTC |
 | #185 | [Telemetria simulátora](spike-185-telemetria.md) | JSON `readings[]`, interval 5 min, deduplikácia `(deviceId, timestamp)` |
+| #198 | [Verzovanie ML modelu](spike-198-verzovanie-ml-modelu.md) | Verzia + `metadata.json` v Blob Storage (SemVer, nemenné), MLflow a DVC zamietnuté |
 | #203 | [Pripojenie k distribučke](spike-203-pripojenie-distribucka.md) | Proces pre malý zdroj ≤ 10,8 kW a väčšie zdroje, lehoty konfigurovateľné |
 | #205 | [BPMN](spike-205-bpmn.md) | Camunda Modeler, BPMN 2.0 XML v `docs/bpmn/`, 2 úrovne detailu |
 | #209 | [Štruktúra repa](spike-209-struktura-repa.md) | Monorepo, CI s `paths` filtrami, tajomstvá mimo gitu (frontend od Sprintu 1: React) |

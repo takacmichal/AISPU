@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "model": {
+    "name": "pv-forecast",
+    "version": "1.0.0",
+    "task": "regression",
+    "target": "energy_kwh_next_day",
+    "algorithm": "sklearn.ensemble.GradientBoostingRegressor",
+    "artifact_file": "model.joblib",
+    "artifact_sha256": "REPLACE_WITH_SHA256_OF_model.joblib",
+    "feature_names": ["temperature_c", "cloud_cover_pct", "irradiance_wm2", "hour_of_day", "day_of_year"],
+    "created_at_utc": "2026-11-10T09:30:00Z",
+    "created_by": "takacmichal"
+  },
+  "code": {
+    "git_commit": "REPLACE_WITH_FULL_GIT_SHA",
+    "git_tag": "ml-v1.0.0",
+    "training_script": "ml/train.py",
+    "git_dirty": false
+  },
+  "data": {
+    "source": "plant_measurements + weather export",
+    "file": "train_2025-01-01_2026-09-30.csv",
+    "sha256": "REPLACE_WITH_SHA256_OF_TRAINING_FILE",
+    "rows": 0,
+    "time_range_utc": ["2025-01-01T00:00:00Z", "2026-09-30T23:59:59Z"],
+    "split": { "method": "time_based", "train_until": "2026-06-30", "test_from": "2026-07-01" }
+  },
+  "training": {
+    "seed": 42,
+    "params": { "n_estimators": 300, "learning_rate": 0.05, "max_depth": 3, "subsample": 0.8 },
+    "duration_s": 0,
+    "host": "local (macOS, arm64)"
+  },
+  "metrics": {
+    "test": { "mae_kwh": null, "rmse_kwh": null, "r2": null },
+    "baseline": { "name": "previous_day_same_hour", "mae_kwh": null }
+  },
+  "environment": {
+    "python": "3.12.x",
+    "libraries": { "scikit-learn": "x.y.z", "pandas": "x.y.z", "numpy": "x.y.z", "joblib": "x.y.z" },
+    "requirements_lock_sha256": "REPLACE_WITH_SHA256_OF_requirements.lock"
+  },
+  "lineage": {
+    "previous_version": null,
+    "notes": "Example file. Values marked REPLACE_* and null are filled in automatically by the training script."
+  }
+}
