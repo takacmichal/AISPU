@@ -64,3 +64,29 @@ Chýbajúce hodnoty (`null` z API) sú `NaN`. Parquet nesie v metadátach `solar
 Načítanie: `solarops_ml.weather.read_dataset(path)` vráti `DataFrame` indexovaný UTC časom.
 
 **Atribúcia (povinná, CC BY 4.0):** Weather data by [Open-Meteo.com](https://open-meteo.com), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+## Porovnanie modelov pre predikciu výroby (spike #191)
+
+Experiment z ADR #191 porovnáva perzistenciu, fyzikálny baseline, lineárnu regresiu, LightGBM a malú LSTM na hodinových dátach. Keďže reálne DKASC dáta nie sú v repe (licencia, ADR #183), beh používa **syntetické dáta zo simulátora #94** – je to metodický dry-run, nie dôkaz o produkčnej presnosti. Výsledky sú v `docs/adr/assets/spike-191-results.json` a `.md`, zhrnutie v ADR #191.
+
+Experimentálne závislosti (`lightgbm`, `scikit-learn`, `torch`) sú v samostatnej skupine, takže produkčný image a CI ich neinštalujú:
+
+```bash
+cd ml
+uv sync --group experiment
+
+# celý beh: 5 polí, 2023–2024, walk-forward + leave-one-array-out
+uv run python -m solarops_ml.forecast \
+    --out-json ../docs/adr/assets/spike-191-results.json \
+    --out-markdown ../docs/adr/assets/spike-191-results.md
+
+# rýchly dymový beh bez LSTM
+uv run python -m solarops_ml.forecast --quick \
+    --out-json /tmp/spike-191-quick.json --out-markdown /tmp/spike-191-quick.md
+```
+
+Notebook: `ml/notebooks/191-model-comparison.ipynb` (načíta vygenerovaný JSON, prípadne experiment spustí). LightGBM a PyTorch si prinášajú vlastný OpenMP runtime; `solarops_ml.forecast` preto nastavuje `OMP_NUM_THREADS=1`, aby v jednom procese nedochádzalo k deadlocku alebo segfaultu. Pri vlastnom skripte nastavte premennú pred importom knižníc:
+
+```bash
+OMP_NUM_THREADS=1 uv run python ...
+```
