@@ -23,7 +23,7 @@ Kostra modulu je v skille `solarops-feature-module`. Tu sú detaily kódu. Vzor 
 - Zápisy: jeden `SaveChangesAsync` na jednu operáciu; viac krokov, ktoré musia prejsť spolu (výmena zariadenia, odobratie roly), v jednej transakcii. Pri pravidlách typu „posledný admin“ použi `Serializable`.
 - Súbežnosť: unikátne pravidlá (sériové číslo, číslo verzie) vynúť unikátnym indexom a `DbUpdateException` s kódom 23505 mapuj na 409.
 - Čas: `TimeProvider` z DI, hodnoty `DateTimeOffset` v UTC; nikdy `DateTime.Now`/`UtcNow` priamo.
-- Kľúče `Guid.CreateVersion7()`. Žiadne EF migrácie vo feature PR (`EnsureCreated`).
+- Kľúče `Guid.CreateVersion7()`. Pri zmene entity vygeneruj EF migráciu a commitni ju spolu s kódom (`EnsureCreated` sa už nepoužíva).
 - Časové rady telemetrie navrhuj podľa ADR-220, nie ako bežné entity.
 
 ## Štýl C#

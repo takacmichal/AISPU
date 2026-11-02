@@ -49,7 +49,7 @@ public sealed class FoundationEndpointsTests(PostgresFixture postgres) : IDispos
     }
 
     [Fact]
-    public async Task EnsureCreated_CreatesTablesAndColumnsInSnakeCase()
+    public async Task Migrations_CreateTablesAndColumnsInSnakeCase()
     {
         var columns = await _factory.ExecuteDbAsync(db => db.Database
             .SqlQuery<string>($"SELECT column_name AS \"Value\" FROM information_schema.columns WHERE table_name = 'users'")

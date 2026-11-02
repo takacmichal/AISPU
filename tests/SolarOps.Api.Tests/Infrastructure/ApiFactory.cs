@@ -10,7 +10,7 @@ namespace SolarOps.Api.Tests.Infrastructure;
 
 /// <summary>
 /// Hosts the API in-memory against a fresh database on the shared <see cref="PostgresFixture"/> container.
-/// The schema is created with EnsureCreated when the host starts.
+/// The schema is created by applying EF Core migrations when the host starts.
 /// </summary>
 /// <example>
 /// <code>
@@ -65,7 +65,7 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
     protected override IHost CreateHost(IHostBuilder builder)
     {
         var host = base.CreateHost(builder);
-        host.Services.EnsureDatabaseCreatedAsync().GetAwaiter().GetResult();
+        host.Services.MigrateDatabaseAsync().GetAwaiter().GetResult();
         return host;
     }
 

@@ -22,12 +22,12 @@ public static class PersistenceExtensions
     }
 
     /// <summary>
-    /// Creates the schema from the current model (no migrations during Sprint 1).
+    /// Applies the committed EF Core migrations, creating the database when it does not exist yet.
     /// </summary>
-    public static async Task EnsureDatabaseCreatedAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureCreatedAsync(cancellationToken);
+        await db.Database.MigrateAsync(cancellationToken);
     }
 }

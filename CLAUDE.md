@@ -32,7 +32,7 @@ docker compose up -d postgres                  # lokálna DB; po pull-e s novým
 API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Features/<Modul>/`. Vzorový modul je `Features/System/SystemModule.cs`, postup je v skille `solarops-feature-module`.
 
 - Feature PR **nemení** `Program.cs`, `AppDbContext` ani CI. Modul sa nájde reflexiou cez `IModule`.
-- **Žiadne EF migrácie vo feature PR.** Schéma sa vytvára cez `EnsureCreated`; iniciálna migrácia príde samostatným PR po Sprinte 1.
+- **EF migrácie sú súčasťou zmeny schémy.** Dev aj testy aplikujú migrácie (`MigrateAsync`); pri pridaní alebo zmene entity vygeneruj migráciu a commitni ju spolu s kódom. `EnsureCreated` sa už nepoužíva.
 - Kľúče `Guid` (`Guid.CreateVersion7()`), čas `DateTimeOffset` v UTC cez `TimeProvider`, tabuľky a stĺpce `snake_case`, enumy ako reťazce.
 - Stavové prechody sú metódy na entite, neplatný prechod hodí `DomainException` (409). `NotFoundException` je 404, `RequestValidationException` 400, výsledok je ProblemDetails.
 - Vstup validuj DataAnnotations a `.WithValidation<T>()`.

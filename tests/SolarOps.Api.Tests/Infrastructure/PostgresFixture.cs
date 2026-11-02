@@ -14,7 +14,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// <summary>Connection string to the default database of the container.</summary>
     public string ConnectionString => _container.GetConnectionString();
 
-    /// <summary>Connection string pointing to <paramref name="databaseName"/> on the shared container (created by EnsureCreated).</summary>
+    /// <summary>Connection string pointing to <paramref name="databaseName"/> on the shared container (created by migrations).</summary>
     public string CreateConnectionString(string databaseName) =>
         new NpgsqlConnectionStringBuilder(ConnectionString) { Database = databaseName }.ConnectionString;
 

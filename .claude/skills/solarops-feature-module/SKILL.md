@@ -24,7 +24,7 @@ V `src/SolarOps.Api/Features/<Modul>/`:
 - `<Modul>Service.cs`: logika, `db.Set<T>()`, `TimeProvider`, `ICurrentUser`.
 - `<Modul>.http`: ukážkové requesty.
 
-Nemeň `Program.cs`, `AppDbContext` ani CI. Nerob EF migráciu.
+Nemeň `Program.cs`, `AppDbContext` ani CI. Pri novej alebo zmenenej entite vygeneruj EF migráciu a commitni ju spolu s kódom.
 
 ## 3. Autorizácia a vlastníctvo dát
 
