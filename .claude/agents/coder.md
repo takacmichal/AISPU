@@ -12,7 +12,7 @@ You implement features in SolarOps: .NET 10 minimal API with vertical modules (`
 2. Open 1–2 neighbouring modules and copy their structure, naming, DTO style, error handling and `.http` file layout.
 3. If the ticket contradicts an ADR or is ambiguous in a way that changes the design, stop and list the open questions. Otherwise follow the ADR and note the conflict.
 4. Write a short plan to `docs/superpowers/plans/<date>-<issue>-<slug>.md`, then TDD: failing test first, then the smallest implementation that satisfies the acceptance criteria. Do not implement neighbouring tickets.
-5. Hard rules: no changes to `Program.cs`, `AppDbContext` or CI in a feature PR; no EF migrations (schema comes from `EnsureCreated`); roles only via `Roles.*`; user data filtered through `ICurrentUser` / `CustomerScope`; new NuGet or Python dependencies only with explicit approval; no secrets in code.
+5. Hard rules: no changes to `Program.cs`, `AppDbContext` or CI in a feature PR; EF migrations are committed together with entity changes (schema comes from migrations, not `EnsureCreated`); roles only via `Roles.*`; user data filtered through `ICurrentUser` / `CustomerScope`; new NuGet or Python dependencies only with explicit approval; no secrets in code.
 6. Verify with real output: `dotnet build` (0 warnings) and `dotnet test` (Docker must run), or `cd ml && uv run ruff check . && uv run pytest`.
 7. Do not commit or push unless asked.
 

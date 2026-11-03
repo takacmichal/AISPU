@@ -27,7 +27,7 @@ Frontend je **React**, nie Angular (zastarané issues #165 a #277).
 - **Tajomstvá:** v Key Vault (#159) alebo ako secrets Container Apps. V gite len `.env.example`. Mimo Development musí byť nastavené `Jwt__SigningKey` (min. 32 bajtov) a `ConnectionStrings__Postgres`, inak API nenaštartuje.
 - **CORS:** API musí povoliť origin Static Web Apps (#279). Auth je bearer token, nie cookies (cross-site, ADR-218).
 - **SPA routing:** `staticwebapp.config.json` s `navigationFallback` na `/index.html` a bezpečnostnými hlavičkami (#278).
-- **Schéma DB:** v Sprinte 1 je `EnsureCreated`; pred nasadením do Azure treba iniciálnu EF migráciu (samostatný PR, #158 prepísať na PostgreSQL). Nepúšťaj `EnsureCreated` proti zdieľanej produkčnej DB.
+- **Schéma DB:** dev aj testy aplikujú EF migrácie; pred nasadením do Azure over, že sú všetky migrácie aplikované (`dotnet ef database update` alebo riadený krok v deploy workflow). `EnsureCreated` sa už nepoužíva.
 - **CI/CD:** GitHub Actions v `.github/workflows/` (`backend.yml`, `frontend.yml`, `ml.yml` už existujú, spúšťajú sa podľa `paths`). Deploy workflow (#161, #162, #280) pridávaj ako samostatné súbory; v nich používaj OIDC prihlásenie do Azure, nie dlhodobé kľúče v secrets. Zmeny CI a Docker konfigurácie len na výslovné zadanie.
 - **Kontajnery:** viacstupňové Dockerfiles (`src/SolarOps.Api/Dockerfile`, `ml/Dockerfile`), non-root používateľ, bez tajomstiev v obraze. Lokálne celý stack: `docker compose --profile app up --build`.
 

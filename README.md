@@ -26,8 +26,8 @@ docker compose up -d postgres
 
 # 2. API (http://localhost:5080, Scalar UI: /scalar/v1, OpenAPI: /openapi/v1.json)
 dotnet run --project src/SolarOps.Api
-#   v Development sa schéma vytvorí automaticky (EnsureCreated)
-#   EnsureCreated nič nerobí, ak DB už tabuľky má: po pull-e PR s novými entitami
+#   v Development sa schéma vytvorí automaticky aplikovaním EF migrácií
+#   Migrácie nič nerobia, ak už sú aplikované: po pull-e PR s novou migráciou
 #   zmaž lokálnu DB: docker compose down -v && docker compose up -d postgres
 
 # 3. frontend (http://localhost:5173)
@@ -101,7 +101,7 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 6. Nový NuGet balík: verzia patrí do `Directory.Packages.props` (balíky Sprintu 1 sú tam už pripravené), do `.csproj` modulu pridaj len `<PackageReference Include="..." />` bez verzie.
 7. Integračné testy: `[Collection(PostgresCollection.Name)]`, konštruktor s `PostgresFixture`, `new ApiFactory(postgres)` (každá factory má vlastnú databázu), `factory.CreateApiClient()` (anonymný) alebo `factory.CreateApiClient(userId, Roles.Sales)` (prihlásený cez testovaciu schému `TestAuthHandler`, funguje aj po pridaní JWT v #132), seed cez `factory.ExecuteDbAsync(db => ...)`. Unit testy patria do `tests/SolarOps.Api.Tests/Unit/<Modul>/`, integračné do `Integration/<Modul>/`.
 
-**Žiadne EF migrácie vo feature PR.** V Sprinte 1 sa schéma vytvára cez `EnsureCreated` (dev aj testy). Iniciálna migrácia vznikne samostatným PR po merge Sprintu 1.
+**EF migrácie sú súčasťou zmeny schémy.** Dev aj testy aplikujú migrácie (`MigrateAsync`); pri pridaní alebo zmene entity vygeneruj migráciu (`dotnet ef migrations add <Nazov> --project src/SolarOps.Api --startup-project src/SolarOps.Api`) a commitni ju spolu s kódom. `EnsureCreated` sa už nepoužíva.
 
 ## Pravidlá PR a merge
 

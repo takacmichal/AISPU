@@ -42,7 +42,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference().AllowAnonymous();
-    await app.Services.EnsureDatabaseCreatedAsync();
+    await app.Services.MigrateDatabaseAsync();
 }
 
 app.UseCors(FrontendCorsPolicy);
