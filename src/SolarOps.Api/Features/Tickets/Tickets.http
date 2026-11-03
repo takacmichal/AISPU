@@ -1,0 +1,67 @@
+# Service tickets (#35). Reading: every role (customer only its own tickets).
+# Create: Admin/Operator/Technician/Customer; triage and transitions: Admin/Operator; comments: Admin/Operator/Technician.
+# Port matches launchSettings.json (http profile).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@ticketId = 00000000-0000-0000-0000-000000000000
+@attachmentId = 00000000-0000-0000-0000-000000000000
+
+### Report a fault with a photo (state New)
+POST {{baseUrl}}/api/tickets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "installationId": "0199f0a0-0000-7000-8000-000000000001",
+  "title": "Invertor hlási chybu",
+  "description": "Od rána FVE nevyrába, na invertore svieti červená LED.",
+  "priority": "High",
+  "attachments": [
+    { "fileName": "porucha.jpg", "contentType": "image/jpeg", "contentBase64": "/9j/4AAQSkZJRg==" }
+  ]
+}
+
+### List: new high-priority tickets reported by customers, newest first
+GET {{baseUrl}}/api/tickets?state=New&priority=High&origin=CustomerReport&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### List sorted by priority (High first)
+GET {{baseUrl}}/api/tickets?sortBy=priority&sortDir=desc
+Authorization: Bearer {{token}}
+
+### Detail
+GET {{baseUrl}}/api/tickets/{{ticketId}}
+Authorization: Bearer {{token}}
+
+### Triage: set priority (New to Triaged)
+PUT {{baseUrl}}/api/tickets/{{ticketId}}/triage
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "priority": "High", "note": "Výpadok celej výroby" }
+
+### Transition (Triaged to RemoteDiagnosis; later Resolved, Closed)
+POST {{baseUrl}}/api/tickets/{{ticketId}}/transition
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "state": "RemoteDiagnosis", "note": "Kontrola logov invertora na diaľku" }
+
+### History of state changes
+GET {{baseUrl}}/api/tickets/{{ticketId}}/history
+Authorization: Bearer {{token}}
+
+### Add a public comment
+POST {{baseUrl}}/api/tickets/{{ticketId}}/comments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "body": "Ozveme sa do 24 hodín.", "isPublic": true }
+
+### Comments (a customer sees only public ones)
+GET {{baseUrl}}/api/tickets/{{ticketId}}/comments
+Authorization: Bearer {{token}}
+
+### Download an attachment
+GET {{baseUrl}}/api/tickets/{{ticketId}}/attachments/{{attachmentId}}
+Authorization: Bearer {{token}}
