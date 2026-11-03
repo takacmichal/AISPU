@@ -514,8 +514,10 @@ textarea[aria-invalid='true'] {
   padding: var(--spacing-32) var(--spacing-40);
 }
 
-.shell__main:focus {
+.shell__main:focus,
+.shell__main:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .breadcrumbs ol {
