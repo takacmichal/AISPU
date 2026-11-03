@@ -83,7 +83,7 @@ describe('CustomerListPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('loc')).toHaveTextContent('/customers?q=novak'))
     expect(screen.getByTestId('loc')).not.toHaveTextContent('page=')
-    expect(fetchMock.mock.calls.length - callsBefore).toBe(1)
+    await waitFor(() => expect(fetchMock.mock.calls.length - callsBefore).toBe(1))
   })
 
   it('shows empty state and load error', async () => {
