@@ -49,6 +49,9 @@ public static class AuthorizationPolicies
     /// <summary>Back-office steps: resubmit, send the contract, record the customer signature (lane Obchod/Operátor; ADR #207 gives Sales T and Designer RWT).</summary>
     public const string ConnectionRequestsProcess = "ConnectionRequestsProcess";
 
+    /// <summary>The simulated distributor is operated by the back office or an admin (BPMN lane Distribučka is an external party, #87).</summary>
+    public const string ConnectionRequestsSimulate = "ConnectionRequestsSimulate";
+
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
@@ -82,6 +85,7 @@ public static class AuthorizationPolicies
             [ConnectionRequestsWrite] = [Roles.Admin, Roles.Operator, Roles.Sales],
             [ConnectionRequestsSubmit] = [Roles.Admin, Roles.Designer],
             [ConnectionRequestsProcess] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
+            [ConnectionRequestsSimulate] = [Roles.Admin, Roles.Operator],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>

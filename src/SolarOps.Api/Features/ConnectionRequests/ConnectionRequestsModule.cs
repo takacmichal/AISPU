@@ -107,6 +107,27 @@ public sealed class ConnectionRequestsModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsSubmit);
 
+        group.MapPost("/{id:guid}/decision", DecisionAsync)
+            .WithName("SimulateDistributorDecision")
+            .WithSummary("Simulate the distributor's answer to a submitted request (mock, #87)")
+            .WithDescription("Body: decision (Approve, RequestInfo, Reject) and note (required for RequestInfo and Reject). "
+                + "Submitted moves to ContractOffered, InfoRequested or Rejected, the same transition a real answer would cause; any other state gives 409. "
+                + "Available in every environment except Production unless ConnectionRequest:Simulator:Enabled says otherwise (then 404).")
+            .WithValidation<DistributorDecisionRequest>()
+            .AddEndpointFilter<DistributorSimulatorFilter>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsSimulate);
+
+        group.MapPost("/{id:guid}/conclude", ConcludeAsync)
+            .WithName("SimulateDistributorConclusion")
+            .WithSummary("Simulate that the distributor concluded the contract (ContractSubmitted to Concluded, mock, #87)")
+            .WithDescription("Same availability as the decision endpoint.")
+            .AddEndpointFilter<DistributorSimulatorFilter>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(AuthorizationPolicies.ConnectionRequestsSimulate);
+
         group.MapGet("/{id:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync)
             .WithName("DownloadConnectionRequestAttachment")
             .WithSummary("Download the content of one attachment")
@@ -155,6 +176,13 @@ public sealed class ConnectionRequestsModule : IModule
 
     internal static async Task<Ok<ConnectionRequestResponse>> SubmitSignedContractAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
         TypedResults.Ok(await service.SubmitSignedContractAsync(id, ct));
+
+    internal static async Task<Ok<ConnectionRequestResponse>> DecisionAsync(
+        Guid id, DistributorDecisionRequest request, IConnectionRequestService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.RecordDecisionAsync(id, request, ct));
+
+    internal static async Task<Ok<ConnectionRequestResponse>> ConcludeAsync(Guid id, IConnectionRequestService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ConcludeAsync(id, ct));
 
     internal static async Task<IResult> DownloadAttachmentAsync(
         Guid id, Guid attachmentId, IConnectionRequestService service, HttpContext http, CancellationToken ct)

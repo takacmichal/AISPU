@@ -92,6 +92,38 @@ public sealed record UpdateConnectionRequestRequest : IValidatableObject
     }
 }
 
+/// <summary>Answer of the (simulated) distributor to a submitted request.</summary>
+public enum DistributorDecision
+{
+    /// <summary>Approved: a contract is offered (state ContractOffered).</summary>
+    Approve,
+
+    /// <summary>The request must be completed (state InfoRequested); a note is required.</summary>
+    RequestInfo,
+
+    /// <summary>The request is refused (state Rejected); a note with the reason is required.</summary>
+    Reject,
+}
+
+/// <summary>Payload of the distributor simulator: the decision and, for <c>RequestInfo</c> and <c>Reject</c>, a note.</summary>
+public sealed record DistributorDecisionRequest : IValidatableObject
+{
+    [Required]
+    public DistributorDecision? Decision { get; init; }
+
+    /// <summary>What is missing or why the request was refused; required for <c>RequestInfo</c> and <c>Reject</c>.</summary>
+    [MaxLength(ConnectionRequest.DecisionNoteMaxLength)]
+    public string? Note { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Decision is DistributorDecision.RequestInfo or DistributorDecision.Reject && string.IsNullOrWhiteSpace(Note))
+        {
+            yield return new ValidationResult($"The Note field is required for the decision {Decision}.", [nameof(Note)]);
+        }
+    }
+}
+
 internal static class ConnectionRequestValidation
 {
     internal static IEnumerable<ValidationResult> ValidateContent(
