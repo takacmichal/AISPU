@@ -29,6 +29,9 @@ public static class AuthorizationPolicies
     public const string DesignsRead = "DesignsRead";
     public const string DesignsWrite = "DesignsWrite";
 
+    /// <summary>Deciding whether a design suits (BPMN lane Obchod, ADR #207: Sales approves and sends back) (#78).</summary>
+    public const string DesignsApprove = "DesignsApprove";
+
     public const string InstallationsRead = "InstallationsRead";
 
     /// <summary>Planning an installation: create, edit, schedule (BPMN lane Obchod/Operátor).</summary>
@@ -69,6 +72,7 @@ public static class AuthorizationPolicies
 
             [DesignsRead] = [Roles.Admin, Roles.Sales, Roles.Designer],
             [DesignsWrite] = [Roles.Admin, Roles.Designer],
+            [DesignsApprove] = [Roles.Admin, Roles.Sales],
 
             [InstallationsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
             [InstallationsPlan] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],

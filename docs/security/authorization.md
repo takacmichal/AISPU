@@ -39,11 +39,12 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `CatalogRead` | Admin, Sales, Designer, Operator | `GET /api/components`, `GET /api/components/{id}` |
 | `CatalogWrite` | Admin, Sales | `POST /api/components`, `PUT /api/components/{id}`, `POST /api/components/{id}/activate`, `POST /api/components/{id}/deactivate` |
 | `QuotesRead` | Admin, Sales, Designer, Operator | `GET /api/quotes`, `GET /api/quotes/{id}`, `GET /api/quotes/{id}/history` |
-| `QuotesWrite` | Admin, Sales | `POST /api/quotes`, `POST /api/quotes/{id}/send`, `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject` |
+| `QuotesWrite` | Admin, Sales | `POST /api/quotes`, `POST /api/quotes/{id}/send`, `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject`, `POST /api/designs/{id}/quote` |
 | `ContractsRead` | Admin, Sales, Designer, Operator | `GET /api/contracts`, `GET /api/contracts/{id}`, `GET /api/contracts/{id}/audit` |
 | `ContractsWrite` | Admin, Sales | `POST /api/contracts`, `POST /api/contracts/{id}/sign`, `POST /api/contracts/{id}/deposit/pay` |
 | `DesignsRead` | Admin, Sales, Designer | `GET /api/designs`, `GET /api/designs/{id}`, `GET /api/designs/{id}/versions`, `GET /api/designs/{id}/versions/{number}`, `POST /api/designs` (založenie návrhu patrí obchodnému toku) |
 | `DesignsWrite` | Admin, Designer | `POST /api/designs/{id}/site-survey`, `POST /api/designs/{id}/mark-infeasible`, `PUT /api/designs/{id}/parameters`, `POST /api/designs/{id}/configuration/preview`, `POST /api/designs/{id}/versions` |
+| `DesignsApprove` | Admin, Sales | `POST /api/designs/{id}/approve`, `POST /api/designs/{id}/rework` |
 | `InstallationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations`, `GET /api/installations/{id}`, `GET /api/installations/{installationId}/devices…` (všetky GET vetvy) |
 | `InstallationsPlan` | Admin, Sales, Designer, Operator | `POST /api/installations`, `PUT /api/installations/{id}`, `PUT /api/installations/{id}/schedule`, `PUT /api/installations/{id}/technicians` |
 | `InstallationsField` | Admin, Designer, Technician, Operator | `POST /api/installations/{id}/transitions`, `POST /api/installations/{installationId}/devices`, `POST /api/installations/{installationId}/devices/{deviceId}/replace` |

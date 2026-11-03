@@ -98,6 +98,21 @@ public sealed class FveDesign
 
     public List<RoofPlane> RoofPlanes { get; private set; } = [];
 
+    /// <summary>Who approved the design (BPMN gate "Návrh vyhovuje?"); null unless the design is Approved.</summary>
+    public Guid? ApprovedBy { get; private set; }
+
+    public DateTimeOffset? ApprovedAt { get; private set; }
+
+    /// <summary>Saved configuration version that was approved; quotes are built from it.</summary>
+    public int? ApprovedVersionNumber { get; private set; }
+
+    /// <summary>Reason of the last rework request (gate "Návrh vyhovuje?" = no); kept after the design is approved again.</summary>
+    public string? ReworkReason { get; private set; }
+
+    public Guid? ReworkBy { get; private set; }
+
+    public DateTimeOffset? ReworkAt { get; private set; }
+
     public Guid CreatedBy { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -158,6 +173,40 @@ public sealed class FveDesign
         AnnualConsumptionKwh = annualConsumptionKwh;
         ConsumptionProfile = profile;
         RoofPlanes = [.. roofPlanes];
+        Transition(FveDesignStatus.InDesign, now);
+    }
+
+    /// <summary>
+    /// Gateway "Návrh vyhovuje?" = yes: <c>InDesign → Approved</c>. The newest saved configuration version
+    /// (<paramref name="latestVersionNumber"/>, null when none exists) becomes the approved one.
+    /// </summary>
+    public void Approve(int? latestVersionNumber, Guid userId, DateTimeOffset now)
+    {
+        EnsureStatus("approve the design", FveDesignStatus.InDesign);
+        if (latestVersionNumber is null)
+        {
+            throw new DomainException("Cannot approve a design without a saved configuration version.");
+        }
+
+        ApprovedBy = userId;
+        ApprovedAt = now;
+        ApprovedVersionNumber = latestVersionNumber;
+        Transition(FveDesignStatus.Approved, now);
+    }
+
+    /// <summary>
+    /// Gateway "Návrh vyhovuje?" = no: the design goes (back) to <c>InDesign</c>. From <c>Approved</c> this
+    /// withdraws the approval, so the caller must mark quotes built from the design for recalculation.
+    /// </summary>
+    public void Rework(string reason, Guid userId, DateTimeOffset now)
+    {
+        EnsureStatus("send the design to rework", FveDesignStatus.InDesign, FveDesignStatus.Approved);
+        ApprovedBy = null;
+        ApprovedAt = null;
+        ApprovedVersionNumber = null;
+        ReworkReason = reason;
+        ReworkBy = userId;
+        ReworkAt = now;
         Transition(FveDesignStatus.InDesign, now);
     }
 
