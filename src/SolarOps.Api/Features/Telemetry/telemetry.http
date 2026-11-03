@@ -1,0 +1,53 @@
+# Telemetry ingest (#95). Interim: requires a JWT with role Admin or Operator (devices get API keys in #96).
+# Port matches launchSettings.json (http profile). After pulling, recreate the local DB: docker compose down -v
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@installationId = 00000000-0000-0000-0000-000000000000
+@deviceId = 00000000-0000-0000-0000-000000000000
+
+### Send a batch (idempotent by deviceId + timestamp; resending returns duplicates)
+POST {{baseUrl}}/api/telemetry
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "schemaVersion": "1.0",
+  "installationId": "{{installationId}}",
+  "sentAt": "2026-06-21T10:36:00Z",
+  "source": "simulator",
+  "readings": [
+    {
+      "deviceId": "{{deviceId}}",
+      "timestamp": "2026-06-21T10:35:00Z",
+      "intervalSec": 300,
+      "status": "MPPT",
+      "acPowerW": 7420.5,
+      "dcPowerW": 7615.0,
+      "acVoltageV": 231.4,
+      "acCurrentA": 10.7,
+      "gridFrequencyHz": 50.01,
+      "temperatureC": 46.2,
+      "totalEnergyWh": 18452310.0,
+      "dayEnergyWh": 31250.0,
+      "strings": [
+        { "index": 1, "voltageV": 612.3, "currentA": 6.31, "powerW": 3863.5 },
+        { "index": 2, "voltageV": 608.9, "currentA": 6.17, "powerW": 3756.9 }
+      ]
+    }
+  ]
+}
+
+### Invalid reading: misaligned timestamp -> 400 with key readings[0].timestamp
+POST {{baseUrl}}/api/telemetry
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "schemaVersion": "1.0",
+  "installationId": "{{installationId}}",
+  "sentAt": "2026-06-21T10:36:00Z",
+  "source": "gateway",
+  "readings": [
+    { "deviceId": "{{deviceId}}", "timestamp": "2026-06-21T10:33:00Z", "intervalSec": 300, "status": "MPPT", "acPowerW": 1, "totalEnergyWh": 1 }
+  ]
+}
