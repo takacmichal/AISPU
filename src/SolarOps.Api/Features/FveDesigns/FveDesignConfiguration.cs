@@ -16,6 +16,7 @@ public sealed class FveDesignConfiguration : IEntityTypeConfiguration<FveDesign>
         builder.Property(d => d.RequestNotes).HasMaxLength(FveDesignLimits.NotesMaxLength);
         builder.Property(d => d.SiteSurveyNotes).HasMaxLength(FveDesignLimits.NotesMaxLength);
         builder.Property(d => d.InfeasibleReason).HasMaxLength(FveDesignLimits.NotesMaxLength);
+        builder.Property(d => d.ReworkReason).HasMaxLength(FveDesignLimits.NotesMaxLength);
 
         // Roof planes are always read and replaced together with the design, so they live in a jsonb column.
         builder.OwnsMany(d => d.RoofPlanes, plane =>

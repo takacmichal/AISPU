@@ -1,0 +1,8 @@
+# Contracts module (PDF). Authenticate with a JWT (Authorization: Bearer ...).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@contractId = 00000000-0000-0000-0000-000000000000
+
+### Generate the contract PDF (application/pdf, saved by the client as ZM-YYYY-NNNNNN.pdf)
+POST {{baseUrl}}/api/contracts/{{contractId}}/pdf
+Authorization: Bearer {{token}}

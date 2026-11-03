@@ -33,26 +33,34 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 
 | Politika | Povolené roly | Endpointy |
 |---|---|---|
-| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles` |
+| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles`, `GET`, `POST` a `POST …/rotate` na `/api/installations/{installationId}/api-keys`, `DELETE /api/installations/{installationId}/api-keys/{keyId}` |
 | `CustomersRead` | Admin, Sales, Designer, Technician, Operator | `GET /api/customers`, `GET /api/customers/{id}`, `GET /api/customers/{customerId}/supply-points`, `GET /api/customers/{customerId}/supply-points/{id}` |
 | `CustomersWrite` | Admin, Sales | `POST /api/customers`, `PUT /api/customers/{id}`, `POST /api/customers/{id}/archive`, `POST /api/customers/{id}/reactivate`, `POST/PUT/DELETE /api/customers/{customerId}/supply-points/…` |
 | `CatalogRead` | Admin, Sales, Designer, Operator | `GET /api/components`, `GET /api/components/{id}` |
 | `CatalogWrite` | Admin, Sales | `POST /api/components`, `PUT /api/components/{id}`, `POST /api/components/{id}/activate`, `POST /api/components/{id}/deactivate` |
 | `QuotesRead` | Admin, Sales, Designer, Operator | `GET /api/quotes`, `GET /api/quotes/{id}`, `GET /api/quotes/{id}/history` |
-| `QuotesWrite` | Admin, Sales | `POST /api/quotes`, `POST /api/quotes/{id}/send`, `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject` |
+| `QuotesWrite` | Admin, Sales | `POST /api/quotes`, `POST /api/quotes/{id}/send`, `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject`, `POST /api/designs/{id}/quote` |
 | `ContractsRead` | Admin, Sales, Designer, Operator | `GET /api/contracts`, `GET /api/contracts/{id}`, `GET /api/contracts/{id}/audit` |
 | `ContractsWrite` | Admin, Sales | `POST /api/contracts`, `POST /api/contracts/{id}/sign`, `POST /api/contracts/{id}/deposit/pay` |
 | `DesignsRead` | Admin, Sales, Designer | `GET /api/designs`, `GET /api/designs/{id}`, `GET /api/designs/{id}/versions`, `GET /api/designs/{id}/versions/{number}`, `POST /api/designs` (založenie návrhu patrí obchodnému toku) |
 | `DesignsWrite` | Admin, Designer | `POST /api/designs/{id}/site-survey`, `POST /api/designs/{id}/mark-infeasible`, `PUT /api/designs/{id}/parameters`, `POST /api/designs/{id}/configuration/preview`, `POST /api/designs/{id}/versions` |
+| `DesignsApprove` | Admin, Sales | `POST /api/designs/{id}/approve`, `POST /api/designs/{id}/rework` |
 | `InstallationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations`, `GET /api/installations/{id}`, `GET /api/installations/{installationId}/devices…` (všetky GET vetvy) |
 | `InstallationsPlan` | Admin, Sales, Designer, Operator | `POST /api/installations`, `PUT /api/installations/{id}`, `PUT /api/installations/{id}/schedule`, `PUT /api/installations/{id}/technicians` |
 | `InstallationsField` | Admin, Designer, Technician, Operator | `POST /api/installations/{id}/transitions`, `POST /api/installations/{installationId}/devices`, `POST /api/installations/{installationId}/devices/{deviceId}/replace` |
 | `ConnectionRequestsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/connection-requests`, `GET /api/connection-requests/{id}`, `GET /api/connection-requests/{id}/attachments/{attachmentId}` |
 | `ConnectionRequestsWrite` | Admin, Sales, Operator | `POST /api/connection-requests`, `PUT /api/connection-requests/{id}` |
+| `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
+| `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
+| `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
 
 `Customer` je v `InstallationsRead` a `ConnectionRequestsRead`, ale vidí **len vlastné záznamy**:
 obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná politika. Politika rozhoduje,
 či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti.
+
+### Zariadenia (API kľúč)
+
+`POST /api/telemetry` nepoužíva rolu, ale API kľúč inštalácie v hlavičke `X-Api-Key` (#96). Politika `DeviceIngest` je preto mimo matice rolí a test ju výslovne vynecháva. Kľúč platí len pre svoju inštaláciu (iná dáva `403`), chýbajúci alebo zrušený kľúč dáva `401`.
 
 ## Ako pridať alebo zmeniť endpoint
 

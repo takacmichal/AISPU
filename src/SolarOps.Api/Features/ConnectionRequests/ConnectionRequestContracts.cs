@@ -92,6 +92,38 @@ public sealed record UpdateConnectionRequestRequest : IValidatableObject
     }
 }
 
+/// <summary>Answer of the (simulated) distributor to a submitted request.</summary>
+public enum DistributorDecision
+{
+    /// <summary>Approved: a contract is offered (state ContractOffered).</summary>
+    Approve,
+
+    /// <summary>The request must be completed (state InfoRequested); a note is required.</summary>
+    RequestInfo,
+
+    /// <summary>The request is refused (state Rejected); a note with the reason is required.</summary>
+    Reject,
+}
+
+/// <summary>Payload of the distributor simulator: the decision and, for <c>RequestInfo</c> and <c>Reject</c>, a note.</summary>
+public sealed record DistributorDecisionRequest : IValidatableObject
+{
+    [Required]
+    public DistributorDecision? Decision { get; init; }
+
+    /// <summary>What is missing or why the request was refused; required for <c>RequestInfo</c> and <c>Reject</c>.</summary>
+    [MaxLength(ConnectionRequest.DecisionNoteMaxLength)]
+    public string? Note { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Decision is DistributorDecision.RequestInfo or DistributorDecision.Reject && string.IsNullOrWhiteSpace(Note))
+        {
+            yield return new ValidationResult($"The Note field is required for the decision {Decision}.", [nameof(Note)]);
+        }
+    }
+}
+
 internal static class ConnectionRequestValidation
 {
     internal static IEnumerable<ValidationResult> ValidateContent(
@@ -217,7 +249,10 @@ public sealed record AttachmentResponse(
         $"/api/connection-requests/{requestId}/attachments/{attachmentId}";
 }
 
-/// <summary>Connection request with its attachments.</summary>
+/// <summary>
+/// Connection request with its attachments and deadline. <c>ProposalRemainingDays</c> (calendar days, negative when late) and
+/// <c>ProposalOverdue</c> are set only while the request waits for the distributor (state <c>Submitted</c>).
+/// </summary>
 public sealed record ConnectionRequestResponse(
     Guid Id,
     Guid InstallationId,
@@ -230,21 +265,36 @@ public sealed record ConnectionRequestResponse(
     ConnectionRequestState State,
     IReadOnlyList<AttachmentResponse> Attachments,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? SubmittedAt,
+    DateOnly? ProposalDueDate,
+    int? ProposalRemainingDays,
+    bool ProposalOverdue,
+    DateTimeOffset? DecidedAt,
+    string? DecisionNote,
+    DateTimeOffset? ConditionsReviewedAt,
+    DateTimeOffset? ContractSentAt)
 {
-    internal static ConnectionRequestResponse From(ConnectionRequest x) => From(
+    internal static ConnectionRequestResponse From(ConnectionRequest x, DateOnly today) => From(
         x,
         x.Attachments
             .OrderBy(a => a.CreatedAt).ThenBy(a => a.Id)
             .Select(a => AttachmentResponse.From(x.Id, a))
-            .ToList());
+            .ToList(),
+        today);
 
     internal static ConnectionRequestResponse From(
         ConnectionRequest x,
-        IReadOnlyList<AttachmentResponse> attachments) => new(
-        x.Id, x.InstallationId, x.CustomerId, x.SupplyPointId, x.EicCode, x.RatedAcPowerKw, x.MainBreakerAmps, x.Type, x.State,
-        attachments,
-        x.CreatedAt, x.UpdatedAt);
+        IReadOnlyList<AttachmentResponse> attachments,
+        DateOnly today)
+    {
+        var deadline = ConnectionRequestDeadlines.Evaluate(x.State, x.ProposalDueDate, today);
+        return new(
+            x.Id, x.InstallationId, x.CustomerId, x.SupplyPointId, x.EicCode, x.RatedAcPowerKw, x.MainBreakerAmps, x.Type, x.State,
+            attachments,
+            x.CreatedAt, x.UpdatedAt,
+            x.SubmittedAt, x.ProposalDueDate, deadline.RemainingDays, deadline.IsOverdue, x.DecidedAt, x.DecisionNote, x.ConditionsReviewedAt, x.ContractSentAt);
+    }
 }
 
 /// <summary>File returned by the attachment download endpoint.</summary>

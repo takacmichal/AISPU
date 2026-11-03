@@ -29,6 +29,9 @@ public static class AuthorizationPolicies
     public const string DesignsRead = "DesignsRead";
     public const string DesignsWrite = "DesignsWrite";
 
+    /// <summary>Deciding whether a design suits (BPMN lane Obchod, ADR #207: Sales approves and sends back) (#78).</summary>
+    public const string DesignsApprove = "DesignsApprove";
+
     public const string InstallationsRead = "InstallationsRead";
 
     /// <summary>Planning an installation: create, edit, schedule (BPMN lane Obchod/Operátor).</summary>
@@ -39,6 +42,15 @@ public static class AuthorizationPolicies
 
     public const string ConnectionRequestsRead = "ConnectionRequestsRead";
     public const string ConnectionRequestsWrite = "ConnectionRequestsWrite";
+
+    /// <summary>Submitting to the distributor, reviewing its conditions, submitting the signed contract (BPMN lane Projektant, #86).</summary>
+    public const string ConnectionRequestsSubmit = "ConnectionRequestsSubmit";
+
+    /// <summary>Back-office steps: resubmit, send the contract, record the customer signature (lane Obchod/Operátor; ADR #207 gives Sales T and Designer RWT).</summary>
+    public const string ConnectionRequestsProcess = "ConnectionRequestsProcess";
+
+    /// <summary>The simulated distributor is operated by the back office or an admin (BPMN lane Distribučka is an external party, #87).</summary>
+    public const string ConnectionRequestsSimulate = "ConnectionRequestsSimulate";
 
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
@@ -63,6 +75,7 @@ public static class AuthorizationPolicies
 
             [DesignsRead] = [Roles.Admin, Roles.Sales, Roles.Designer],
             [DesignsWrite] = [Roles.Admin, Roles.Designer],
+            [DesignsApprove] = [Roles.Admin, Roles.Sales],
 
             [InstallationsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
             [InstallationsPlan] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
@@ -70,6 +83,9 @@ public static class AuthorizationPolicies
 
             [ConnectionRequestsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
             [ConnectionRequestsWrite] = [Roles.Admin, Roles.Operator, Roles.Sales],
+            [ConnectionRequestsSubmit] = [Roles.Admin, Roles.Designer],
+            [ConnectionRequestsProcess] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
+            [ConnectionRequestsSimulate] = [Roles.Admin, Roles.Operator],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>

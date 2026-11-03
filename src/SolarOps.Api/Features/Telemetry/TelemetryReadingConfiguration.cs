@@ -3,33 +3,38 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace SolarOps.Api.Features.Telemetry;
 
+/// <summary>
+/// Table <c>telemetry_readings</c> (ADR #220). Column names are set explicitly because the ingest service
+/// inserts with raw SQL and must match them.
+/// </summary>
 internal sealed class TelemetryReadingConfiguration : IEntityTypeConfiguration<TelemetryReading>
 {
-    public const string InstallationTimeIndexName = "ix_telemetry_readings_installation_id_ts";
-    public const string TimeBrinIndexName = "ix_telemetry_readings_ts_brin";
+    public const string TimestampIndexName = "ix_telemetry_readings_ts_brin";
 
     public void Configure(EntityTypeBuilder<TelemetryReading> builder)
     {
         builder.ToTable("telemetry_readings");
-
-        // (device_id, ts) is the idempotency key of the telemetry contract (ADR-185) and the primary key (ADR-220),
-        // so a duplicate sample cannot be stored twice.
+        // The primary key is the idempotency key (deviceId, timestamp) and stays compatible with partitioning by ts.
         builder.HasKey(x => new { x.DeviceId, x.Timestamp });
-        builder.Property(x => x.DeviceId).ValueGeneratedNever();
-        builder.Property(x => x.Timestamp).HasColumnName("ts").ValueGeneratedNever();
 
-        builder.Property(x => x.IntervalSeconds).HasDefaultValue(TelemetryReading.DefaultIntervalSeconds);
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(x => x.DeviceId).HasColumnName("device_id");
+        builder.Property(x => x.Timestamp).HasColumnName("ts").HasColumnType("timestamp with time zone");
+        builder.Property(x => x.IntervalSec).HasColumnName("interval_sec");
+        builder.Property(x => x.Status).HasColumnName("status").HasConversion<short>();
+        builder.Property(x => x.VendorStatusCode).HasColumnName("vendor_status_code");
+        builder.Property(x => x.EventsJson).HasColumnName("events").HasColumnType("jsonb");
+        builder.Property(x => x.AcPowerW).HasColumnName("ac_power_w");
+        builder.Property(x => x.DcPowerW).HasColumnName("dc_power_w");
+        builder.Property(x => x.VoltageV).HasColumnName("voltage_v");
+        builder.Property(x => x.CurrentA).HasColumnName("current_a");
+        builder.Property(x => x.FrequencyHz).HasColumnName("frequency_hz");
+        builder.Property(x => x.TemperatureC).HasColumnName("temperature_c");
+        builder.Property(x => x.DayWh).HasColumnName("day_wh");
+        builder.Property(x => x.TotalWh).HasColumnName("total_wh");
+        builder.Property(x => x.StringsJson).HasColumnName("strings").HasColumnType("jsonb");
+        builder.Property(x => x.Source).HasColumnName("source").HasMaxLength(16).IsRequired();
+        builder.Property(x => x.ReceivedAt).HasColumnName("received_at").HasColumnType("timestamp with time zone");
 
-        // Per-installation range queries (e.g. the last 30 days of one installation) use this index directly.
-        // ac_power_w is included so the usual chart query is answered by an index-only scan.
-        builder.HasIndex(x => new { x.InstallationId, x.Timestamp })
-            .IncludeProperties(x => x.AcPowerW)
-            .HasDatabaseName(InstallationTimeIndexName);
-
-        // BRIN is cheap for append-only time-series data and accelerates long time ranges (ADR-220).
-        builder.HasIndex(x => x.Timestamp)
-            .HasMethod("brin")
-            .HasDatabaseName(TimeBrinIndexName);
+        builder.HasIndex(x => x.Timestamp).HasMethod("brin").HasDatabaseName(TimestampIndexName);
     }
 }

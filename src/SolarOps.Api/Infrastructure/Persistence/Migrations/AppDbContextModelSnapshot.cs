@@ -314,6 +314,14 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("ConditionsReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("conditions_reviewed_at");
+
+                    b.Property<DateTimeOffset?>("ContractSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("contract_sent_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -325,6 +333,15 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid")
                         .HasColumnName("customer_id");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("decision_note");
 
                     b.Property<string>("EicCode")
                         .IsRequired()
@@ -340,6 +357,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("main_breaker_amps");
 
+                    b.Property<DateOnly?>("ProposalDueDate")
+                        .HasColumnType("date")
+                        .HasColumnName("proposal_due_date");
+
                     b.Property<decimal>("RatedAcPowerKw")
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)")
@@ -350,6 +371,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("state");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
 
                     b.Property<Guid>("SupplyPointId")
                         .HasColumnType("uuid")
@@ -749,6 +774,49 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.DeviceKeys.DeviceApiKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key_hash");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid?>("RevokedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revoked_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_device_api_keys");
+
+                    b.HasIndex("InstallationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_device_api_keys_active_installation")
+                        .HasFilter("revoked_at IS NULL");
+
+                    b.ToTable("device_api_keys", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.FveDesigns.FveDesign", b =>
                 {
                     b.Property<Guid>("Id")
@@ -758,6 +826,18 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.Property<double?>("AnnualConsumptionKwh")
                         .HasColumnType("double precision")
                         .HasColumnName("annual_consumption_kwh");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by");
+
+                    b.Property<int?>("ApprovedVersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("approved_version_number");
 
                     b.Property<string>("ConsumptionProfile")
                         .HasMaxLength(32)
@@ -793,6 +873,19 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("request_notes");
+
+                    b.Property<DateTimeOffset?>("ReworkAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rework_at");
+
+                    b.Property<Guid?>("ReworkBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rework_by");
+
+                    b.Property<string>("ReworkReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("rework_reason");
 
                     b.Property<DateTimeOffset?>("SiteSurveyAt")
                         .HasColumnType("timestamp with time zone")
@@ -1108,6 +1201,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(16)")
                         .HasColumnName("status");
 
+                    b.Property<Guid?>("StringId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("string_id");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1124,6 +1221,9 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("SerialNumber")
                         .IsUnique()
                         .HasDatabaseName("ux_installation_devices_serial_number");
+
+                    b.HasIndex("StringId")
+                        .HasDatabaseName("ix_installation_devices_string_id");
 
                     b.HasIndex("InstallationId", "Status")
                         .HasDatabaseName("ix_installation_devices_installation_id_status");
@@ -1174,6 +1274,43 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("installation_state_changes", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.PanelString", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<int?>("MpptInput")
+                        .HasColumnType("integer")
+                        .HasColumnName("mppt_input");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_panel_strings");
+
+                    b.HasIndex("InstallationId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ux_panel_strings_installation_id_number");
+
+                    b.ToTable("panel_strings", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Quotes.Quote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1192,10 +1329,22 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("customer_id");
 
+                    b.Property<Guid?>("DesignId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("design_id");
+
+                    b.Property<int?>("DesignVersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("design_version_number");
+
                     b.Property<decimal>("GrossTotal")
                         .HasPrecision(16, 2)
                         .HasColumnType("numeric(16,2)")
                         .HasColumnName("gross_total");
+
+                    b.Property<bool>("NeedsRecalculation")
+                        .HasColumnType("boolean")
+                        .HasColumnName("needs_recalculation");
 
                     b.Property<decimal>("NetTotal")
                         .HasPrecision(16, 2)
@@ -1206,6 +1355,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("note");
+
+                    b.Property<DateTimeOffset?>("RecalculationRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recalculation_requested_at");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1236,6 +1389,9 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("ix_quotes_customer_id");
+
+                    b.HasIndex("DesignId")
+                        .HasDatabaseName("ix_quotes_design_id");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_quotes_status");
@@ -1402,21 +1558,17 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("device_id");
 
-                    b.Property<DateTimeOffset>("Timestamp")
+                    b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ts");
 
-                    b.Property<float?>("AcCurrentA")
-                        .HasColumnType("real")
-                        .HasColumnName("ac_current_a");
-
-                    b.Property<float?>("AcPowerW")
+                    b.Property<float>("AcPowerW")
                         .HasColumnType("real")
                         .HasColumnName("ac_power_w");
 
-                    b.Property<float?>("AcVoltageV")
+                    b.Property<float?>("CurrentA")
                         .HasColumnType("real")
-                        .HasColumnName("ac_voltage_v");
+                        .HasColumnName("current_a");
 
                     b.Property<double?>("DayWh")
                         .HasColumnType("double precision")
@@ -1426,45 +1578,52 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("real")
                         .HasColumnName("dc_power_w");
 
-                    b.Property<int>("ErrorCode")
-                        .HasColumnType("integer")
-                        .HasColumnName("error_code");
+                    b.Property<string>("EventsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("events");
 
                     b.Property<float?>("FrequencyHz")
                         .HasColumnType("real")
                         .HasColumnName("frequency_hz");
 
-                    b.Property<Guid>("InstallationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("installation_id");
+                    b.Property<int>("IntervalSec")
+                        .HasColumnType("integer")
+                        .HasColumnName("interval_sec");
 
-                    b.Property<short>("IntervalSeconds")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasDefaultValue((short)300)
-                        .HasColumnName("interval_seconds");
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
 
-                    b.Property<Guid>("MessageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("message_id");
-
-                    b.Property<float?>("PowerFactor")
-                        .HasColumnType("real")
-                        .HasColumnName("power_factor");
-
-                    b.Property<string>("Status")
+                    b.Property<string>("Source")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("source");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint")
                         .HasColumnName("status");
+
+                    b.Property<string>("StringsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("strings");
 
                     b.Property<float?>("TemperatureC")
                         .HasColumnType("real")
                         .HasColumnName("temperature_c");
 
-                    b.Property<double?>("TotalWh")
+                    b.Property<double>("TotalWh")
                         .HasColumnType("double precision")
                         .HasColumnName("total_wh");
+
+                    b.Property<int?>("VendorStatusCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("vendor_status_code");
+
+                    b.Property<float?>("VoltageV")
+                        .HasColumnType("real")
+                        .HasColumnName("voltage_v");
 
                     b.HasKey("DeviceId", "Timestamp")
                         .HasName("pk_telemetry_readings");
@@ -1473,11 +1632,6 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_telemetry_readings_ts_brin");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Timestamp"), "brin");
-
-                    b.HasIndex("InstallationId", "Timestamp")
-                        .HasDatabaseName("ix_telemetry_readings_installation_id_ts");
-
-                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("InstallationId", "Timestamp"), new[] { "AcPowerW" });
 
                     b.ToTable("telemetry_readings", (string)null);
                 });
@@ -1711,6 +1865,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.DeviceKeys.DeviceApiKey", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_device_api_keys_installation_installation_id");
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.FveDesigns.FveDesign", b =>
                 {
                     b.OwnsMany("SolarOps.Api.Features.FveDesigns.RoofPlane", "RoofPlanes", b1 =>
@@ -1768,6 +1932,12 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_installation_devices_installations_installation_id");
+
+                    b.HasOne("SolarOps.Api.Features.Installations.PanelString", null)
+                        .WithMany()
+                        .HasForeignKey("StringId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_installation_devices_panel_string_string_id");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationStateChange", b =>
@@ -1778,6 +1948,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_installation_state_changes_installations_installation_id");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.PanelString", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_panel_strings_installations_installation_id");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Quotes.QuoteLine", b =>
