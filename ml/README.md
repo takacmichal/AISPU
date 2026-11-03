@@ -103,3 +103,52 @@ Vyhodnotenie na simulovaných poruchách (40 scenárov, seed 42, optimistická h
 cd ml
 uv run python -m solarops_ml.detection --seed 42 --scenarios 40 --days 14
 ```
+
+## Predikcia výroby: tréning a servovanie (#30 a #31, stories #106 až #109)
+
+Balík `solarops_ml.prediction`. Podľa ADR #191 je MVP **fyzikálny model** (PVWatts-like, NOCT teplota bunky, AC clipping). Tréning kalibruje dva parametre (`loss_factor`, `gamma_per_k`) metódou najmenších štvorcov v čistom numpy, takže servis nepotrebuje LightGBM ani scikit-learn. Súbor modelu je JSON, nie pickle. LightGBM je voliteľný challenger (`--challenger`, `uv sync --group experiment`) a nasadí sa len po schválení tímu.
+
+### Príznaky (#106)
+
+Jedna funkcia `build_features` slúži tréningu aj API (žiadny train/serve skew). Hodina je označená **začiatkom** (`hour_start_utc`, ADR #189); poloha slnka sa počíta v strede hodiny. Zoznam príznakov, jednotky a pravidlá sú v docstringu `solarops_ml/prediction/features.py`. Bez úniku dát: riadok používa len počasie tej istej hodiny a statické metadáta (žiadne lagy výroby, žiadna telemetrická `temperature_c`; test mení budúce riadky a kontroluje, že minulé príznaky ostanú rovnaké).
+
+### Tréning (#107, #108)
+
+```bash
+cd ml
+# offline na simulátore (#94), reprodukovateľné cez --seed
+uv run python -m solarops_ml.prediction train --synthetic --start 2023-01-01 --end 2025-01-01 --seed 42
+uv run python -m solarops_ml.prediction list           # verzie, * = aktuálna
+uv run python -m solarops_ml.prediction use <verzia>   # rollback
+```
+
+Porovnáva sa `persistence`, `physical`, `physical_calibrated` (a `lightgbm` s `--challenger`) na **rovnakom** časovom delení (posledných `--test-days` testovacích, `--gap-days` medzera) a rovnakých riadkoch (denné hodiny, ADR #193); metriky MAE, RMSE, nMAE, wMAPE, R² sú mediánom po poliach. Výber a odôvodnenie (vrátane brány ADR #191: skill ≥ 0,20 a nMAE ≤ 6 %) sa uložia do metadát.
+
+Artefakt: `ml/data/models/<YYYYMMDD>-<model>-<hash dát 8>/` (v `.gitignore`; zmena cez `SOLAROPS_MODEL_DIR`) s `model.json`, `metadata.json` (verzia, seed, SHA-256 dát, delenie, metriky, výber, verzie python/numpy/pandas) a `metrics.md`. `current.json` ukazuje na verziu, ktorú servis používa.
+
+### Tréning na reálnych dátach (DKASC + Open-Meteo)
+
+Stĺpce CSV z DKASC nie sú v ADR overené, preto sa očakávajú tri vlastné súbory, ktoré pripraví ETL:
+
+1. **výroba** (`.csv`/`.parquet`): `hour_start_utc, array_id, power_w`. Hodinový priemer AC výkonu v W, hodina označená začiatkom v UTC (`Australia/Darwin` = UTC+9:30, lokálna polnoc = 14:30 UTC), prázdne pri menej než 9 z 12 vzoriek (ADR #183).
+2. **polia** (`.csv`): `array_id, tilt, azimuth, capacity_kwp[, dc_ac_ratio]` (azimut 0 = juh, 180 = sever).
+3. **počasie**: `solarops-weather-2` z `python -m solarops_ml.weather fetch` (Historical Forecast). Čas koncový sa pri načítaní posúva o -1 h.
+
+```bash
+uv run python -m solarops_ml.weather fetch --lat -23.76 --lon 133.87 --start 2023-01-01 --end 2024-12-31 --out data/weather/alice.parquet
+uv run python -m solarops_ml.prediction build-table --production data/dkasc/hourly.csv --weather data/weather/alice.parquet \
+    --arrays data/dkasc/arrays.csv --lat -23.76 --lon 133.87 --out data/train/table.parquet
+uv run python -m solarops_ml.prediction train --table data/train/table.parquet --seed 42
+```
+
+GTI z počasia sa pri `build-table` predvolene ignoruje (platí len pre jednu rovinu); použije sa transpozícia GHI/DNI/DHI na sklon a azimut poľa (`--poa-source auto` použije GTI zo súboru). Výsledok na syntetických dátach je dôkaz pipeline, nie presnosti (ADR #191).
+
+### Služba (#109)
+
+`uv run uvicorn solarops_ml.api:app --port 8000`, dokumentácia na `/docs` a `/openapi.json`.
+
+- `GET /health` -> `{"status":"ok","version":"0.1.0","modelVersion":"..."}` (503 `status: unavailable`, ak nastavený artefakt nejde načítať).
+- `POST /predict` (rovnaký handler aj na `/v1/predictions/production`, ADR #196). Požiadavka podľa ADR #196: `plant` (`latitude`, `longitude`, `dcCapacityKw`, `tiltDeg`, `azimuthDeg` s 0 = juh, voliteľne `dcAcRatio`, predvolene 1,2) a `weather` (1 až 168 hodín: `timestamp` = začiatok hodiny v UTC, `ghiWm2`+`dniWm2`+`dhiWm2` alebo `gtiWm2`, `temperatureC`, voliteľne `cloudCoverPct`, `windSpeedMs`). Odpoveď: `modelVersion`, `generatedAt`, `predictions[{timestamp, expectedPowerW, expectedEnergyWh}]`.
+- Chyby sú `application/problem+json` s `traceId`: 422 pri neplatnom vstupe, 503 pri nenačítanom modeli.
+
+Bez uloženého modelu beží nekalibrovaný fyzikálny baseline (verzia `physical-baseline-<verzia kódu>`).
