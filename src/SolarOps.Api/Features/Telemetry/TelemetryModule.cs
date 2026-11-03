@@ -5,16 +5,6 @@ using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Telemetry;
 
-/// <summary>Role sets of the Telemetry module.</summary>
-public static class TelemetryRoles
-{
-    /// <summary>
-    /// Interim access to the ingest until devices authenticate with API keys (#96); the simulator and gateways
-    /// are not users. Replaced by the device key scheme in #96.
-    /// </summary>
-    public static readonly string[] Ingest = [Roles.Admin, Roles.Operator];
-}
-
 /// <summary>Telemetry ingest (#95): inverters (or the simulator) send batches of measurements.</summary>
 public sealed class TelemetryModule : IModule
 {
@@ -35,7 +25,7 @@ public sealed class TelemetryModule : IModule
                 "already stored readings are ignored and counted in 'duplicates'. 404 for an unknown installation.")
             .WithValidation<TelemetryBatchRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(TelemetryRoles.Ingest));
+            .RequireAuthorization(AuthorizationPolicies.TelemetryIngest);
     }
 
     internal static async Task<Accepted<TelemetryIngestResponse>> Ingest(

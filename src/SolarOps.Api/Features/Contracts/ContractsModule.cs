@@ -66,7 +66,7 @@ public sealed class ContractsModule : IModule
             .WithDescription("Parties, items and totals of the contract; Slovak, A4. Generated from the current data on each call, nothing is stored.")
             .Produces(StatusCodes.Status200OK, contentType: "application/pdf")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(ReadRoles));
+            .RequireAuthorization(AuthorizationPolicies.ContractsRead);
 
         group.MapGet("/", ListAsync)
             .WithName("ListContracts")

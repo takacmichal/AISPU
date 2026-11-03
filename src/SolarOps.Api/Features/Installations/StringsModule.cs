@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
 
@@ -21,13 +22,13 @@ public sealed class StringsModule : IModule
             .WithSummary("Panel layout: strings with panels and their summed power")
             .WithDescription("Strings ordered by number, each with its installed panels and the sum of their rated power (computed on read), plus installed panels not yet assigned to any string.")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapGet("/{stringId:guid}", Get)
             .WithName("GetInstallationString")
             .WithSummary("Get a string with its panels")
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Read));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapPost("/", Create)
             .WithName("CreateInstallationString")
@@ -36,7 +37,7 @@ public sealed class StringsModule : IModule
             .WithValidation<CreateStringRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
 
         group.MapPut("/{stringId:guid}", Update)
             .WithName("UpdateInstallationString")
@@ -44,7 +45,7 @@ public sealed class StringsModule : IModule
             .WithValidation<UpdateStringRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
 
         group.MapDelete("/{stringId:guid}", Delete)
             .WithName("DeleteInstallationString")
@@ -52,7 +53,7 @@ public sealed class StringsModule : IModule
             .WithDescription("409 when the string still has panels.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
 
         group.MapPut("/{stringId:guid}/panels/{deviceId:guid}", AssignPanel)
             .WithName("AssignPanelToString")
@@ -60,14 +61,14 @@ public sealed class StringsModule : IModule
             .WithDescription("A panel belongs to exactly one string. 409 for a replaced device or a device that is not a panel.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
 
         group.MapDelete("/{stringId:guid}/panels/{deviceId:guid}", UnassignPanel)
             .WithName("RemovePanelFromString")
             .WithSummary("Take a panel out of the string")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .RequireAuthorization(p => p.RequireRole(InstallationRoles.Field));
+            .RequireAuthorization(AuthorizationPolicies.InstallationsField);
     }
 
     internal static async Task<Ok<StringLayoutResponse>> Layout(Guid installationId, IStringService service, CancellationToken ct) =>
