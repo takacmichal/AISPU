@@ -14,6 +14,7 @@ internal sealed class ConnectionRequestConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.RatedAcPowerKw).HasPrecision(10, 3);
         builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
         builder.Property(x => x.State).HasConversion<string>().HasMaxLength(32);
+        builder.Property(x => x.DecisionNote).HasMaxLength(ConnectionRequest.DecisionNoteMaxLength);
 
         // Optimistic concurrency, so two edits cannot overwrite each other.
         builder.Property<uint>("xmin").IsRowVersion();

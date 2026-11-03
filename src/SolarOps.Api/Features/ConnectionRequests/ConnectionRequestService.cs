@@ -15,9 +15,27 @@ public interface IConnectionRequestService
     Task<ConnectionRequestResponse> GetAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<ConnectionRequestResponse>> ListAsync(
-        Guid? installationId, Guid? customerId, ConnectionRequestState? state, CancellationToken ct);
+        Guid? installationId, Guid? customerId, ConnectionRequestState? state, bool? overdue, CancellationToken ct);
 
     Task<ConnectionRequestResponse> UpdateAsync(Guid id, UpdateConnectionRequestRequest request, CancellationToken ct);
+
+    /// <summary>Draft to Submitted; starts the proposal deadline.</summary>
+    Task<ConnectionRequestResponse> SubmitAsync(Guid id, CancellationToken ct);
+
+    /// <summary>InfoRequested to Submitted after the request was completed; restarts the deadline.</summary>
+    Task<ConnectionRequestResponse> ResubmitAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Checks the technical conditions of the offered contract (stays in ContractOffered).</summary>
+    Task<ConnectionRequestResponse> ReviewConditionsAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Sends the offered contract to the customer (stays in ContractOffered).</summary>
+    Task<ConnectionRequestResponse> SendContractAsync(Guid id, CancellationToken ct);
+
+    /// <summary>ContractOffered to ContractSigned.</summary>
+    Task<ConnectionRequestResponse> CustomerSignedAsync(Guid id, CancellationToken ct);
+
+    /// <summary>ContractSigned to ContractSubmitted.</summary>
+    Task<ConnectionRequestResponse> SubmitSignedContractAsync(Guid id, CancellationToken ct);
 
     Task<ConnectionAttachmentFile> DownloadAttachmentAsync(Guid id, Guid attachmentId, CancellationToken ct);
 }
@@ -55,7 +73,7 @@ internal sealed class ConnectionRequestService(
 
         db.Add(connectionRequest);
         await db.SaveChangesAsync(ct);
-        return ConnectionRequestResponse.From(connectionRequest);
+        return ConnectionRequestResponse.From(connectionRequest, Today());
     }
 
     public async Task<ConnectionRequestResponse> GetAsync(Guid id, CancellationToken ct)
@@ -66,11 +84,11 @@ internal sealed class ConnectionRequestService(
             ?? throw new NotFoundException("Connection request", id);
 
         var attachments = await LoadAttachmentMetadataAsync([id], ct);
-        return ConnectionRequestResponse.From(connectionRequest, attachments.GetValueOrDefault(id, []));
+        return ConnectionRequestResponse.From(connectionRequest, attachments.GetValueOrDefault(id, []), Today());
     }
 
     public async Task<IReadOnlyList<ConnectionRequestResponse>> ListAsync(
-        Guid? installationId, Guid? customerId, ConnectionRequestState? state, CancellationToken ct)
+        Guid? installationId, Guid? customerId, ConnectionRequestState? state, bool? overdue, CancellationToken ct)
     {
         var scope = await customerScope.GetAsync(ct);
         var query = Visible(scope).AsNoTracking();
@@ -90,6 +108,14 @@ internal sealed class ConnectionRequestService(
             query = query.Where(x => x.State == s);
         }
 
+        if (overdue is { } wantOverdue)
+        {
+            var today = Today();
+            query = wantOverdue
+                ? query.Where(x => x.State == ConnectionRequestState.Submitted && x.ProposalDueDate < today)
+                : query.Where(x => x.State != ConnectionRequestState.Submitted || x.ProposalDueDate >= today);
+        }
+
         var requests = await query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).ToListAsync(ct);
         if (requests.Count == 0)
         {
@@ -98,7 +124,7 @@ internal sealed class ConnectionRequestService(
 
         var attachments = await LoadAttachmentMetadataAsync(requests.Select(x => x.Id).ToList(), ct);
         return requests
-            .Select(x => ConnectionRequestResponse.From(x, attachments.GetValueOrDefault(x.Id, [])))
+            .Select(x => ConnectionRequestResponse.From(x, attachments.GetValueOrDefault(x.Id, []), Today()))
             .ToList();
     }
 
@@ -117,6 +143,61 @@ internal sealed class ConnectionRequestService(
             ReadAttachments(request.Attachments!),
             time.GetUtcNow());
 
+        await SaveAsync(ct);
+        return ConnectionRequestResponse.From(connectionRequest, Today());
+    }
+
+    public async Task<ConnectionRequestResponse> SubmitAsync(Guid id, CancellationToken ct)
+    {
+        var connectionRequest = await LoadForTransitionAsync(id, ct);
+        var now = time.GetUtcNow();
+        connectionRequest.Submit(ProposalDueDate(connectionRequest, now), now);
+        await SaveAsync(ct);
+        return ConnectionRequestResponse.From(connectionRequest, Today());
+    }
+
+    public async Task<ConnectionRequestResponse> ResubmitAsync(Guid id, CancellationToken ct)
+    {
+        var connectionRequest = await LoadForTransitionAsync(id, ct);
+        var now = time.GetUtcNow();
+        connectionRequest.Resubmit(ProposalDueDate(connectionRequest, now), now);
+        await SaveAsync(ct);
+        return ConnectionRequestResponse.From(connectionRequest, Today());
+    }
+
+    public Task<ConnectionRequestResponse> ReviewConditionsAsync(Guid id, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) => request.ReviewConditions(now), ct);
+
+    public Task<ConnectionRequestResponse> SendContractAsync(Guid id, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) => request.SendContract(now), ct);
+
+    public Task<ConnectionRequestResponse> CustomerSignedAsync(Guid id, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) => request.CustomerSigned(now), ct);
+
+    public Task<ConnectionRequestResponse> SubmitSignedContractAsync(Guid id, CancellationToken ct) =>
+        TransitionAsync(id, (request, now) => request.SubmitSignedContract(now), ct);
+
+    private async Task<ConnectionRequestResponse> TransitionAsync(
+        Guid id, Action<ConnectionRequest, DateTimeOffset> transition, CancellationToken ct)
+    {
+        var connectionRequest = await LoadForTransitionAsync(id, ct);
+        transition(connectionRequest, time.GetUtcNow());
+        await SaveAsync(ct);
+        return ConnectionRequestResponse.From(connectionRequest, Today());
+    }
+
+    private DateOnly Today() => DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+
+    private DateOnly ProposalDueDate(ConnectionRequest request, DateTimeOffset now) =>
+        ConnectionRequestDeadlines.ProposalDueDate(request.Type, DateOnly.FromDateTime(now.UtcDateTime), options.Value);
+
+    private async Task<ConnectionRequest> LoadForTransitionAsync(Guid id, CancellationToken ct) =>
+        await db.Set<ConnectionRequest>().Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+        ?? throw new NotFoundException("Connection request", id);
+
+    private async Task SaveAsync(CancellationToken ct)
+    {
         try
         {
             await db.SaveChangesAsync(ct);
@@ -125,8 +206,6 @@ internal sealed class ConnectionRequestService(
         {
             throw new DomainException("The connection request was changed by another request. Reload it and try again.");
         }
-
-        return ConnectionRequestResponse.From(connectionRequest);
     }
 
     public async Task<ConnectionAttachmentFile> DownloadAttachmentAsync(Guid id, Guid attachmentId, CancellationToken ct)

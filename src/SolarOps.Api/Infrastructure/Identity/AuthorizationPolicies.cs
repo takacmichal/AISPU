@@ -43,6 +43,12 @@ public static class AuthorizationPolicies
     public const string ConnectionRequestsRead = "ConnectionRequestsRead";
     public const string ConnectionRequestsWrite = "ConnectionRequestsWrite";
 
+    /// <summary>Submitting to the distributor, reviewing its conditions, submitting the signed contract (BPMN lane Projektant, #86).</summary>
+    public const string ConnectionRequestsSubmit = "ConnectionRequestsSubmit";
+
+    /// <summary>Back-office steps: resubmit, send the contract, record the customer signature (lane Obchod/Operátor; ADR #207 gives Sales T and Designer RWT).</summary>
+    public const string ConnectionRequestsProcess = "ConnectionRequestsProcess";
+
     /// <summary>
     /// Interim access to the telemetry ingest (#95) until devices authenticate with API keys (#96); the simulator
     /// and gateways are not users.
@@ -80,6 +86,8 @@ public static class AuthorizationPolicies
 
             [ConnectionRequestsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
             [ConnectionRequestsWrite] = [Roles.Admin, Roles.Operator, Roles.Sales],
+            [ConnectionRequestsSubmit] = [Roles.Admin, Roles.Designer],
+            [ConnectionRequestsProcess] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
 
             [TelemetryIngest] = [Roles.Admin, Roles.Operator],
         };
