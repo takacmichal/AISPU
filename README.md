@@ -48,6 +48,8 @@ Connection string pre `dotnet run` je v `src/SolarOps.Api/appsettings.Developmen
 
 JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lokálny vývojový kľúč v `appsettings.Development.json`. Mimo Development ho nastav cez premennú `Jwt__SigningKey` (napr. `openssl rand -base64 48`), inak API nenaštartuje.
 
+Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier kľúč nepotrebuje; pri platenom pláne ho nastav cez `Weather__ApiKey` (v docker compose `WEATHER_API_KEY`), nikdy ho necommituj.
+
 ## Frontend: generovaný API klient
 
 Typy API sa generujú z OpenAPI (`frontend/openapi/openapi.json`) do `frontend/src/api/generated/` (negeneruj ručne, needituj). Typovaný klient je `api` v `frontend/src/api/client.ts`.
