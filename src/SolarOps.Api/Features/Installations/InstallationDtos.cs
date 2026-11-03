@@ -125,11 +125,17 @@ public sealed record InstallationResponse(
     IReadOnlyList<Guid> TechnicianIds,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset StateChangedAt)
+    DateTimeOffset StateChangedAt,
+    RevisionResult? LastRevisionResult,
+    DateOnly? LastRevisionValidUntil,
+    DateOnly? CommissionedOn,
+    bool MonitoringEnabled,
+    DateTimeOffset? MonitoringEnabledAt)
 {
     internal static InstallationResponse From(Installation x) => new(
         x.Id, x.CustomerId, x.ContractId, x.SupplyPointId, x.Name, x.PlannedPowerKwp, x.Note, x.State,
-        x.AllowedTransitions, x.ScheduledStart, x.ScheduledEnd, x.TechnicianIds, x.CreatedAt, x.UpdatedAt, x.StateChangedAt);
+        x.AllowedTransitions, x.ScheduledStart, x.ScheduledEnd, x.TechnicianIds, x.CreatedAt, x.UpdatedAt, x.StateChangedAt,
+        x.LastRevisionResult, x.LastRevisionValidUntil, x.CommissionedOn, x.MonitoringEnabled, x.MonitoringEnabledAt);
 }
 
 /// <summary>One entry of the installation state history.</summary>
@@ -160,4 +166,5 @@ public sealed record InstallationQuery(
     Guid? CustomerId,
     Guid? ContractId,
     Guid? SupplyPointId,
-    bool AssignedToMe);
+    bool AssignedToMe,
+    bool? MonitoringEnabled = null);

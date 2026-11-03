@@ -1,5 +1,5 @@
-# Installations (#82). Requires a JWT with role Admin/Operator/Sales/Designer (planning)
-# or Technician (state changes). Port matches launchSettings.json (http profile).
+# Installations (#82, #88-#93). Requires a JWT with role Admin/Operator/Sales/Designer (planning)
+# or Admin/Operator/Designer/Technician (field work: transitions, checklist, revision, commissioning). Port matches launchSettings.json (http profile).
 @baseUrl = http://localhost:5080
 @token = paste-access-token-here
 @installationId = 00000000-0000-0000-0000-000000000000
@@ -36,7 +36,15 @@ Content-Type: application/json
 
 { "name": "FVE Rodinný dom Nitra", "plannedPowerKwp": 10.2, "note": "Plechová strecha" }
 
-### Schedule mounting
+### Technicians that can be assigned (planners: Admin/Operator/Sales/Designer)
+GET {{baseUrl}}/api/installations/technicians
+Authorization: Bearer {{token}}
+
+### Plants in operation (monitoring, #92)
+GET {{baseUrl}}/api/installations?monitoringEnabled=true
+Authorization: Bearer {{token}}
+
+### Schedule mounting (#88: approved connection request required, no date in the past; #89: technician collision = 409)
 PUT {{baseUrl}}/api/installations/{{installationId}}/schedule
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -56,6 +64,65 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "targetState": "ComponentsOrdered", "note": "Objednané u dodávateľa" }
+
+### Assembly checklist (#90): template steps with state
+GET {{baseUrl}}/api/installations/{{installationId}}/checklist
+Authorization: Bearer {{token}}
+
+### Mark a checklist step done (only in state Mounting; MountingDone needs all required steps)
+PUT {{baseUrl}}/api/installations/{{installationId}}/checklist/MountingStructure
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "done": true, "note": "Konštrukcia K2, 12 háčikov" }
+
+### Record the revision report (#91, state Inspection). Passed -> InspectionPassed, Failed -> InspectionFailed (repairs)
+# contentBase64 is the file (PDF/PNG/JPEG, max 5 MB); this one is a tiny PDF stub.
+@reportId = 00000000-0000-0000-0000-000000000000
+POST {{baseUrl}}/api/installations/{{installationId}}/revision-reports
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "inspectedOn": "2026-11-03",
+  "inspectorName": "Ing. Ján Revízny",
+  "inspectorCertificateNumber": "REV-123/2026",
+  "result": "Passed",
+  "validUntil": "2030-11-03",
+  "fileName": "revizna-sprava.pdf",
+  "contentType": "application/pdf",
+  "contentBase64": "JVBERi0xLjQKJSVFT0YK"
+}
+
+### Revision reports (metadata)
+GET {{baseUrl}}/api/installations/{{installationId}}/revision-reports
+Authorization: Bearer {{token}}
+
+### Download the revision report file (recorded)
+GET {{baseUrl}}/api/installations/{{installationId}}/revision-reports/{{reportId}}/file
+Authorization: Bearer {{token}}
+
+### Commission with the acceptance protocol (#92): passed revision + approved connection request; turns monitoring on
+POST {{baseUrl}}/api/installations/{{installationId}}/commission
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "commissionedOn": "2026-11-03", "acceptedBy": "Peter Zákazník", "note": "Výroba overená" }
+
+### Hand over (#93): Commissioned -> HandedOver
+POST {{baseUrl}}/api/installations/{{installationId}}/transitions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "targetState": "HandedOver" }
+
+### Documentation package (from Commissioned on): revision, protocol, devices, download log
+GET {{baseUrl}}/api/installations/{{installationId}}/documentation
+Authorization: Bearer {{token}}
+
+### Hand-over protocol PDF with device list (recorded)
+GET {{baseUrl}}/api/installations/{{installationId}}/documentation/handover-protocol
+Authorization: Bearer {{token}}
 
 ### Devices (#83): register a panel (type Panel or Inverter; serial number is globally unique, case-insensitive)
 @deviceId = 00000000-0000-0000-0000-000000000000

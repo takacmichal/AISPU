@@ -21,9 +21,14 @@ public sealed class InstallationsModule : IModule
         group.MapGet("/", List)
             .WithName("ListInstallations")
             .WithSummary("List installations")
-            .WithDescription("Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician).")
+            .WithDescription("Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician), monitoringEnabled (plants in operation, #92).")
             .ProducesValidationProblem()
             .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
+
+        group.MapGet("/technicians", ListTechnicians)
+            .WithName("ListInstallationTechnicians")
+            .WithSummary("List users with role Technician that can be assigned to installations")
+            .RequireAuthorization(AuthorizationPolicies.InstallationsPlan);
 
         group.MapGet("/{id:guid}", Get)
             .WithName("GetInstallation")
@@ -49,6 +54,7 @@ public sealed class InstallationsModule : IModule
         group.MapPut("/{id:guid}/schedule", Schedule)
             .WithName("ScheduleInstallation")
             .WithSummary("Set the planned mounting window")
+            .WithDescription("Requires an approved connection request (409), dates must not be in the past (400) and assigned technicians must be free in the window (409).")
             .WithValidation<ScheduleInstallationRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -57,6 +63,7 @@ public sealed class InstallationsModule : IModule
         group.MapPut("/{id:guid}/technicians", AssignTechnicians)
             .WithName("AssignInstallationTechnicians")
             .WithSummary("Replace the assigned technicians (users with role Technician)")
+            .WithDescription("A technician already planned on another installation in an overlapping window gives 409.")
             .WithValidation<AssignTechniciansRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -65,7 +72,8 @@ public sealed class InstallationsModule : IModule
         group.MapPost("/{id:guid}/transitions", Transition)
             .WithName("TransitionInstallation")
             .WithSummary("Change the installation state")
-            .WithDescription("Only transitions listed in allowedTransitions are accepted, otherwise 409. Mounting requires a schedule and at least one technician.")
+            .WithDescription("Only transitions listed in allowedTransitions are accepted, otherwise 409. Mounting requires a schedule and at least one technician, "
+                + "MountingDone a complete checklist. InspectionPassed/InspectionFailed are set by a revision report and Commissioned by /commission.")
             .WithValidation<InstallationTransitionRequest>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -79,11 +87,15 @@ public sealed class InstallationsModule : IModule
         Guid? customerId = null,
         Guid? contractId = null,
         Guid? supplyPointId = null,
-        bool assignedToMe = false)
+        bool assignedToMe = false,
+        bool? monitoringEnabled = null)
     {
-        var query = new InstallationQuery(ParseState(state), customerId, contractId, supplyPointId, assignedToMe);
+        var query = new InstallationQuery(ParseState(state), customerId, contractId, supplyPointId, assignedToMe, monitoringEnabled);
         return TypedResults.Ok(await service.ListAsync(query, ct));
     }
+
+    internal static async Task<Ok<IReadOnlyList<TechnicianResponse>>> ListTechnicians(IInstallationService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ListTechniciansAsync(ct));
 
     internal static async Task<Ok<InstallationDetailResponse>> Get(Guid id, IInstallationService service, CancellationToken ct) =>
         TypedResults.Ok(await service.GetAsync(id, ct));
