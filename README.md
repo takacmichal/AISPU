@@ -74,6 +74,14 @@ cd ml && uv run ruff check . && uv run pytest
 
 CI (`.github/workflows/backend.yml`, `frontend.yml`, `ml.yml`) sa spúšťa podľa zmenených ciest na každom PR (aj na stacked PR) a na push do `main`.
 
+### Integračné testy API s databázou
+
+- `PostgresFixture` spustí počas testovacieho behu jeden PostgreSQL kontajner cez Testcontainers (vyžaduje Docker).
+- Každá `ApiFactory` dostane vlastnú databázu `test_<guid>` a schému vytvorenú aplikovaním EF migrácií, takže testy sa navzájom neovplyvňujú.
+- `TestAuthHandler` nahrádza JWT: `CreateApiClient(userId, Roles.Sales)` simuluje prihláseného používateľa, `CreateApiClient()` je anonymný.
+- CRUD scenáre sú v `Integration/<Modul>/`; `AuthorizationEndpointsTests` overuje, že každý endpoint má politiku a že anonymný volajúci dostane 401 a rola mimo matice 403.
+- Integračné testy bežia v CI workflow `backend.yml` na Docker runneri.
+
 ## Backend: modulový vzor (pre feature PR)
 
 API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Features/<Modul>/`. **Feature PR nemení `Program.cs`, `AppDbContext` ani CI.** Vzorový modul: `Features/System/SystemModule.cs`.
