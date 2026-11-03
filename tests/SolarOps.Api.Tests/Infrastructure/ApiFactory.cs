@@ -47,6 +47,8 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
         // UseSetting is applied before Program.cs reads configuration.
         builder.UseSetting("ConnectionStrings:Postgres", ConnectionString);
         builder.UseSetting("Jwt:SigningKey", TestJwtSigningKey);
+        // Integration tests must not call the external weather API from the hosted service.
+        builder.UseSetting("Weather:Enabled", "false");
 
         builder.ConfigureTestServices(services =>
         {

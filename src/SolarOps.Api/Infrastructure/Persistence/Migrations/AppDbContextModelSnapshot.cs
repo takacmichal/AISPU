@@ -1636,6 +1636,69 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("telemetry_readings", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Weather.WeatherForecast", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double?>("CloudCoverPercent")
+                        .HasColumnType("double precision")
+                        .HasColumnName("cloud_cover_percent");
+
+                    b.Property<double?>("DiffuseRadiationWm2")
+                        .HasColumnType("double precision")
+                        .HasColumnName("diffuse_radiation_wm2");
+
+                    b.Property<double?>("DirectNormalIrradianceWm2")
+                        .HasColumnType("double precision")
+                        .HasColumnName("direct_normal_irradiance_wm2");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<DateTime>("ForecastTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("forecast_time");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
+                    b.Property<double?>("ShortwaveRadiationWm2")
+                        .HasColumnType("double precision")
+                        .HasColumnName("shortwave_radiation_wm2");
+
+                    b.Property<double?>("TemperatureC")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temperature_c");
+
+                    b.Property<double?>("WindSpeedMs")
+                        .HasColumnType("double precision")
+                        .HasColumnName("wind_speed_ms");
+
+                    b.HasKey("Id")
+                        .HasName("pk_weather_forecasts");
+
+                    b.HasIndex("ForecastTime")
+                        .HasDatabaseName("ix_weather_forecasts_forecast_time");
+
+                    b.HasIndex("InstallationId", "ForecastTime")
+                        .IsUnique()
+                        .HasDatabaseName("ix_weather_forecasts_installation_id_forecast_time");
+
+                    b.ToTable("weather_forecasts", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Infrastructure.Identity.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
