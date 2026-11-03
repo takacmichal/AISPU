@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { AuthProvider } from './auth/AuthContext'
+import { ConfirmProvider } from './components/confirm'
+import { ToastProvider } from './components/toast'
 import { breadcrumbs, menuItems } from './auth/navigation'
 import type { Session } from './auth/session'
 
@@ -14,7 +16,11 @@ function renderAt(path: string, s: Session | null) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthProvider initialSession={s}>
-        <App />
+        <ToastProvider>
+          <ConfirmProvider>
+            <App />
+          </ConfirmProvider>
+        </ToastProvider>
       </AuthProvider>
     </MemoryRouter>,
   )

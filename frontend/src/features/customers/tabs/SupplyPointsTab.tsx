@@ -2,10 +2,13 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { api } from '../../../api/client'
 import type { components } from '../../../api/generated/schema'
 import { problemToApiError, type FieldErrors } from '../../../api/problem'
+import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { Dialog } from '../../../components/Dialog'
+import { EmptyState } from '../../../components/EmptyState'
 import { FormField } from '../../../components/forms'
 import { useToast } from '../../../components/toast'
 import { useFormSubmit } from '../../../components/useFormSubmit'
+import { Skeleton } from '../../../components/Skeleton'
 import { useLoad } from '../../../components/useLoad'
 import {
   emptySupplyPoint,
@@ -41,15 +44,20 @@ export default function SupplyPointsTab({ customerId }: { customerId: string }) 
   return (
     <div>
       <p>
-        <button type="button" onClick={() => setDialog({ kind: 'form' })}>
+        <button type="button" className="btn btn--primary" onClick={() => setDialog({ kind: 'form' })}>
           Pridať odberné miesto
         </button>
       </p>
-      {loading && <p role="status">Načítavam odberné miesta…</p>}
-      {error && <p role="alert">Odberné miesta sa nepodarilo načítať.</p>}
-      {data && data.length === 0 && <p>Zákazník zatiaľ nemá žiadne odberné miesto.</p>}
+      {loading && <Skeleton lines={3} label="Načítavam odberné miesta…" />}
+      {error && (
+        <p role="alert" className="alert">
+          Odberné miesta sa nepodarilo načítať.
+        </p>
+      )}
+      {data && data.length === 0 && <EmptyState title="Zákazník zatiaľ nemá žiadne odberné miesto." />}
       {data && data.length > 0 && (
-        <table>
+        <div className="data-table__scroll">
+<table>
           <thead>
             <tr>
               <th scope="col">Názov</th>
@@ -63,14 +71,14 @@ export default function SupplyPointsTab({ customerId }: { customerId: string }) 
             {data.map((sp) => (
               <tr key={sp.id}>
                 <td>{sp.name ?? '–'}</td>
-                <td>{sp.eicCode}</td>
+                <td className="mono">{sp.eicCode}</td>
                 <td>{`${sp.address.street}, ${sp.address.postalCode} ${sp.address.city}`}</td>
                 <td>{sp.mainBreakerAmps} A</td>
                 <td>
-                  <button type="button" onClick={() => setDialog({ kind: 'form', supplyPoint: sp })}>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog({ kind: 'form', supplyPoint: sp })}>
                     Upraviť
                   </button>{' '}
-                  <button type="button" onClick={() => setDialog({ kind: 'delete', supplyPoint: sp })}>
+                  <button type="button" className="btn btn--danger btn--sm" onClick={() => setDialog({ kind: 'delete', supplyPoint: sp })}>
                     Zmazať
                   </button>
                 </td>
@@ -78,6 +86,7 @@ export default function SupplyPointsTab({ customerId }: { customerId: string }) 
             ))}
           </tbody>
         </table>
+</div>
       )}
 
       {dialog?.kind === 'form' && (
@@ -159,13 +168,19 @@ function SupplyPointDialog({
         {field('postalCode', 'PSČ', 'address.postalCode')}
         {field('country', 'Krajina (kód)', 'address.country')}
         {field('mainBreakerAmps', 'Hlavný istič (A)', 'mainBreakerAmps', 'number')}
-        {formError && <p role="alert">{formError}</p>}
-        <button type="submit" disabled={busy}>
-          Uložiť
-        </button>{' '}
-        <button type="button" onClick={onClose}>
-          Zrušiť
-        </button>
+        {formError && (
+          <p role="alert" className="form-error">
+            {formError}
+          </p>
+        )}
+        <div className="dialog__actions">
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            Zrušiť
+          </button>
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            Uložiť
+          </button>
+        </div>
       </form>
     </Dialog>
   )
@@ -193,17 +208,19 @@ function DeleteDialog({
   const { busy, formError, submit } = useFormSubmit(remove)
 
   return (
-    <Dialog title="Zmazať odberné miesto" onClose={onClose}>
-      <p>
-        Naozaj chcete zmazať odberné miesto <strong>{supplyPoint.eicCode}</strong>?
-      </p>
-      {formError && <p role="alert">{formError}</p>}
-      <button type="button" disabled={busy} onClick={() => void submit()}>
-        Zmazať
-      </button>{' '}
-      <button type="button" onClick={onClose}>
-        Zrušiť
-      </button>
-    </Dialog>
+    <ConfirmDialog
+      title="Zmazať odberné miesto"
+      message={
+        <>
+          Naozaj chcete zmazať odberné miesto <strong>{supplyPoint.eicCode}</strong>?
+        </>
+      }
+      confirmLabel="Zmazať"
+      danger
+      busy={busy}
+      error={formError}
+      onConfirm={() => void submit()}
+      onCancel={onClose}
+    />
   )
 }

@@ -1,0 +1,77 @@
+.installations-filters {
+  align-items: flex-end;
+  margin-bottom: var(--spacing-16);
+}
+
+.installations-filters label {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 12rem;
+}
+
+.installations-filters .installations-filters__check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.installations-filters .installations-filters__check input {
+  width: auto;
+}
+
+.installation-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  align-items: center;
+  margin-bottom: var(--spacing-16);
+}
+
+.installation-header h2 {
+  margin: 0;
+}
+
+.installation-section {
+  margin-bottom: var(--spacing-24);
+}
+
+.installation-warning {
+  color: var(--color-mist);
+  border-left: 2px solid var(--color-coral-red);
+  padding-left: var(--spacing-12);
+  margin: var(--spacing-8) 0;
+}
+
+.technician-list {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-16);
+  padding: var(--spacing-12);
+}
+
+.technician-list label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  color: var(--color-mist);
+}
+
+.technician-list input {
+  width: auto;
+}
+
+.string-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  margin: var(--spacing-8) 0 var(--spacing-16);
+  padding: 0;
+  list-style: none;
+}
+
+.string-panel {
+  padding: var(--spacing-4) var(--spacing-8);
+  border: 1px solid var(--color-graphite);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-subtle);
+}

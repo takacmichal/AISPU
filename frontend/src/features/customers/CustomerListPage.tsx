@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
+import { formatDate } from '../../lib/format'
 import { DataTable, type Column, type SortState } from '../../components/DataTable'
 
 type Customer = components['schemas']['CustomerResponse']
@@ -19,7 +20,7 @@ const columns: Column<Customer>[] = [
   { key: 'ico', header: 'IČO', render: (c) => c.ico ?? '–' },
   { key: 'type', header: 'Typ', render: (c) => TYPE_LABELS[c.type] ?? c.type },
   { key: 'status', header: 'Stav', render: (c) => STATUS_LABELS[c.status] ?? c.status },
-  { key: 'createdAt', header: 'Vytvorený', render: (c) => new Date(c.createdAt).toLocaleDateString('sk-SK'), sortable: true },
+  { key: 'createdAt', header: 'Vytvorený', render: (c) => formatDate(c.createdAt), sortable: true },
 ]
 
 type Result = { key: string; items: Customer[]; totalCount: number; error: boolean }
@@ -71,10 +72,12 @@ export default function CustomerListPage() {
 
   return (
     <section>
-      <h2>Zákazníci</h2>
-      <p>
-        <Link to="/customers/new">Nový zákazník</Link>
-      </p>
+      <div className="toolbar">
+        <h2>Zákazníci</h2>
+        <Link to="/customers/new" className="btn btn--primary">
+          Nový zákazník
+        </Link>
+      </div>
       <DataTable
         columns={columns}
         rows={current?.items ?? []}

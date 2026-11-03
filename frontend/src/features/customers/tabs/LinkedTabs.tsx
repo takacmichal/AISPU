@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { api } from '../../../api/client'
 import type { ReactNode } from 'react'
+import { EmptyState } from '../../../components/EmptyState'
+import { Skeleton } from '../../../components/Skeleton'
 import { useLoad } from '../../../components/useLoad'
+import { formatCurrency, formatDate, formatKwp } from '../../../lib/format'
 
-const date = (value?: string | null) => (value ? new Date(value).toLocaleDateString('sk-SK') : '–')
-const money = (amount: number | string, currency: string) =>
-  new Intl.NumberFormat('sk-SK', { style: 'currency', currency }).format(Number(amount))
+const date = formatDate
+const money = formatCurrency
 
 const QUOTE_STATUS: Record<string, string> = {
   Draft: 'Koncept',
@@ -43,9 +45,13 @@ function Section({
       <p>
         <Link to={listPath}>Všetky {title.toLowerCase()}</Link>
       </p>
-      {loading && <p role="status">Načítavam…</p>}
-      {error && <p role="alert">{title} sa nepodarilo načítať.</p>}
-      {!loading && !error && empty && <p>Zákazník zatiaľ nemá žiadne záznamy.</p>}
+      {loading && <Skeleton lines={3} />}
+      {error && (
+        <p role="alert" className="alert">
+          {title} sa nepodarilo načítať.
+        </p>
+      )}
+      {!loading && !error && empty && <EmptyState title="Zákazník zatiaľ nemá žiadne záznamy." />}
       {children}
     </div>
   )
@@ -61,7 +67,8 @@ export function QuotesTab({ customerId }: { customerId: string }) {
   return (
     <Section title="Ponuky" listPath="/quotes" loading={loading} error={error} empty={data?.length === 0}>
       {data && data.length > 0 && (
-        <table>
+        <div className="data-table__scroll">
+<table>
           <thead>
             <tr>
               <th scope="col">Ponuka</th>
@@ -83,6 +90,7 @@ export function QuotesTab({ customerId }: { customerId: string }) {
             ))}
           </tbody>
         </table>
+</div>
       )}
     </Section>
   )
@@ -98,7 +106,8 @@ export function ContractsTab({ customerId }: { customerId: string }) {
   return (
     <Section title="Zmluvy" listPath="/contracts" loading={loading} error={error} empty={data?.length === 0}>
       {data && data.length > 0 && (
-        <table>
+        <div className="data-table__scroll">
+<table>
           <thead>
             <tr>
               <th scope="col">Číslo</th>
@@ -120,6 +129,7 @@ export function ContractsTab({ customerId }: { customerId: string }) {
             ))}
           </tbody>
         </table>
+</div>
       )}
     </Section>
   )
@@ -135,7 +145,8 @@ export function InstallationsTab({ customerId }: { customerId: string }) {
   return (
     <Section title="Inštalácie" listPath="/installations" loading={loading} error={error} empty={data?.length === 0}>
       {data && data.length > 0 && (
-        <table>
+        <div className="data-table__scroll">
+<table>
           <thead>
             <tr>
               <th scope="col">Názov</th>
@@ -151,12 +162,13 @@ export function InstallationsTab({ customerId }: { customerId: string }) {
                   <Link to={`/installations/${i.id}`}>{i.name}</Link>
                 </td>
                 <td>{INSTALLATION_STATE[i.state] ?? i.state}</td>
-                <td>{i.plannedPowerKwp != null ? `${i.plannedPowerKwp} kWp` : '–'}</td>
+                <td>{formatKwp(i.plannedPowerKwp)}</td>
                 <td>{date(i.scheduledStart)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+</div>
       )}
     </Section>
   )

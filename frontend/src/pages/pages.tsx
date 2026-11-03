@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { findItem } from '../auth/navigation'
 import { safeReturnUrl } from '../auth/session'
+import { MESSAGES } from '../lib/messages'
 
 export function LoginPage() {
   const { session, signIn, signOutReason } = useAuth()
@@ -31,8 +32,8 @@ export function LoginPage() {
   return (
     <main className="app">
       <h1>Prihlásenie</h1>
-      {signOutReason === 'expired' && <p role="status">Platnosť relácie vypršala, prihláste sa znova.</p>}
-      <form onSubmit={onSubmit}>
+      {signOutReason === 'expired' && <p role="status">{MESSAGES.errors.unauthorized}</p>}
+      <form onSubmit={onSubmit} className="auth-card">
         <label>
           E-mail
           <input name="email" type="email" required autoComplete="username" />
@@ -41,8 +42,12 @@ export function LoginPage() {
           Heslo
           <input name="password" type="password" required autoComplete="current-password" />
         </label>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={busy}>
+        {error && (
+          <p role="alert" className="form-error">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn--primary" disabled={busy}>
           Prihlásiť
         </button>
       </form>
@@ -60,7 +65,9 @@ export function ForbiddenPage() {
     <section>
       <h2>403 – Nemáte prístup</h2>
       <p>Na túto sekciu nemáte oprávnenie.</p>
-      <Link to="/">Späť na prehľad</Link>
+      <Link to="/" className="btn btn--ghost">
+        Späť na prehľad
+      </Link>
     </section>
   )
 }
@@ -69,7 +76,10 @@ export function NotFoundPage() {
   return (
     <section>
       <h2>404 – Stránka neexistuje</h2>
-      <Link to="/">Späť na prehľad</Link>
+      <p className="page-intro">Adresa neexistuje alebo bola presunutá.</p>
+      <Link to="/" className="btn btn--ghost">
+        Späť na prehľad
+      </Link>
     </section>
   )
 }

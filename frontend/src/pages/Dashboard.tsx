@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchSystemInfo, type SystemInfo } from '../api/system'
+import { Skeleton } from '../components/Skeleton'
 
 type State =
   | { status: 'loading' }
@@ -25,14 +26,26 @@ export default function Dashboard() {
   return (
     <section>
       <h2>Prehľad</h2>
-      <p>Správa fotovoltických elektrární</p>
-      {state.status === 'loading' && <p role="status">Načítavam stav API…</p>}
-      {state.status === 'error' && <p role="alert">API je nedostupné.</p>}
-      {state.status === 'ok' && (
-        <p>
-          API: {state.info.name} v{state.info.version} ({state.info.environment})
-        </p>
-      )}
+      <p className="page-intro">Správa fotovoltických elektrární</p>
+      <div className="stat-grid">
+        <div className="card">
+          <p className="stat__label">Stav API</p>
+          {state.status === 'loading' && <Skeleton lines={2} label="Načítavam stav API…" />}
+          {state.status === 'error' && (
+            <p role="alert" className="form-error">
+              API je nedostupné.
+            </p>
+          )}
+          {state.status === 'ok' && (
+            <>
+              <p className="stat__value">
+                {state.info.name} <span className="mono">v{state.info.version}</span>
+              </p>
+              <span className="badge badge--success">{state.info.environment}</span>
+            </>
+          )}
+        </div>
+      </div>
     </section>
   )
 }

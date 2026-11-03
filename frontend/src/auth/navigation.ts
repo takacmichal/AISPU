@@ -18,6 +18,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { path: '/customers', label: 'Zákazníci', roles: ['Admin', 'Sales'] },
   { path: '/customers/new', label: 'Nový zákazník', roles: ['Admin', 'Sales'], parent: '/customers', menu: false },
   { path: '/catalog', label: 'Katalóg', roles: ['Admin', 'Sales', 'Designer'] },
+  { path: '/designs', label: 'Návrhy FVE', roles: ['Admin', 'Sales', 'Designer'] },
   { path: '/quotes', label: 'Ponuky', roles: ['Admin', 'Sales', 'Designer'] },
   { path: '/contracts', label: 'Zmluvy', roles: ['Admin', 'Sales'] },
   { path: '/installations', label: 'Inštalácie', roles: ['Admin', 'Designer', 'Technician', 'Operator'] },

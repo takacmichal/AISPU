@@ -1,0 +1,23 @@
+/** Shared Slovak UI strings (common phrases and API error messages) kept in one place for review. */
+export const MESSAGES = {
+  loading: 'Načítavam…',
+  emptyDefault: 'Žiadne záznamy.',
+  retry: 'Skúsiť znova',
+  save: 'Uložiť',
+  cancel: 'Zrušiť',
+  confirm: 'Potvrdiť',
+  delete: 'Zmazať',
+  close: 'Zavrieť',
+  notifications: 'Oznámenia',
+  skipToContent: 'Preskočiť na obsah',
+  errors: {
+    validation: 'Údaje nie sú v poriadku. Skontrolujte zvýraznené polia.',
+    unauthorized: 'Platnosť relácie vypršala, prihláste sa znova.',
+    forbidden: 'Na túto akciu nemáte oprávnenie.',
+    notFound: 'Záznam sa nenašiel. Mohol byť medzitým zmazaný.',
+    conflict: 'Akciu nie je možné vykonať, záznam je v konflikte s aktuálnym stavom.',
+    server: 'Na serveri nastala chyba. Skúste to prosím neskôr.',
+    network: 'Server je nedostupný. Skontrolujte pripojenie a skúste to znova.',
+    generic: 'Operácia zlyhala.',
+  },
+} as const

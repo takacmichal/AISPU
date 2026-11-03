@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { problemToApiError, type FieldErrors } from '../../api/problem'
+import { Skeleton } from '../../components/Skeleton'
 import { FormField } from '../../components/forms'
 import { useToast } from '../../components/toast'
 import { useFormSubmit } from '../../components/useFormSubmit'
@@ -31,8 +32,13 @@ export default function CustomerFormPage() {
   }, [id])
 
   if (!id) return <CustomerForm key="new" initial={emptyValues} />
-  if (failed) return <p role="alert">{failed}</p>
-  if (loaded?.id !== id) return <p role="status">Načítavam…</p>
+  if (failed)
+    return (
+      <p role="alert" className="alert">
+        {failed}
+      </p>
+    )
+  if (loaded?.id !== id) return <Skeleton lines={6} />
   return <CustomerForm key={id} customerId={id} initial={loaded.values} />
 }
 
@@ -128,13 +134,19 @@ function CustomerForm({ customerId, initial }: { customerId?: string; initial: C
           {(props) => <textarea {...props} value={values.note} onChange={(e) => set('note', e.target.value)} />}
         </FormField>
 
-        {formError && <p role="alert">{formError}</p>}
-        <button type="submit" disabled={busy}>
-          Uložiť
-        </button>
-        <button type="button" onClick={() => navigate(customerId ? `/customers/${customerId}` : '/customers')}>
-          Zrušiť
-        </button>
+        {formError && (
+          <p role="alert" className="form-error">
+            {formError}
+          </p>
+        )}
+        <div className="btn-row">
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            Uložiť
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={() => navigate(customerId ? `/customers/${customerId}` : '/customers')}>
+            Zrušiť
+          </button>
+        </div>
       </form>
     </section>
   )

@@ -1,0 +1,99 @@
+.quote-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  align-items: center;
+  margin-bottom: var(--spacing-16);
+}
+
+.quote-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  margin-bottom: var(--spacing-16);
+}
+
+.quote-filters label {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.quote-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  align-items: end;
+  margin-bottom: var(--spacing-16);
+}
+
+.quote-picker label {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.quote-picker__component {
+  flex: 1 1 18rem;
+}
+
+.quote-picker input[type='text'] {
+  width: 6rem;
+}
+
+.quote-qty {
+  width: 6rem;
+}
+
+.quote-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.quote-totals {
+  margin-left: auto;
+  margin-top: var(--spacing-16);
+  max-width: 22rem;
+}
+
+.quote-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+}
+
+.quote-totals__gross {
+  font-weight: 600;
+}
+
+.quote-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--spacing-16);
+  border-left: 1px solid var(--color-smoke);
+}
+
+.quote-timeline li {
+  position: relative;
+  padding: 0 0 var(--spacing-16) var(--spacing-16);
+}
+
+.quote-timeline li::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--spacing-16) - 4px);
+  top: 0.5em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-ash);
+}
+
+.quote-timeline li[aria-current='step']::before {
+  background: var(--color-signal-teal);
+}
+
+.quote-timeline time,
+.quote-timeline p {
+  display: block;
+  margin: 0;
+  color: var(--color-fog);
+}
