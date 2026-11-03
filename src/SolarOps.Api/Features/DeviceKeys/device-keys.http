@@ -1,0 +1,37 @@
+# Device API keys (#96). Management requires a JWT with role Admin; devices send the key in X-Api-Key to POST /api/telemetry.
+@baseUrl = http://localhost:5080
+@token = paste-admin-access-token-here
+@installationId = 00000000-0000-0000-0000-000000000000
+@keyId = 00000000-0000-0000-0000-000000000000
+@apiKey = paste-key-from-the-issue-response
+
+### Issue the key (plaintext only in this response; 409 if an active key exists)
+POST {{baseUrl}}/api/installations/{{installationId}}/api-keys
+Authorization: Bearer {{token}}
+
+### Rotate: revoke the active key and issue a new one (also renews after a revocation)
+POST {{baseUrl}}/api/installations/{{installationId}}/api-keys/rotate
+Authorization: Bearer {{token}}
+
+### List keys (metadata only)
+GET {{baseUrl}}/api/installations/{{installationId}}/api-keys
+Authorization: Bearer {{token}}
+
+### Revoke a key
+DELETE {{baseUrl}}/api/installations/{{installationId}}/api-keys/{{keyId}}
+Authorization: Bearer {{token}}
+
+### Device sends telemetry with the key (no JWT); unknown or revoked key -> 401, key of another installation -> 403
+POST {{baseUrl}}/api/telemetry
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "schemaVersion": "1.0",
+  "installationId": "{{installationId}}",
+  "sentAt": "2026-06-21T10:36:00Z",
+  "source": "gateway",
+  "readings": [
+    { "deviceId": "00000000-0000-0000-0000-000000000000", "timestamp": "2026-06-21T10:35:00Z", "intervalSec": 300, "status": "MPPT", "acPowerW": 1000, "totalEnergyWh": 1000 }
+  ]
+}

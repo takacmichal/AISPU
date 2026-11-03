@@ -1,13 +1,13 @@
-# Telemetry ingest (#95). Interim: requires a JWT with role Admin or Operator (devices get API keys in #96).
+# Telemetry ingest (#95, #96). The device authenticates with the API key of its installation (see device-keys.http).
 # Port matches launchSettings.json (http profile). After pulling, recreate the local DB: docker compose down -v
 @baseUrl = http://localhost:5080
-@token = paste-access-token-here
+@apiKey = paste-key-from-the-issue-response
 @installationId = 00000000-0000-0000-0000-000000000000
 @deviceId = 00000000-0000-0000-0000-000000000000
 
 ### Send a batch (idempotent by deviceId + timestamp; resending returns duplicates)
 POST {{baseUrl}}/api/telemetry
-Authorization: Bearer {{token}}
+X-Api-Key: {{apiKey}}
 Content-Type: application/json
 
 {
@@ -39,7 +39,7 @@ Content-Type: application/json
 
 ### Invalid reading: misaligned timestamp -> 400 with key readings[0].timestamp
 POST {{baseUrl}}/api/telemetry
-Authorization: Bearer {{token}}
+X-Api-Key: {{apiKey}}
 Content-Type: application/json
 
 {

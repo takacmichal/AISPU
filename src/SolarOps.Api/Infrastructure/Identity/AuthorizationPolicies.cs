@@ -50,12 +50,6 @@ public static class AuthorizationPolicies
     public const string ConnectionRequestsProcess = "ConnectionRequestsProcess";
 
     /// <summary>
-    /// Interim access to the telemetry ingest (#95) until devices authenticate with API keys (#96); the simulator
-    /// and gateways are not users.
-    /// </summary>
-    public const string TelemetryIngest = "TelemetryIngest";
-
-    /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
     /// </summary>
@@ -88,8 +82,6 @@ public static class AuthorizationPolicies
             [ConnectionRequestsWrite] = [Roles.Admin, Roles.Operator, Roles.Sales],
             [ConnectionRequestsSubmit] = [Roles.Admin, Roles.Designer],
             [ConnectionRequestsProcess] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
-
-            [TelemetryIngest] = [Roles.Admin, Roles.Operator],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>
