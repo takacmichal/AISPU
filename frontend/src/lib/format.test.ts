@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCurrency, formatDate, formatDateTime, formatKwp, formatNumber } from './format'
+import { formatCurrency, formatDate, formatDateTime, formatKwp, formatNumber, formatRelative } from './format'
 
 const plain = (s: string) => s.replace(/[\u00a0\u202f]/g, ' ')
 
@@ -28,5 +28,13 @@ describe('format', () => {
   it('formats kWp', () => {
     expect(plain(formatKwp(9.8))).toBe('9,8 kWp')
     expect(formatKwp(null)).toBe('–')
+  })
+
+  it('formats relative time in Slovak', () => {
+    const now = new Date('2026-11-03T12:00:00Z')
+    expect(formatRelative('2026-11-03T11:55:00Z', now)).toBe('pred 5 minútami')
+    expect(formatRelative('2026-11-02T12:00:00Z', now)).toBe('včera')
+    expect(formatRelative('2026-11-03T11:59:50Z', now)).toBe('teraz')
+    expect(formatRelative(null, now)).toBe('–')
   })
 })

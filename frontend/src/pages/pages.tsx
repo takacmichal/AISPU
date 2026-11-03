@@ -1,13 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { findItem } from '../auth/navigation'
 import { safeReturnUrl } from '../auth/session'
+import type { LoginNotice } from '../features/auth/formHelpers'
+import { AUTH_TEXTS } from '../features/auth/texts'
+import '../features/auth/auth.css'
 import { MESSAGES } from '../lib/messages'
 
 export function LoginPage() {
   const { session, signIn, signOutReason } = useAuth()
   const navigate = useNavigate()
+  const notice = useLocation().state as LoginNotice | null
   const [params] = useSearchParams()
   const returnUrl = safeReturnUrl(params.get('returnUrl'))
   const [error, setError] = useState<string | null>(null)
@@ -33,10 +37,15 @@ export function LoginPage() {
     <main className="app">
       <h1>Prihlásenie</h1>
       {signOutReason === 'expired' && <p role="status">{MESSAGES.errors.unauthorized}</p>}
+      {notice?.notice && (
+        <p role="status" className="auth-notice">
+          {notice.notice}
+        </p>
+      )}
       <form onSubmit={onSubmit} className="auth-card">
         <label>
           E-mail
-          <input name="email" type="email" required autoComplete="username" />
+          <input name="email" type="email" required autoComplete="username" defaultValue={notice?.email} />
         </label>
         <label>
           Heslo
@@ -51,6 +60,12 @@ export function LoginPage() {
           Prihlásiť
         </button>
       </form>
+      <p className="auth-links">
+        <span>
+          {AUTH_TEXTS.login.registerPrompt} <Link to="/register">{AUTH_TEXTS.login.registerLink}</Link>
+        </span>
+        <Link to="/forgot-password">{AUTH_TEXTS.login.forgotLink}</Link>
+      </p>
     </main>
   )
 }
