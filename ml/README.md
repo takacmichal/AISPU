@@ -90,3 +90,16 @@ Notebook: `ml/notebooks/191-model-comparison.ipynb` (načíta vygenerovaný JSON
 ```bash
 OMP_NUM_THREADS=1 uv run python ...
 ```
+
+## Detekcia podvýroby (`solarops_ml.detection`, issues #112–#114, #118)
+
+Pravidlo z ADR #194 nad hodinovou radou skutočného a predikovaného (očakávaného) výkonu. Detektor model netrénuje ani nevolá, predikciu berie ako vstup. Hodina je platná pri dostatočnom žiarení (GHI > 50 W/m²), `P_expected >= 5 % P_rated`, pokrytí vzoriek >= 75 %, stave striedača mimo `OFF/SLEEPING/FAULT` a bez snehu; `P_expected` sa orezáva na AC limit. Podvýroba = `r = P_actual / P_expected < 0,85`; udalosť vznikne po >= 2 po sebe idúcich platných hodinách a zatvorí sa po 2 platných hodinách s `r >= 0,85`. Neplatné hodiny (noc, chýbajúce dáta) udalosť ani neprerušia, ani nepredĺžia. Pri oblačnosti >= 85 % klesá prah na 0,70 (znížená citlivosť). Závažnosť: medián `r` < 0,50 high, < 0,70 medium, inak low; udalosť dlhšia ako 72 h stupeň zvýši. Všetky prahy sú v `DetectionConfig`.
+
+Endpoint `POST /v1/detections/underproduction` (kontrakt v `solarops_ml.detection.api`, OpenAPI na `/docs`): vstup `installationId`, `ratedPowerW`, `acLimitW?`, `points[]` (`timestamp` = koniec hodiny v UTC, `actualPowerW` alebo `null`, `expectedPowerW`, `ghiWm2?`, `cloudCoverPct?`, `snowDepthCm?`, `sampleCoverage?`, `status?`), `parameters?`, `includeHours?`; výstup `alarms[]` (`alarmId` = UUIDv5 z inštalácie a začiatku, `start`, `end`, `detectedAt`, `ongoing`, `severity`, `ticketPriority`, `medianRatio`, `estimatedLostKwh`, `reasonCode`, `reason`, `evidence[]`) a `summary` s počtom vylúčených hodín podľa dôvodu. Z 5-minútovej telemetrie hodinovú radu vyrobí `hourly_from_readings` (priemer prijatých vzoriek, chýbajúce vzorky nie sú 0 W).
+
+Vyhodnotenie na simulovaných poruchách (40 scenárov, seed 42, optimistická horná hranica podľa ADR #187): výsledky sú v `reports/detection-eval.md` a `.json`, beh:
+
+```bash
+cd ml
+uv run python -m solarops_ml.detection --seed 42 --scenarios 40 --days 14
+```

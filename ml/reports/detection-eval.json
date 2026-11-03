@@ -1,0 +1,1258 @@
+{
+  "schema": "solarops-detection-eval-1",
+  "issue": 118,
+  "config": {
+    "n_scenarios": 40,
+    "days": 14,
+    "seed": 42,
+    "capacity_kwp": 10.0,
+    "model_error_sigma": 0.04,
+    "model_error_cloud_sigma": 0.1,
+    "model_error_phi": 0.8,
+    "model_bias_sigma": 0.02,
+    "grid_thresholds": [
+      0.75,
+      0.8,
+      0.85,
+      0.9
+    ],
+    "grid_hours": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "detection": {
+      "ratio_threshold": 0.85,
+      "min_consecutive_hours": 2,
+      "recovery_hours": 2,
+      "min_irradiance_wm2": 50.0,
+      "min_expected_fraction": 0.05,
+      "min_coverage": 0.75,
+      "heavy_cloud_pct": 85.0,
+      "cloudy_ratio_threshold": 0.7,
+      "snow_depth_min_cm": 1.0,
+      "severity_medium_ratio": 0.7,
+      "severity_high_ratio": 0.5,
+      "escalation_hours": 72.0
+    },
+    "labelMinSeverity": 0.15,
+    "earlyToleranceHours": 2.0,
+    "lateToleranceHours": 24.0
+  },
+  "predictionNmae": {
+    "mean": 0.0295,
+    "max": 0.0442
+  },
+  "metrics": {
+    "primary": {
+      "precision": 0.4483,
+      "recall": 1.0,
+      "f1": 0.619,
+      "f05": 0.5039,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 16,
+      "fn": 0,
+      "ignored": 5,
+      "labels": 13
+    },
+    "relaxed": {
+      "precision": 0.4483,
+      "recall": 1.0,
+      "f1": 0.619
+    },
+    "medianDelayHours": 2.0,
+    "alertsPerEvent": 1.0,
+    "falseAlarmsPer30Days": 0.857
+  },
+  "byType": {
+    "below_threshold": {
+      "scenarios": 4,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 7,
+      "falseAlarms": 2,
+      "recall": null
+    },
+    "data_outage": {
+      "scenarios": 4,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 0,
+      "falseAlarms": 0,
+      "recall": null
+    },
+    "healthy": {
+      "scenarios": 8,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 4,
+      "falseAlarms": 4,
+      "recall": null
+    },
+    "inverter_fault": {
+      "scenarios": 4,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 1,
+      "falseAlarms": 1,
+      "recall": null
+    },
+    "power_drop, loss 15-35 %, < 24 h": {
+      "scenarios": 1,
+      "labels": 1,
+      "detected": 1,
+      "late": 0,
+      "alarms": 1,
+      "falseAlarms": 0,
+      "recall": 1.0
+    },
+    "power_drop, loss 15-35 %, >= 24 h": {
+      "scenarios": 1,
+      "labels": 1,
+      "detected": 1,
+      "late": 0,
+      "alarms": 2,
+      "falseAlarms": 1,
+      "recall": 1.0
+    },
+    "power_drop, loss 35-65 %, >= 24 h": {
+      "scenarios": 7,
+      "labels": 7,
+      "detected": 7,
+      "late": 0,
+      "alarms": 9,
+      "falseAlarms": 2,
+      "recall": 1.0
+    },
+    "power_drop, loss >= 65 %, < 24 h": {
+      "scenarios": 1,
+      "labels": 1,
+      "detected": 1,
+      "late": 0,
+      "alarms": 1,
+      "falseAlarms": 0,
+      "recall": 1.0
+    },
+    "power_drop, loss >= 65 %, >= 24 h": {
+      "scenarios": 3,
+      "labels": 3,
+      "detected": 3,
+      "late": 0,
+      "alarms": 5,
+      "falseAlarms": 2,
+      "recall": 1.0
+    },
+    "snow": {
+      "scenarios": 4,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 2,
+      "falseAlarms": 2,
+      "recall": null
+    },
+    "unobservable": {
+      "scenarios": 3,
+      "labels": 0,
+      "detected": 0,
+      "late": 0,
+      "alarms": 2,
+      "falseAlarms": 2,
+      "recall": null
+    }
+  },
+  "ablation": {
+    "rule": {
+      "primary": {
+        "precision": 0.4483,
+        "recall": 1.0,
+        "f1": 0.619,
+        "f05": 0.5039,
+        "tp": 13,
+        "dup": 0,
+        "late": 0,
+        "fp": 16,
+        "fn": 0,
+        "ignored": 5,
+        "labels": 13
+      },
+      "relaxed": {
+        "precision": 0.4483,
+        "recall": 1.0,
+        "f1": 0.619
+      },
+      "medianDelayHours": 2.0,
+      "alertsPerEvent": 1.0,
+      "falseAlarmsPer30Days": 0.857
+    },
+    "naive": {
+      "primary": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5,
+        "f05": 0.3846,
+        "tp": 13,
+        "dup": 0,
+        "late": 0,
+        "fp": 26,
+        "fn": 0,
+        "ignored": 9,
+        "labels": 13
+      },
+      "relaxed": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5
+      },
+      "medianDelayHours": 2.0,
+      "alertsPerEvent": 1.0,
+      "falseAlarmsPer30Days": 1.393
+    }
+  },
+  "grid": [
+    {
+      "ratioThreshold": 0.75,
+      "minConsecutiveHours": 1,
+      "precision": 0.8125,
+      "recall": 1.0,
+      "f1": 0.8966,
+      "f05": 0.8442,
+      "tp": 13,
+      "dup": 3,
+      "late": 0,
+      "fp": 0,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.161,
+      "medianDelayHours": 1.0
+    },
+    {
+      "ratioThreshold": 0.75,
+      "minConsecutiveHours": 2,
+      "precision": 0.8667,
+      "recall": 1.0,
+      "f1": 0.9286,
+      "f05": 0.8904,
+      "tp": 13,
+      "dup": 2,
+      "late": 0,
+      "fp": 0,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.107,
+      "medianDelayHours": 2.0
+    },
+    {
+      "ratioThreshold": 0.75,
+      "minConsecutiveHours": 3,
+      "precision": 0.9286,
+      "recall": 1.0,
+      "f1": 0.963,
+      "f05": 0.942,
+      "tp": 13,
+      "dup": 1,
+      "late": 0,
+      "fp": 0,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.054,
+      "medianDelayHours": 3.0
+    },
+    {
+      "ratioThreshold": 0.75,
+      "minConsecutiveHours": 4,
+      "precision": 0.9286,
+      "recall": 1.0,
+      "f1": 0.963,
+      "f05": 0.942,
+      "tp": 13,
+      "dup": 1,
+      "late": 0,
+      "fp": 0,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.054,
+      "medianDelayHours": 4.0
+    },
+    {
+      "ratioThreshold": 0.8,
+      "minConsecutiveHours": 1,
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667,
+      "f05": 0.5556,
+      "tp": 13,
+      "dup": 3,
+      "late": 0,
+      "fp": 10,
+      "fn": 0,
+      "ignored": 1,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.696,
+      "medianDelayHours": 1.0
+    },
+    {
+      "ratioThreshold": 0.8,
+      "minConsecutiveHours": 2,
+      "precision": 0.7222,
+      "recall": 1.0,
+      "f1": 0.8387,
+      "f05": 0.7647,
+      "tp": 13,
+      "dup": 3,
+      "late": 0,
+      "fp": 2,
+      "fn": 0,
+      "ignored": 1,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.268,
+      "medianDelayHours": 2.0
+    },
+    {
+      "ratioThreshold": 0.8,
+      "minConsecutiveHours": 3,
+      "precision": 0.8125,
+      "recall": 1.0,
+      "f1": 0.8966,
+      "f05": 0.8442,
+      "tp": 13,
+      "dup": 2,
+      "late": 0,
+      "fp": 1,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.161,
+      "medianDelayHours": 3.0
+    },
+    {
+      "ratioThreshold": 0.8,
+      "minConsecutiveHours": 4,
+      "precision": 0.8125,
+      "recall": 1.0,
+      "f1": 0.8966,
+      "f05": 0.8442,
+      "tp": 13,
+      "dup": 2,
+      "late": 0,
+      "fp": 1,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.161,
+      "medianDelayHours": 4.0
+    },
+    {
+      "ratioThreshold": 0.85,
+      "minConsecutiveHours": 1,
+      "precision": 0.194,
+      "recall": 1.0,
+      "f1": 0.325,
+      "f05": 0.2313,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 54,
+      "fn": 0,
+      "ignored": 8,
+      "labels": 13,
+      "falseAlarmsPer30Days": 2.893,
+      "medianDelayHours": 1.0
+    },
+    {
+      "ratioThreshold": 0.85,
+      "minConsecutiveHours": 2,
+      "precision": 0.4483,
+      "recall": 1.0,
+      "f1": 0.619,
+      "f05": 0.5039,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 16,
+      "fn": 0,
+      "ignored": 5,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.857,
+      "medianDelayHours": 2.0
+    },
+    {
+      "ratioThreshold": 0.85,
+      "minConsecutiveHours": 3,
+      "precision": 0.619,
+      "recall": 1.0,
+      "f1": 0.7647,
+      "f05": 0.6701,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 8,
+      "fn": 0,
+      "ignored": 4,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.429,
+      "medianDelayHours": 3.0
+    },
+    {
+      "ratioThreshold": 0.85,
+      "minConsecutiveHours": 4,
+      "precision": 0.8125,
+      "recall": 1.0,
+      "f1": 0.8966,
+      "f05": 0.8442,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 3,
+      "fn": 0,
+      "ignored": 0,
+      "labels": 13,
+      "falseAlarmsPer30Days": 0.161,
+      "medianDelayHours": 4.0
+    },
+    {
+      "ratioThreshold": 0.9,
+      "minConsecutiveHours": 1,
+      "precision": 0.0703,
+      "recall": 1.0,
+      "f1": 0.1313,
+      "f05": 0.0863,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 172,
+      "fn": 0,
+      "ignored": 12,
+      "labels": 13,
+      "falseAlarmsPer30Days": 9.214,
+      "medianDelayHours": 1.0
+    },
+    {
+      "ratioThreshold": 0.9,
+      "minConsecutiveHours": 2,
+      "precision": 0.1275,
+      "recall": 1.0,
+      "f1": 0.2261,
+      "f05": 0.1544,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 89,
+      "fn": 0,
+      "ignored": 8,
+      "labels": 13,
+      "falseAlarmsPer30Days": 4.768,
+      "medianDelayHours": 2.0
+    },
+    {
+      "ratioThreshold": 0.9,
+      "minConsecutiveHours": 3,
+      "precision": 0.194,
+      "recall": 1.0,
+      "f1": 0.325,
+      "f05": 0.2313,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 54,
+      "fn": 0,
+      "ignored": 6,
+      "labels": 13,
+      "falseAlarmsPer30Days": 2.893,
+      "medianDelayHours": 3.0
+    },
+    {
+      "ratioThreshold": 0.9,
+      "minConsecutiveHours": 4,
+      "precision": 0.2766,
+      "recall": 1.0,
+      "f1": 0.4333,
+      "f05": 0.3234,
+      "tp": 13,
+      "dup": 0,
+      "late": 0,
+      "fp": 34,
+      "fn": 0,
+      "ignored": 5,
+      "labels": 13,
+      "falseAlarmsPer30Days": 1.821,
+      "medianDelayHours": 4.0
+    }
+  ],
+  "scenarios": [
+    {
+      "id": 0,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-01-30T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.27,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-02-08T10:00:00Z",
+        "end": "2024-02-08T16:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "unobservable",
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0326
+    },
+    {
+      "id": 1,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-07-14T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.1,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-20T23:00:00Z",
+        "end": "2024-07-22T23:00:00Z",
+        "severity": 0.7
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0225
+    },
+    {
+      "id": 2,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-08-24T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.11,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-09-02T20:00:00Z",
+        "end": "2024-09-03T20:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0327
+    },
+    {
+      "id": 3,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-05-26T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.51,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-06-04T15:00:00Z",
+        "end": "2024-06-08T15:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0277
+    },
+    {
+      "id": 4,
+      "kind": "power_drop_small",
+      "location": "alice_springs",
+      "start": "2024-06-28T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.16,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-03T02:00:00Z",
+        "end": "2024-07-05T02:00:00Z",
+        "severity": 0.054
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "below_threshold",
+      "alarmClasses": [
+        "FP",
+        "IGNORED",
+        "IGNORED"
+      ],
+      "predictionNmae": 0.0276
+    },
+    {
+      "id": 5,
+      "kind": "inverter_fault",
+      "location": "kosice",
+      "start": "2024-08-07T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.37,
+      "fault": {
+        "type": "inverter_fault",
+        "start": "2024-08-17T03:00:00Z",
+        "end": "2024-08-18T16:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "inverter_fault",
+      "alarmClasses": [],
+      "predictionNmae": 0.0361
+    },
+    {
+      "id": 6,
+      "kind": "healthy",
+      "location": "alice_springs",
+      "start": "2024-08-19T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.54,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0442
+    },
+    {
+      "id": 7,
+      "kind": "healthy",
+      "location": "kosice",
+      "start": "2024-08-12T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.44,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.037
+    },
+    {
+      "id": 8,
+      "kind": "data_outage",
+      "location": "alice_springs",
+      "start": "2024-04-30T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.07,
+      "fault": null,
+      "outage": {
+        "start": "2024-05-06T13:00:00Z",
+        "end": "2024-05-07T01:00:00Z"
+      },
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0325
+    },
+    {
+      "id": 9,
+      "kind": "snow",
+      "location": "kosice",
+      "start": "2024-07-21T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.42,
+      "fault": null,
+      "outage": null,
+      "snow": {
+        "start": "2024-07-29T08:00:00Z",
+        "end": "2024-08-01T08:00:00Z"
+      },
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0353
+    },
+    {
+      "id": 10,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-05-15T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.24,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-05-19T01:00:00Z",
+        "end": "2024-05-21T01:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP",
+        "FP"
+      ],
+      "predictionNmae": 0.0306
+    },
+    {
+      "id": 11,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-04-29T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.11,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-05-07T11:00:00Z",
+        "end": "2024-05-07T23:00:00Z",
+        "severity": 0.3
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.02
+    },
+    {
+      "id": 12,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-07-05T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.27,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-13T03:00:00Z",
+        "end": "2024-07-15T03:00:00Z",
+        "severity": 0.7
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0198
+    },
+    {
+      "id": 13,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-07-15T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.21,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-24T19:00:00Z",
+        "end": "2024-07-28T19:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0267
+    },
+    {
+      "id": 14,
+      "kind": "power_drop_small",
+      "location": "alice_springs",
+      "start": "2024-10-04T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.19,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-10-09T05:00:00Z",
+        "end": "2024-10-13T05:00:00Z",
+        "severity": 0.06
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "below_threshold",
+      "alarmClasses": [
+        "IGNORED",
+        "IGNORED",
+        "IGNORED"
+      ],
+      "predictionNmae": 0.0317
+    },
+    {
+      "id": 15,
+      "kind": "inverter_fault",
+      "location": "kosice",
+      "start": "2024-08-03T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.05,
+      "fault": {
+        "type": "inverter_fault",
+        "start": "2024-08-06T19:00:00Z",
+        "end": "2024-08-08T09:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "inverter_fault",
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0277
+    },
+    {
+      "id": 16,
+      "kind": "healthy",
+      "location": "alice_springs",
+      "start": "2024-09-14T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.4,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0288
+    },
+    {
+      "id": 17,
+      "kind": "healthy",
+      "location": "kosice",
+      "start": "2024-07-27T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.28,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0252
+    },
+    {
+      "id": 18,
+      "kind": "data_outage",
+      "location": "alice_springs",
+      "start": "2024-01-13T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.11,
+      "fault": null,
+      "outage": {
+        "start": "2024-01-15T10:00:00Z",
+        "end": "2024-01-16T20:00:00Z"
+      },
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0305
+    },
+    {
+      "id": 19,
+      "kind": "snow",
+      "location": "kosice",
+      "start": "2024-07-08T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.33,
+      "fault": null,
+      "outage": null,
+      "snow": {
+        "start": "2024-07-14T01:00:00Z",
+        "end": "2024-07-17T01:00:00Z"
+      },
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0265
+    },
+    {
+      "id": 20,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-07-08T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.33,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-15T02:00:00Z",
+        "end": "2024-07-17T02:00:00Z",
+        "severity": 0.5
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0403
+    },
+    {
+      "id": 21,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-05-16T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.07,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-05-20T10:00:00Z",
+        "end": "2024-05-20T22:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0207
+    },
+    {
+      "id": 22,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-04-01T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.48,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-04-06T00:00:00Z",
+        "end": "2024-04-10T00:00:00Z",
+        "severity": 0.3
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "FP",
+        "TP"
+      ],
+      "predictionNmae": 0.0412
+    },
+    {
+      "id": 23,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-04-09T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.19,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-04-20T07:00:00Z",
+        "end": "2024-04-22T07:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "FP",
+        "TP"
+      ],
+      "predictionNmae": 0.0243
+    },
+    {
+      "id": 24,
+      "kind": "power_drop_small",
+      "location": "alice_springs",
+      "start": "2024-02-11T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.44,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-02-18T23:00:00Z",
+        "end": "2024-02-20T23:00:00Z",
+        "severity": 0.078
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "below_threshold",
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0378
+    },
+    {
+      "id": 25,
+      "kind": "inverter_fault",
+      "location": "kosice",
+      "start": "2024-06-02T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.13,
+      "fault": {
+        "type": "inverter_fault",
+        "start": "2024-06-11T08:00:00Z",
+        "end": "2024-06-11T10:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "inverter_fault",
+      "alarmClasses": [],
+      "predictionNmae": 0.0269
+    },
+    {
+      "id": 26,
+      "kind": "healthy",
+      "location": "alice_springs",
+      "start": "2024-02-05T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.41,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0317
+    },
+    {
+      "id": 27,
+      "kind": "healthy",
+      "location": "kosice",
+      "start": "2024-06-09T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.13,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0241
+    },
+    {
+      "id": 28,
+      "kind": "data_outage",
+      "location": "alice_springs",
+      "start": "2024-11-05T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.4,
+      "fault": null,
+      "outage": {
+        "start": "2024-11-07T11:00:00Z",
+        "end": "2024-11-08T12:00:00Z"
+      },
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.027
+    },
+    {
+      "id": 29,
+      "kind": "snow",
+      "location": "kosice",
+      "start": "2024-04-25T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.2,
+      "fault": null,
+      "outage": null,
+      "snow": {
+        "start": "2024-04-30T16:00:00Z",
+        "end": "2024-05-02T16:00:00Z"
+      },
+      "labelStatus": null,
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.0257
+    },
+    {
+      "id": 30,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-07-19T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.09,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-07-23T08:00:00Z",
+        "end": "2024-07-23T20:00:00Z",
+        "severity": 0.2
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "unobservable",
+      "alarmClasses": [],
+      "predictionNmae": 0.0248
+    },
+    {
+      "id": 31,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-08-23T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.5,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-08-29T16:00:00Z",
+        "end": "2024-08-30T04:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "unobservable",
+      "alarmClasses": [
+        "FP"
+      ],
+      "predictionNmae": 0.033
+    },
+    {
+      "id": 32,
+      "kind": "power_drop",
+      "location": "alice_springs",
+      "start": "2024-09-09T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.44,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-09-20T06:00:00Z",
+        "end": "2024-09-22T06:00:00Z",
+        "severity": 0.7
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "FP",
+        "FP",
+        "TP"
+      ],
+      "predictionNmae": 0.0384
+    },
+    {
+      "id": 33,
+      "kind": "power_drop",
+      "location": "kosice",
+      "start": "2024-06-07T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.19,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-06-08T02:00:00Z",
+        "end": "2024-06-12T02:00:00Z",
+        "severity": 0.4
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "positive",
+      "alarmClasses": [
+        "TP"
+      ],
+      "predictionNmae": 0.0202
+    },
+    {
+      "id": 34,
+      "kind": "power_drop_small",
+      "location": "alice_springs",
+      "start": "2024-02-12T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.15,
+      "fault": {
+        "type": "power_drop",
+        "start": "2024-02-18T17:00:00Z",
+        "end": "2024-02-19T17:00:00Z",
+        "severity": 0.091
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "below_threshold",
+      "alarmClasses": [],
+      "predictionNmae": 0.0254
+    },
+    {
+      "id": 35,
+      "kind": "inverter_fault",
+      "location": "kosice",
+      "start": "2024-06-22T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.48,
+      "fault": {
+        "type": "inverter_fault",
+        "start": "2024-06-24T00:00:00Z",
+        "end": "2024-06-25T13:00:00Z",
+        "severity": 1.0
+      },
+      "outage": null,
+      "snow": null,
+      "labelStatus": "inverter_fault",
+      "alarmClasses": [],
+      "predictionNmae": 0.0331
+    },
+    {
+      "id": 36,
+      "kind": "healthy",
+      "location": "alice_springs",
+      "start": "2024-06-11T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.27,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0231
+    },
+    {
+      "id": 37,
+      "kind": "healthy",
+      "location": "kosice",
+      "start": "2024-07-04T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.34,
+      "fault": null,
+      "outage": null,
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0314
+    },
+    {
+      "id": 38,
+      "kind": "data_outage",
+      "location": "alice_springs",
+      "start": "2024-07-26T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.26,
+      "fault": null,
+      "outage": {
+        "start": "2024-07-27T18:00:00Z",
+        "end": "2024-07-28T01:00:00Z"
+      },
+      "snow": null,
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0304
+    },
+    {
+      "id": 39,
+      "kind": "snow",
+      "location": "kosice",
+      "start": "2024-04-27T00:00:00Z",
+      "days": 14,
+      "cloudiness": 0.21,
+      "fault": null,
+      "outage": null,
+      "snow": {
+        "start": "2024-05-03T15:00:00Z",
+        "end": "2024-05-04T15:00:00Z"
+      },
+      "labelStatus": null,
+      "alarmClasses": [],
+      "predictionNmae": 0.0257
+    }
+  ]
+}
