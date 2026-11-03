@@ -1,0 +1,43 @@
+.design-section {
+  margin-bottom: var(--spacing-24);
+}
+
+.design-grid {
+  display: grid;
+  gap: var(--spacing-16);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.design-plane {
+  margin-bottom: var(--spacing-12);
+}
+
+.design-metrics {
+  display: grid;
+  gap: var(--spacing-12);
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: 0 0 var(--spacing-16);
+}
+
+.design-metrics dt {
+  color: var(--color-fog);
+  font-size: var(--text-label);
+}
+
+.design-metrics dd {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.design-metric--lead dd {
+  font-size: 1.75rem;
+}
+
+.design-compare th[scope='row'] {
+  text-align: left;
+  font-weight: normal;
+}
+
+.design-compare .is-diff {
+  color: var(--color-signal-teal);
+}

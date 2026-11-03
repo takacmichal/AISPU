@@ -1,4 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { MESSAGES } from '../lib/messages'
+import { EmptyState } from './EmptyState'
+import { SkeletonRows } from './Skeleton'
 
 export type SortDirection = 'asc' | 'desc'
 export interface SortState {
@@ -52,7 +55,7 @@ export function DataTable<T>({
   filterDebounceMs = 300,
   loading = false,
   error = null,
-  emptyMessage = 'Žiadne záznamy.',
+  emptyMessage = MESSAGES.emptyDefault,
   onRowClick,
 }: DataTableProps<T>) {
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
@@ -62,7 +65,12 @@ export function DataTable<T>({
       {onFilterChange && (
         <FilterInput label={filterLabel} value={filter ?? ''} debounceMs={filterDebounceMs} onChange={onFilterChange} />
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="alert">
+          {error}
+        </p>
+      )}
+      <div className="data-table__scroll">
       <table aria-busy={loading}>
         <thead>
           <tr>
@@ -87,6 +95,7 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
+          {loading && rows.length === 0 && <SkeletonRows columns={columns.length} />}
           {rows.map((row) => (
             <tr
               key={rowKey(row)}
@@ -100,16 +109,17 @@ export function DataTable<T>({
           ))}
         </tbody>
       </table>
-      {loading && <p role="status">Načítavam…</p>}
-      {!loading && !error && rows.length === 0 && <p>{emptyMessage}</p>}
+      </div>
+      {loading && <p role="status" className="sr-only">{MESSAGES.loading}</p>}
+      {!loading && !error && rows.length === 0 && <EmptyState title={emptyMessage} />}
       <nav aria-label="Stránkovanie" className="pager">
-        <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
           Predchádzajúca
         </button>
         <span>
           Strana {page} z {pageCount} ({totalCount})
         </span>
-        <button type="button" disabled={page >= pageCount} onClick={() => onPageChange(page + 1)}>
+        <button type="button" className="btn btn--ghost" disabled={page >= pageCount} onClick={() => onPageChange(page + 1)}>
           Ďalšia
         </button>
       </nav>
@@ -144,7 +154,7 @@ function FilterInput({
   }, [text, value, debounceMs, onChange])
 
   return (
-    <label>
+    <label className="data-table__filter">
       {label}
       <input type="search" value={text} onChange={(event) => setText(event.target.value)} />
     </label>

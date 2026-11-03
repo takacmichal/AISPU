@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
 import { AuthProvider } from '../../auth/AuthContext'
 import { saveSession } from '../../auth/session'
+import { ConfirmProvider } from '../../components/confirm'
 import { ToastProvider } from '../../components/toast'
 import { validateSupplyPoint, emptySupplyPoint } from './supplyPointForm'
 
@@ -54,6 +55,9 @@ function stubApi(state: Api) {
       if (path.endsWith('/supply-points') && method === 'POST') return json(sp('new', 'X'), 201)
       if (method === 'PUT') return json(sp('s1', 'X'))
       if (method === 'DELETE') return new Response(null, { status: 204 })
+      if (path === '/api/quotes/q1')
+        return json({ id: 'q1', customerId: 'c1', status: 'Sent', validUntil: null, currency: 'EUR', lines: [], allowedTransitions: [], netTotal: 1000, vatTotal: 200, grossTotal: 1200, createdAt: '2026-02-01T00:00:00Z' })
+      if (path === '/api/quotes/q1/history') return json([])
       if (path === '/api/quotes') return json([{ id: 'q1', customerId: 'c1', status: 'Sent', validUntil: null, currency: 'EUR', grossTotal: 1200, createdAt: '2026-02-01T00:00:00Z' }])
       if (path === '/api/contracts') return json([])
       return json([])
@@ -70,7 +74,9 @@ function renderAt(path: string, roles: string[] = ['Sales']) {
         element: (
           <AuthProvider>
             <ToastProvider>
-              <App />
+              <ConfirmProvider>
+                <App />
+              </ConfirmProvider>
             </ToastProvider>
           </AuthProvider>
         ),

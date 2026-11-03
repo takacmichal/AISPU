@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { useAuth } from '../../auth/AuthContext'
 import { canAccess, findItem } from '../../auth/navigation'
+import { Skeleton } from '../../components/Skeleton'
 import { useLoad } from '../../components/useLoad'
 
 const SupplyPointsTab = lazy(() => import('./tabs/SupplyPointsTab'))
@@ -47,8 +48,13 @@ export default function CustomerDetailPage() {
     return data
   }, id)
 
-  if (loading) return <p role="status">Načítavam zákazníka…</p>
-  if (error || !customer) return <p role="alert">Zákazníka sa nepodarilo načítať.</p>
+  if (loading) return <Skeleton lines={4} label="Načítavam zákazníka…" />
+  if (error || !customer)
+    return (
+      <p role="alert" className="alert">
+        Zákazníka sa nepodarilo načítať.
+      </p>
+    )
 
   return (
     <section>
@@ -69,7 +75,7 @@ export default function CustomerDetailPage() {
         ))}
       </div>
       <div role="tabpanel" id="tab-panel" aria-labelledby={`tab-${active.key}`}>
-        <Suspense fallback={<p role="status">Načítavam záložku…</p>}>
+        <Suspense fallback={<Skeleton lines={3} label="Načítavam záložku…" />}>
           {active.key === 'data' && <DataTab customer={customer} />}
           {active.key === 'supply-points' && <SupplyPointsTab customerId={id} />}
           {active.key === 'quotes' && <QuotesTab customerId={id} />}
@@ -96,9 +102,11 @@ function DataTab({ customer }: { customer: components['schemas']['CustomerRespon
   return (
     <div>
       <p>
-        <Link to={`/customers/${customer.id}/edit`}>Upraviť</Link>
+        <Link to={`/customers/${customer.id}/edit`} className="btn btn--ghost">
+          Upraviť
+        </Link>
       </p>
-      <dl>
+      <dl className="card">
         {rows
           .filter(([, value]) => value)
           .map(([label, value]) => (

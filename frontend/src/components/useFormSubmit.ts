@@ -1,18 +1,25 @@
 import { useCallback, useState } from 'react'
-import { ApiError, type FieldErrors } from '../api/problem'
+import { ApiError, shouldToast, userMessage, type FieldErrors } from '../api/problem'
+import { MESSAGES } from '../lib/messages'
+import { useOptionalToast } from './toast'
 
 export interface SubmitState {
   busy: boolean
   /** Per-field messages from a 400 ValidationProblem response. */
   fieldErrors: FieldErrors
-  /** Message for errors not tied to a field (409, 5xx, network). */
+  /** Slovak message for errors not tied to a field (403, 404, 409, 5xx, network). */
   formError: string | null
   submit: () => Promise<boolean>
   clearFieldError: (field: string) => void
 }
 
-/** Runs a submit action and maps server-side validation errors onto form fields. */
+/**
+ * Runs a submit action and maps server-side validation errors onto form fields (400).
+ * Other failures set `formError` and, when a ToastProvider is present, also raise an error toast.
+ * 401 is handled globally: authFetch refreshes the token or signs the user out and RequireAuth redirects to login.
+ */
 export function useFormSubmit(action: () => Promise<unknown>): SubmitState {
+  const toast = useOptionalToast()
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -27,14 +34,17 @@ export function useFormSubmit(action: () => Promise<unknown>): SubmitState {
     } catch (error) {
       if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) {
         setFieldErrors(error.fieldErrors)
+        toast?.error(MESSAGES.errors.validation)
       } else {
-        setFormError(error instanceof Error ? error.message : 'Operácia zlyhala.')
+        const message = userMessage(error)
+        setFormError(message)
+        if (shouldToast(error)) toast?.error(message)
       }
       return false
     } finally {
       setBusy(false)
     }
-  }, [action])
+  }, [action, toast])
 
   const clearFieldError = useCallback((field: string) => {
     setFieldErrors((current) => {
