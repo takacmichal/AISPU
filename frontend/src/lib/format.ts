@@ -40,3 +40,24 @@ export function formatKwp(value: number | string | null | undefined): string {
   const text = formatNumber(value)
   return text === EMPTY ? EMPTY : `${text}\u00a0kWp`
 }
+
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 365 * 24 * 3600],
+  ['month', 30 * 24 * 3600],
+  ['week', 7 * 24 * 3600],
+  ['day', 24 * 3600],
+  ['hour', 3600],
+  ['minute', 60],
+]
+
+/** pred 5 minútami, včera, pred 2 týždňami (`now` is injectable for tests). */
+export function formatRelative(value: DateInput, now: Date = new Date()): string {
+  const date = toDate(value)
+  if (!date) return EMPTY
+  const seconds = Math.round((date.getTime() - now.getTime()) / 1000)
+  const rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' })
+  for (const [unit, size] of RELATIVE_UNITS) {
+    if (Math.abs(seconds) >= size) return rtf.format(Math.trunc(seconds / size), unit)
+  }
+  return rtf.format(0, 'second')
+}

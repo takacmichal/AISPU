@@ -17,6 +17,9 @@ import ConnectionRequestPage from './features/connection/ConnectionRequestPage'
 import { ConnectionStepper } from './features/connection/ConnectionStepper'
 import InstallationListPage from './features/installations/InstallationListPage'
 import InstallationDetailPage from './features/installations/InstallationDetailPage'
+import RegisterPage from './features/auth/RegisterPage'
+import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
+import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
 
@@ -26,6 +29,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<Dashboard />} />
