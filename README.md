@@ -50,6 +50,17 @@ JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lok�
 
 Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier kľúč nepotrebuje; pri platenom pláne ho nastav cez `Weather__ApiKey` (v docker compose `WEATHER_API_KEY`), nikdy ho necommituj.
 
+## Časté chyby
+
+| Príznak | Príčina a riešenie |
+|---|---|
+| `dotnet test` padá hneď pri štarte integračných testov | Testcontainers potrebuje bežiaci Docker. Spusti Docker Desktop a over `docker info`. |
+| API nenaštartuje mimo Development a hlási chýbajúci JWT kľúč | Nastav `Jwt__SigningKey` (min. 32 bajtov, napr. `openssl rand -base64 48`). Vývojový kľúč je len v `appsettings.Development.json`. |
+| API alebo testy hlásia chýbajúcu tabuľku či stĺpec po pull-e | Pribudla migrácia. Lokálnu DB zmaž: `docker compose down -v && docker compose up -d postgres`. |
+| `POST /api/auth/login` vráti 429 | Limit prihlásení je 10 za minútu na IP. Počkaj `Retry-After` sekúnd; limit sa mení cez `RateLimiting__Auth__PermitLimit` a `RateLimiting__Auth__WindowSeconds`. |
+| `pnpm api:fetch` zlyhá s chybou spojenia | API musí bežať na `http://localhost:5080`, alebo nastav `OPENAPI_URL`. |
+| `uv run pytest` v `ml/` padá na `lightgbm` / `libomp.dylib` (macOS) | Nainštaloval sa voliteľný balík zo skupiny `experiment` (`uv run --group experiment ...`), ktorý potrebuje `brew install libomp`. Obnov prostredie príkazom `uv sync`; testy s lightgbm sa potom preskočia. |
+
 ## Frontend: generovaný API klient
 
 Typy API sa generujú z OpenAPI (`frontend/openapi/openapi.json`) do `frontend/src/api/generated/` (negeneruj ručne, needituj). Typovaný klient je `api` v `frontend/src/api/client.ts`.
