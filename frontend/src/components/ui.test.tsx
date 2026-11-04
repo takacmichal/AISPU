@@ -8,6 +8,7 @@ import { Avatar } from './Avatar'
 import { FormErrorSummary } from './FormErrorSummary'
 import { KeyValueList } from './KeyValueList'
 import { KpiCard } from './KpiCard'
+import { PageHeader } from './PageHeader'
 import { Pager } from './Pager'
 import { ProgressBar } from './ProgressBar'
 import { SegmentedControl } from './SegmentedControl'
@@ -261,5 +262,23 @@ describe('ConfirmDialog', () => {
     render(<ConfirmDialog title="Zmazať odberné miesto?" message="Túto akciu nie je možné vrátiť." danger onConfirm={() => {}} onCancel={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: 'Zmazať odberné miesto?' })
     expect(within(dialog).getByText('!')).toHaveAttribute('aria-hidden', 'true')
+  })
+})
+
+describe('PageHeader', () => {
+  it('renders title, status, subtitle and actions', () => {
+    render(
+      <PageHeader
+        title="Ponuka CP-2026-0412"
+        status={<span className="badge badge--attention">Na schválenie</span>}
+        subtitle="Ján Novák · Rodinný dom, Žilina"
+        actions={<button type="button">Odoslať zákazníkovi</button>}
+      />,
+    )
+    const header = screen.getByRole('banner')
+    expect(within(header).getByRole('heading', { level: 2, name: 'Ponuka CP-2026-0412' })).toBeInTheDocument()
+    expect(within(header).getByText('Na schválenie')).toBeInTheDocument()
+    expect(within(header).getByText('Ján Novák · Rodinný dom, Žilina')).toBeInTheDocument()
+    expect(within(header).getByRole('button', { name: 'Odoslať zákazníkovi' })).toBeInTheDocument()
   })
 })

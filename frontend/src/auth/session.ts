@@ -1,4 +1,5 @@
 import { apiUrl } from '../api/config'
+import { HOME_PATH } from './navigation'
 
 export interface Session {
   email: string
@@ -91,7 +92,8 @@ export async function logoutRequest(refreshToken: string): Promise<void> {
   }
 }
 
-/** Only same-origin relative paths are accepted as a post-login target. */
+/** Only same-origin relative paths are accepted as a post-login target; the public root falls back to the dashboard. */
 export function safeReturnUrl(value: string | null | undefined): string {
-  return value && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/login') ? value : '/'
+  const ok = value && value !== '/' && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/login')
+  return ok ? value : HOME_PATH
 }

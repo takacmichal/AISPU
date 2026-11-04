@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { problemToApiError } from '../../api/problem'
 import { useAuth } from '../../auth/AuthContext'
+import { ROLE_LABELS } from '../../auth/navigation'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Dialog } from '../../components/Dialog'
 import { useToast } from '../../components/toast'
@@ -14,14 +15,6 @@ type UserRoles = components['schemas']['UserRolesResponse']
 
 const PAGE_SIZE = 20
 
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrátor',
-  Sales: 'Obchod',
-  Designer: 'Projektant',
-  Technician: 'Technik',
-  Operator: 'Operátor',
-  Customer: 'Zákazník',
-}
 const roleLabel = (role: string) => ROLE_LABELS[role] ?? role
 
 /** User list and role assignment. Route: /admin/users. Admin only. */

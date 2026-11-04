@@ -42,6 +42,7 @@ Spoločné komponenty sú v `src/components/`, ukážka všetkých na `/dev/ui` 
 
 | Komponent | Na čo | Poznámka |
 |---|---|---|
+| `PageHeader` | Nadpis stránky so stavom, podnadpisom a akciami vpravo (najviac jedna `btn--primary`) | Breadcrumbs kreslí shell nad ním |
 | `Toolbar`, `SearchField`, `FilterSelect` | Riadok nad tabuľkou: vyhľadávanie, filtre ako „chip“ (Stav: Všetky), vpravo doplnkové info | Filter je natívny `select`, takže funguje klávesnica aj čítačka |
 | `Pager` | Stránkovanie „Zobrazené 1–10 z 248“ s číslami strán | Používa ho `DataTable` |
 | `KpiCard` | Ukazovateľ: ikona, hodnota s jednotkou, popis, trend alebo cieľ | Hodnotu formátuj vopred (`formatNumber`) |
@@ -56,3 +57,10 @@ Spoločné komponenty sú v `src/components/`, ukážka všetkých na `/dev/ui` 
 | `charts/ProductionAreaChart` | Skutočná vs. predikovaná výroba s pásmom podvýroby, `variant="dark"` pre landing page | Vlastné SVG za stabilným API (ADR #224, bod 5); `summary` a skrytá tabuľka ako textová alternatíva |
 
 Tóny badge: `badge--success`, `--info`, `--warning`, `--error`, `--attention` (vyžaduje akciu, obrys), `--muted` (neaktívne, prerušovaný obrys); bez tónu = neutrálny. Tlačidlo počas ukladania dostane `aria-busy="true"` (zobrazí sa spinner).
+
+## Obal aplikácie
+
+- Prehľad prihláseného používateľa je na `/app` (`HOME_PATH`), adresa `/` patrí verejnej landing page (#390; dovtedy presmeruje na `/app`).
+- Menu, oprávnenia ciest a breadcrumbs sa skladajú z jedného zoznamu `NAVIGATION` v `src/auth/navigation.ts`. Skupiny: Obchod, Realizácia, Servis, Systém. Novú stránku pridaj tam, nie priamo do sidebaru.
+- Sidebar sa dá zbaliť na ikony (pamätá sa v `localStorage`), texty ostávajú pre čítačky. Pod 760 px je z neho vysúvacie menu.
+- Horná lišta: rýchly skok na moduly (`Ctrl/⌘+K`, ponúka len moduly povolené pre rolu) a menu používateľa s odhlásením.

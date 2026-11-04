@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { findItem } from '../auth/navigation'
+import { HOME_PATH, findItem } from '../auth/navigation'
 import { safeReturnUrl } from '../auth/session'
 import type { LoginNotice } from '../features/auth/formHelpers'
 import { AUTH_TEXTS } from '../features/auth/texts'
 import '../features/auth/auth.css'
 import { MESSAGES } from '../lib/messages'
+import { PageHeader } from '../components/PageHeader'
 
 export function LoginPage() {
   const { session, signIn, signOutReason } = useAuth()
@@ -72,15 +73,14 @@ export function LoginPage() {
 
 /** Placeholder for sections implemented by later stories. */
 export function SectionPage({ path }: { path: string }) {
-  return <h2>{findItem(path)?.label ?? path}</h2>
+  return <PageHeader title={findItem(path)?.label ?? path} />
 }
 
 export function ForbiddenPage() {
   return (
     <section>
-      <h2>403 – Nemáte prístup</h2>
-      <p>Na túto sekciu nemáte oprávnenie.</p>
-      <Link to="/" className="btn btn--ghost">
+      <PageHeader title="403 – Nemáte prístup" subtitle="Na túto sekciu nemáte oprávnenie." />
+      <Link to={HOME_PATH} className="btn btn--ghost">
         Späť na prehľad
       </Link>
     </section>
@@ -90,9 +90,8 @@ export function ForbiddenPage() {
 export function NotFoundPage() {
   return (
     <section>
-      <h2>404 – Stránka neexistuje</h2>
-      <p className="page-intro">Adresa neexistuje alebo bola presunutá.</p>
-      <Link to="/" className="btn btn--ghost">
+      <PageHeader title="404 – Stránka neexistuje" subtitle="Adresa neexistuje alebo bola presunutá." />
+      <Link to={HOME_PATH} className="btn btn--ghost">
         Späť na prehľad
       </Link>
     </section>

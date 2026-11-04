@@ -24,7 +24,7 @@ function Icon({ children }: { children: ReactNode }) {
 /** Sidebar icon for a navigation path (falls back to a neutral dot). */
 export function NavIcon({ path }: { path: string }) {
   switch (path) {
-    case '/':
+    case '/app':
       return (
         <Icon>
           <rect x="2" y="2" width="5" height="5" rx="1" />
@@ -73,6 +73,12 @@ export function NavIcon({ path }: { path: string }) {
       return (
         <Icon>
           <path d="M9.6 2.4a3 3 0 0 0-3.9 3.9L2 10a1.4 1.4 0 0 0 2 2l3.7-3.7a3 3 0 0 0 3.9-3.9L9.75 6.25l-1.5-.5-.5-1.5 1.85-1.85Z" />
+        </Icon>
+      )
+    case '/monitoring':
+      return (
+        <Icon>
+          <path d="M2 13.5h12M3 10.5l3-3.5 2.5 2 4.5-5.5" />
         </Icon>
       )
     case '/tickets':
@@ -132,6 +138,40 @@ export function SignOutIcon() {
   return (
     <Icon>
       <path d="M6.5 2.5H3.5v11h3M10.5 5l3 3-3 3M13.25 8H6.5" />
+    </Icon>
+  )
+}
+
+export function MenuIcon() {
+  return (
+    <Icon>
+      <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+    </Icon>
+  )
+}
+
+export function SearchIcon() {
+  return (
+    <Icon>
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="m10.5 10.5 3 3" />
+    </Icon>
+  )
+}
+
+export function ChevronIcon() {
+  return (
+    <Icon>
+      <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
+    </Icon>
+  )
+}
+
+/** Double chevron; rotated by CSS when the sidebar is collapsed. */
+export function CollapseIcon() {
+  return (
+    <Icon>
+      <path d="M9.5 4.5 6 8l3.5 3.5M13 4.5 9.5 8l3.5 3.5" />
     </Icon>
   )
 }

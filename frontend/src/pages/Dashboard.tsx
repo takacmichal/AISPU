@@ -13,6 +13,7 @@ import { STATUS_BADGE, STATUS_LABELS, quoteNumber, type QuoteStatus } from '../f
 import { formatNumber, formatRelative } from '../lib/format'
 import { MESSAGES } from '../lib/messages'
 import { DASHBOARD_TEXT as T } from './dashboardTexts'
+import { PageHeader } from '../components/PageHeader'
 
 /** The card is not shown: the role cannot use the module (navigation config) or the API answered 403. */
 const HIDDEN = 'hidden'
@@ -165,10 +166,7 @@ export default function Dashboard() {
 
   return (
     <section className="dashboard">
-      <header className="page-header">
-        <h2 className="page-header__title">{T.title}</h2>
-        <p className="page-header__subtitle">{T.subtitle}</p>
-      </header>
+      <PageHeader title={T.title} subtitle={T.subtitle} />
 
       {kpiVisible ? (
         <div className="kpi-grid" role="group" aria-label={T.kpiRegion}>

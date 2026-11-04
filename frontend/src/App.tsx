@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/RequireAuth'
-import { NAVIGATION } from './auth/navigation'
+import { HOME_PATH, NAVIGATION } from './auth/navigation'
 import { AppShell } from './layout/AppShell'
 import CustomerFormPage from './features/customers/CustomerFormPage'
 import CustomerDetailPage from './features/customers/CustomerDetailPage'
@@ -33,7 +33,7 @@ import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pag
 // Dev-only component overview; import.meta.env.DEV is false in production builds, so the chunk is dropped there.
 const UiShowcase = import.meta.env.DEV ? lazy(() => import('./dev/UiShowcase')) : null
 
-const WIRED = ['/', '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring']
+const WIRED = [HOME_PATH, '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring']
 
 export default function App() {
   return (
@@ -42,9 +42,11 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      {/* The public landing page (#390) takes over "/"; until then it leads to the dashboard (or to login). */}
+      <Route path="/" element={<Navigate to={HOME_PATH} replace />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<Dashboard />} />
+          <Route path={HOME_PATH} element={<Dashboard />} />
           {NAVIGATION.filter((item) => !WIRED.includes(item.path)).map((item) => (
             <Route key={item.path} path={item.path} element={<SectionPage path={item.path} />} />
           ))}

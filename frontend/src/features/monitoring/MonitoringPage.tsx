@@ -8,6 +8,7 @@ import './monitoring.css'
 import { periodFromParams, periodToParams } from './periods'
 import { ProductionPanel } from './ProductionPanel'
 import { T } from './texts'
+import { PageHeader } from '../../components/PageHeader'
 
 /** `/monitoring`: production of one installation; installation and period are kept in the URL. */
 export default function MonitoringPage() {
@@ -23,10 +24,7 @@ export default function MonitoringPage() {
 
   return (
     <section>
-      <header className="page-header">
-        <h2 className="page-header__title">{T.title}</h2>
-        <p className="page-header__subtitle">{T.subtitle}</p>
-      </header>
+      <PageHeader title={T.title} subtitle={T.subtitle} />
       {loading && <Skeleton lines={2} />}
       {error && (
         <div className="kpi__error" role="alert">

@@ -8,6 +8,7 @@ import { AuthLayout, FormAlert } from './AuthLayout'
 import { describedBy, formErrorMessage, useFocusFirstInvalid, type LoginNotice } from './formHelpers'
 import { AUTH_TEXTS } from './texts'
 import { collect, validateConfirmation, validateEmail, validatePassword, withoutField, type FieldErrors } from './validation'
+import { HOME_PATH } from '../../auth/navigation'
 
 const T = AUTH_TEXTS
 
@@ -36,7 +37,7 @@ export default function RegisterPage() {
   const [attempt, setAttempt] = useState(0)
   const formRef = useFocusFirstInvalid(attempt)
 
-  if (session) return <Navigate to="/" replace />
+  if (session) return <Navigate to={HOME_PATH} replace />
 
   function clear(field: string) {
     setErrors((current) => withoutField(current, field))
