@@ -10,8 +10,7 @@ using static SolarOps.Api.Tests.Integration.FveDesigns.FveDesignTestApi;
 
 namespace SolarOps.Api.Tests.Integration.FveDesigns;
 
-[Collection(PostgresCollection.Name)]
-public sealed class FveDesignVersionEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class FveDesignVersionEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
     private readonly Guid _designerId = Guid.CreateVersion7();

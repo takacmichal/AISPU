@@ -10,12 +10,11 @@ namespace SolarOps.Api.Tests.Infrastructure;
 
 /// <summary>
 /// Hosts the API in-memory against a fresh database on the shared <see cref="PostgresFixture"/> container.
-/// The schema is created by applying EF Core migrations when the host starts.
+/// The database is a copy of a template that already has the EF Core migrations applied.
 /// </summary>
 /// <example>
 /// <code>
-/// [Collection(PostgresCollection.Name)]
-/// public sealed class FooEndpointsTests(PostgresFixture postgres) : IDisposable
+/// public sealed class FooEndpointsTests(PostgresFixture postgres) : IClassFixture&lt;PostgresFixture&gt;, IDisposable
 /// {
 ///     private readonly ApiFactory _factory = new(postgres);
 ///     public void Dispose() => _factory.Dispose();
@@ -66,7 +65,14 @@ public class ApiFactory(PostgresFixture postgres, string? databaseName = null) :
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        // The template itself is migrated by the host below; every other database is a copy of it.
+        if (DatabaseName != PostgresFixture.TemplateName)
+        {
+            postgres.CreateDatabaseFromTemplate(DatabaseName);
+        }
+
         var host = base.CreateHost(builder);
+        // No-op for a copy of the template (already migrated), applies the migrations for the template.
         host.Services.MigrateDatabaseAsync().GetAwaiter().GetResult();
         return host;
     }

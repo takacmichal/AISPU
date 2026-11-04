@@ -11,8 +11,7 @@ using Data = SolarOps.Api.Tests.Integration.Installations.InstallationsTestData;
 namespace SolarOps.Api.Tests.Integration.ConnectionRequests;
 
 /// <summary>Submission, state and proposal deadline of a connection request (#86).</summary>
-[Collection(PostgresCollection.Name)]
-public sealed class ConnectionRequestDeadlineEndpointsTests : IDisposable
+public sealed class ConnectionRequestDeadlineEndpointsTests : IClassFixture<PostgresFixture>, IDisposable
 {
     // Tuesday; 10 working days later is Tuesday 2026-11-10, 30 calendar days later is 2026-11-26.
     private readonly FixedTimeProvider _clock = new(new DateTimeOffset(2026, 10, 27, 8, 0, 0, TimeSpan.Zero));

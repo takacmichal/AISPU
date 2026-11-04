@@ -14,8 +14,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Auth;
 
-[Collection(PostgresCollection.Name)]
-public sealed class PasswordResetTests : IAsyncLifetime
+public sealed class PasswordResetTests : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
     private const string NewPassword = "Brand-New-Pass-2027";
 

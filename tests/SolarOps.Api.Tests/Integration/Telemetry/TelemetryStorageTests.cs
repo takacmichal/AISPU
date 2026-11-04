@@ -6,8 +6,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Telemetry;
 
-[Collection(PostgresCollection.Name)]
-public sealed class TelemetryStorageTests(PostgresFixture postgres) : IDisposable
+public sealed class TelemetryStorageTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private const int Devices = 100;
     private const int SamplesPerDevice = 10_000;

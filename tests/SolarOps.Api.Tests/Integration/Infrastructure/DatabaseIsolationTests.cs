@@ -11,8 +11,7 @@ namespace SolarOps.Api.Tests.Integration.Infrastructure;
 /// Verifies the contract of <see cref="ApiFactory"/> that the whole integration suite relies on (#171):
 /// every factory owns a separate database created by EF migrations, so tests cannot see each other's data.
 /// </summary>
-[Collection(PostgresCollection.Name)]
-public sealed class DatabaseIsolationTests(PostgresFixture postgres) : IDisposable
+public sealed class DatabaseIsolationTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _first = new(postgres);
     private readonly ApiFactory _second = new(postgres);
@@ -71,7 +70,7 @@ public sealed class DatabaseIsolationTests(PostgresFixture postgres) : IDisposab
     }
 
     [Fact]
-    public void EveryIntegrationTestClass_UsesThePostgresCollection()
+    public void EveryIntegrationTestClass_SharesThePostgresContainer()
     {
         var testClasses = typeof(DatabaseIsolationTests).Assembly.GetTypes()
             .Where(type => type.Namespace?.StartsWith("SolarOps.Api.Tests.Integration", StringComparison.Ordinal) == true)
@@ -86,13 +85,13 @@ public sealed class DatabaseIsolationTests(PostgresFixture postgres) : IDisposab
         Assert.NotEmpty(testClasses);
         foreach (var type in testClasses)
         {
-            var collectionNames = type.GetCustomAttributesData()
+            var usesClassFixture = type.GetInterfaces().Contains(typeof(IClassFixture<PostgresFixture>));
+            var usesLegacyCollection = type.GetCustomAttributesData()
                 .Where(data => data.AttributeType == typeof(CollectionAttribute))
-                .Select(data => data.ConstructorArguments.Count > 0 ? data.ConstructorArguments[0].Value as string : null)
-                .ToList();
+                .Any(data => data.ConstructorArguments.Count > 0 && data.ConstructorArguments[0].Value as string == PostgresCollection.Name);
             Assert.True(
-                collectionNames.Contains(PostgresCollection.Name),
-                $"{type.FullName} must be decorated with [Collection({PostgresCollection.Name})].");
+                usesClassFixture || usesLegacyCollection,
+                $"{type.FullName} must implement IClassFixture<PostgresFixture> (parallel) or use [Collection({PostgresCollection.Name})] (serial).");
         }
     }
 }

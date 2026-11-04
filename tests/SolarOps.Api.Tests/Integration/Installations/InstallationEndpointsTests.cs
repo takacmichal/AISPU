@@ -5,8 +5,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Installations;
 
-[Collection(PostgresCollection.Name)]
-public sealed class InstallationEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class InstallationEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     // Fixed clock: the planned dates below must not become "in the past" (#88).
     private readonly ApiFactory _factory = new ClockedApiFactory(postgres, new FixedTimeProvider(new DateTimeOffset(2026, 11, 3, 8, 0, 0, TimeSpan.Zero)));

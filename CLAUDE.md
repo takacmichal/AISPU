@@ -44,7 +44,7 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 ## Testy
 
 - TDD: najprv zlyhávajúci test, potom kód.
-- Unit testy: `tests/SolarOps.Api.Tests/Unit/<Modul>/`. Integračné: `Integration/<Modul>/` s `[Collection(PostgresCollection.Name)]`, `PostgresFixture`, `new ApiFactory(postgres)`, `factory.CreateApiClient(userId, Roles.Sales)` a seedom cez `factory.ExecuteDbAsync(...)`.
+- Unit testy: `tests/SolarOps.Api.Tests/Unit/<Modul>/`. Integračné: `Integration/<Modul>/` s `IClassFixture<PostgresFixture>` (bez `[Collection]`, triedy bežia paralelne nad jedným kontajnerom; každý `ApiFactory` dostane kópiu migrovanej template databázy), `new ApiFactory(postgres)`, `factory.CreateApiClient(userId, Roles.Sales)` a seedom cez `factory.ExecuteDbAsync(...)`.
 - Pri každom endpointe testuj aj 401 (bez prihlásenia), 403 (zlá rola) a prístup zákazníka k cudzím dátam.
 - Testy sú deterministické: žiadna sieť, pevné hodiny a seed.
 

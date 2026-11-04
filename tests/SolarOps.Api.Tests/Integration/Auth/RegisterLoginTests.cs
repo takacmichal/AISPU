@@ -14,8 +14,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Auth;
 
-[Collection(PostgresCollection.Name)]
-public sealed class RegisterLoginTests(PostgresFixture postgres) : IAsyncLifetime
+public sealed class RegisterLoginTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
     private readonly JwtApiFactory _factory = new(postgres);
 
