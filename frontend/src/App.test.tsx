@@ -38,7 +38,7 @@ describe('role navigation', () => {
     expect(labels('Sales')).toContain('Zákazníci')
     expect(labels('Sales')).not.toContain('Servisné tikety')
     expect(labels('Technician')).toContain('Servisné tikety')
-    expect(labels('Customer')).toEqual(['Prehľad', 'Moje elektrárne'])
+    expect(labels('Customer')).toEqual(['Prehľad', 'Servisné tikety', 'Moje elektrárne'])
     expect(labels('Admin')).toContain('Používatelia a roly')
     expect(labels('Admin')).not.toContain('Administrácia')
   })
@@ -56,7 +56,7 @@ describe('role navigation', () => {
     ])
     expect(sections('Customer')).toEqual([
       ['', ['Prehľad']],
-      ['Prevádzka', ['Moje elektrárne']],
+      ['Prevádzka', ['Servisné tikety', 'Moje elektrárne']],
     ])
   })
 
