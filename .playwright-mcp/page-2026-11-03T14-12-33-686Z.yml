@@ -1,0 +1,97 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - link "Preskočiť na obsah" [ref=f1e4] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=f1e5]:
+      - heading "SolarOps" [level=1] [ref=f1e6]
+      - navigation "Hlavná navigácia" [ref=f1e7]:
+        - list [ref=f1e8]:
+          - listitem [ref=f1e9]:
+            - link "Prehľad" [ref=f1e10] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f1e11]:
+            - link "Zákazníci" [ref=f1e12] [cursor=pointer]:
+              - /url: /customers
+          - listitem [ref=f1e13]:
+            - link "Katalóg" [ref=f1e14] [cursor=pointer]:
+              - /url: /catalog
+          - listitem [ref=f1e15]:
+            - link "Návrhy FVE" [ref=f1e16] [cursor=pointer]:
+              - /url: /designs
+          - listitem [ref=f1e17]:
+            - link "Ponuky" [ref=f1e18] [cursor=pointer]:
+              - /url: /quotes
+          - listitem [ref=f1e19]:
+            - link "Zmluvy" [ref=f1e20] [cursor=pointer]:
+              - /url: /contracts
+          - listitem [ref=f1e21]:
+            - link "Inštalácie" [ref=f1e22] [cursor=pointer]:
+              - /url: /installations
+          - listitem [ref=f1e23]:
+            - link "Servisné tikety" [ref=f1e24] [cursor=pointer]:
+              - /url: /tickets
+          - listitem [ref=f1e25]:
+            - link "Používatelia a roly" [ref=f1e26] [cursor=pointer]:
+              - /url: /admin/users
+      - paragraph [ref=f1e27]:
+        - text: demo@solarops.local
+        - button "Odhlásiť" [ref=f1e28] [cursor=pointer]
+    - main [active] [ref=f1e29]:
+      - navigation "Breadcrumbs" [ref=f1e30]:
+        - list [ref=f1e31]:
+          - listitem [ref=f1e32]:
+            - link "Prehľad" [ref=f1e33] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f1e34]: ›Zákazníci
+      - generic [ref=f1e35]:
+        - generic [ref=f1e36]:
+          - heading "Zákazníci" [level=2] [ref=f1e37]
+          - link "Nový zákazník" [ref=f1e38] [cursor=pointer]:
+            - /url: /customers/new
+        - generic [ref=f1e39]:
+          - generic [ref=f1e40]:
+            - text: Hľadať podľa mena, IČO alebo e-mailu
+            - searchbox "Hľadať podľa mena, IČO alebo e-mailu" [ref=f1e41]
+          - table [ref=f1e43]:
+            - rowgroup [ref=f1e44]:
+              - row [ref=f1e45]:
+                - columnheader [ref=f1e46]:
+                  - button "Meno / firma ↑" [ref=f1e47] [cursor=pointer]
+                - columnheader [ref=f1e48]:
+                  - button "E-mail" [ref=f1e49] [cursor=pointer]
+                - columnheader "Telefón" [ref=f1e50]
+                - columnheader "IČO" [ref=f1e51]
+                - columnheader "Typ" [ref=f1e52]
+                - columnheader "Stav" [ref=f1e53]
+                - columnheader [ref=f1e54]:
+                  - button "Vytvorený" [ref=f1e55] [cursor=pointer]
+            - rowgroup [ref=f1e56]:
+              - row [ref=f1e57] [cursor=pointer]:
+                - cell "Peter Horvath" [ref=f1e58]
+                - cell "horvath@demo.solarops.local" [ref=f1e59]
+                - cell "+421 905 555 666" [ref=f1e60]
+                - cell "–" [ref=f1e61]
+                - cell "Fyzická osoba" [ref=f1e62]
+                - cell "Aktívny" [ref=f1e63]
+                - cell "3. 11. 2026" [ref=f1e64]
+              - row [ref=f1e65] [cursor=pointer]:
+                - cell "Maria Kovacova" [ref=f1e66]
+                - cell "kovacova@demo.solarops.local" [ref=f1e67]
+                - cell "+421 905 333 444" [ref=f1e68]
+                - cell "–" [ref=f1e69]
+                - cell "Fyzická osoba" [ref=f1e70]
+                - cell "Aktívny" [ref=f1e71]
+                - cell "3. 11. 2026" [ref=f1e72]
+              - row [ref=f1e73] [cursor=pointer]:
+                - cell "Jan Novak" [ref=f1e74]
+                - cell "novak@demo.solarops.local" [ref=f1e75]
+                - cell "+421 905 111 222" [ref=f1e76]
+                - cell "–" [ref=f1e77]
+                - cell "Fyzická osoba" [ref=f1e78]
+                - cell "Aktívny" [ref=f1e79]
+                - cell "3. 11. 2026" [ref=f1e80]
+          - navigation "Stránkovanie" [ref=f1e81]:
+            - button "Predchádzajúca" [disabled] [ref=f1e82]
+            - generic [ref=f1e83]: Strana 1 z 1 (3)
+            - button "Ďalšia" [disabled] [ref=f1e84]
+  - region "Oznámenia"

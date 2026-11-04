@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using SolarOps.Api.Infrastructure.Security;
 using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Auth;
@@ -23,7 +24,9 @@ internal static class AuthEndpoints
             .WithDescription("Returns a JWT access token (15 min) and a single-use refresh token (7 days). "
                 + "Any failure (unknown e-mail, wrong password, locked out account) returns the same 401.")
             .AllowAnonymous()
-            .WithValidation<LoginRequest>();
+            .RequireRateLimiting(SecurityExtensions.AuthPolicy)
+            .WithValidation<LoginRequest>()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/refresh", RefreshAsync)
             .WithName("Refresh")

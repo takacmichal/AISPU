@@ -1,0 +1,12 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - heading "Prihlásenie" [level=1] [ref=e4]
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - text: E-mail
+        - textbox "E-mail" [ref=e7]
+      - generic [ref=e8]:
+        - text: Heslo
+        - textbox "Heslo" [ref=e9]
+      - button "Prihlásiť" [ref=e10] [cursor=pointer]
+  - region "Oznámenia"

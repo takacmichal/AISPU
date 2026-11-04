@@ -1,0 +1,124 @@
+- generic [ref=e2]:
+  - generic [ref=e133]:
+    - link "Preskočiť na obsah" [ref=e134] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e135]:
+      - heading "SolarOps" [level=1] [ref=e136]
+      - navigation "Hlavná navigácia" [ref=e141]:
+        - list [ref=e143]:
+          - listitem [ref=e144]:
+            - link "Prehľad" [ref=e145] [cursor=pointer]:
+              - /url: /
+        - generic [ref=e152]:
+          - paragraph [ref=e153]: Obchod
+          - list "Obchod" [ref=e154]:
+            - listitem [ref=e155]:
+              - link "Zákazníci" [ref=e156] [cursor=pointer]:
+                - /url: /customers
+            - listitem [ref=e162]:
+              - link "Katalóg" [ref=e163] [cursor=pointer]:
+                - /url: /catalog
+            - listitem [ref=e168]:
+              - link "Návrhy FVE" [ref=e169] [cursor=pointer]:
+                - /url: /designs
+            - listitem [ref=e174]:
+              - link "Ponuky" [ref=e175] [cursor=pointer]:
+                - /url: /quotes
+            - listitem [ref=e180]:
+              - link "Zmluvy" [ref=e181] [cursor=pointer]:
+                - /url: /contracts
+        - generic [ref=e186]:
+          - paragraph [ref=e187]: Prevádzka
+          - list "Prevádzka" [ref=e188]:
+            - listitem [ref=e189]:
+              - link "Inštalácie" [ref=e190] [cursor=pointer]:
+                - /url: /installations
+            - listitem [ref=e194]:
+              - link "Servisné tikety" [ref=e195] [cursor=pointer]:
+                - /url: /tickets
+            - listitem [ref=e199]:
+              - link "Moje elektrárne" [ref=e200] [cursor=pointer]:
+                - /url: /my-plants
+        - generic [ref=e205]:
+          - paragraph [ref=e206]: Administrácia
+          - list "Administrácia" [ref=e207]:
+            - listitem [ref=e208]:
+              - link "Používatelia a roly" [ref=e209] [cursor=pointer]:
+                - /url: /admin/users
+      - generic [ref=e214]:
+        - generic [aria-hidden] [ref=e215]: D
+        - generic "demo@solarops.local" [ref=e216]
+        - button "Odhlásiť" [ref=e217] [cursor=pointer]
+    - main [active] [ref=e220]:
+      - generic [ref=e222]:
+        - generic [ref=e223]:
+          - heading "Prehľad" [level=2] [ref=e224]
+          - paragraph [ref=e225]: Správa fotovoltických elektrární
+        - group "Kľúčové ukazovatele" [ref=e226]:
+          - article [ref=e227]:
+            - heading [level=3] [ref=e228]:
+              - link "Zákazníci" [ref=e229] [cursor=pointer]:
+                - /url: /customers
+            - paragraph [ref=e230]: "3"
+            - generic [ref=e231]: Evidovaní zákazníci
+          - article [ref=e232]:
+            - heading [level=3] [ref=e233]:
+              - link "Otvorené ponuky" [ref=e234] [cursor=pointer]:
+                - /url: /quotes
+            - paragraph [ref=e235]: "0"
+            - generic [ref=e236]: "Odoslané: 0 · Rozpracované: 0"
+          - article [ref=e237]:
+            - heading [level=3] [ref=e238]:
+              - link "Zmluvy na podpis" [ref=e239] [cursor=pointer]:
+                - /url: /contracts
+            - paragraph [ref=e240]: "0"
+            - generic [ref=e241]: Zmluvy v koncepte čakajú na podpis
+          - article [ref=e242]:
+            - heading [level=3] [ref=e243]:
+              - link "Inštalácie v realizácii" [ref=e244] [cursor=pointer]:
+                - /url: /installations
+            - paragraph [ref=e245]: "2"
+            - generic [ref=e246]:
+              - list [ref=e247]:
+                - listitem [ref=e248]:
+                  - generic [ref=e249]: Naplánovaná
+                  - text: "1"
+                - listitem [ref=e250]:
+                  - generic [ref=e251]: Uvedená do prevádzky
+                  - text: "1"
+              - paragraph [ref=e252]: "Odovzdané zákazníkom: 0"
+        - article [ref=e253]:
+          - generic [ref=e254]:
+            - heading "Posledná aktivita" [level=3] [ref=e255]
+            - paragraph [ref=e256]: Naposledy zmenené ponuky a inštalácie
+          - list [ref=e257]:
+            - listitem [ref=e258]:
+              - generic [ref=e259]: Inštalácia
+              - link "FVE 9,9 kWp (demo)" [ref=e260] [cursor=pointer]:
+                - /url: /installations/01a1a1d7-7a0a-7e4e-9c08-8eab51a7bed8
+              - generic [ref=e261]: Naplánovaná
+              - time [ref=e262]: pred 10 minútami
+            - listitem [ref=e263]:
+              - generic [ref=e264]: Ponuka
+              - link "#01A1A1D7" [ref=e265] [cursor=pointer]:
+                - /url: /quotes/01a1a1d7-79f3-7466-b7e2-d0d247cf2407
+              - generic [ref=e266]: Prijatá
+              - time [ref=e267]: pred 10 minútami
+            - listitem [ref=e268]:
+              - generic [ref=e269]: Inštalácia
+              - link "FVE 9,9 kWp (demo)" [ref=e270] [cursor=pointer]:
+                - /url: /installations/01a1a1d7-78a1-7ca2-a981-8860d666162b
+              - generic [ref=e271]: Uvedená do prevádzky
+              - time [ref=e272]: pred 10 minútami
+            - listitem [ref=e273]:
+              - generic [ref=e274]: Ponuka
+              - link "#01A1A1D7" [ref=e275] [cursor=pointer]:
+                - /url: /quotes/01a1a1d7-7805-79e2-a59b-b741ee82d958
+              - generic [ref=e276]: Prijatá
+              - time [ref=e277]: pred 10 minútami
+        - status [ref=e278]:
+          - generic [ref=e279]: "Stav API:"
+          - text: SolarOps API
+          - generic [ref=e281]: v1.0.0+806b2e33c7278bd5f9aead73e40275ea00b4332f
+          - text: · Development
+  - region "Oznámenia"

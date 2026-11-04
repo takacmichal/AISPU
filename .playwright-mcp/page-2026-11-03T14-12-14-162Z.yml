@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - link "Preskočiť na obsah" [ref=e12] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e13]:
+      - heading "SolarOps" [level=1] [ref=e14]
+      - navigation "Hlavná navigácia" [ref=e15]:
+        - list [ref=e16]:
+          - listitem [ref=e17]:
+            - link "Prehľad" [ref=e18] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e19]:
+            - link "Zákazníci" [ref=e20] [cursor=pointer]:
+              - /url: /customers
+          - listitem [ref=e21]:
+            - link "Katalóg" [ref=e22] [cursor=pointer]:
+              - /url: /catalog
+          - listitem [ref=e23]:
+            - link "Návrhy FVE" [ref=e24] [cursor=pointer]:
+              - /url: /designs
+          - listitem [ref=e25]:
+            - link "Ponuky" [ref=e26] [cursor=pointer]:
+              - /url: /quotes
+          - listitem [ref=e27]:
+            - link "Zmluvy" [ref=e28] [cursor=pointer]:
+              - /url: /contracts
+          - listitem [ref=e29]:
+            - link "Inštalácie" [ref=e30] [cursor=pointer]:
+              - /url: /installations
+          - listitem [ref=e31]:
+            - link "Servisné tikety" [ref=e32] [cursor=pointer]:
+              - /url: /tickets
+          - listitem [ref=e33]:
+            - link "Používatelia a roly" [ref=e34] [cursor=pointer]:
+              - /url: /admin/users
+      - paragraph [ref=e35]:
+        - text: demo@solarops.local
+        - button "Odhlásiť" [ref=e36] [cursor=pointer]
+    - main [active] [ref=e37]:
+      - generic [ref=e38]:
+        - heading "Prehľad" [level=2] [ref=e39]
+        - paragraph [ref=e40]: Správa fotovoltických elektrární
+        - generic [ref=e42]:
+          - paragraph [ref=e43]: Stav API
+          - paragraph [ref=e44]:
+            - text: SolarOps API
+            - generic [ref=e45]: v1.0.0+12c3378d2555a20f75f5653dfb163635f5190084
+          - generic [ref=e46]: Development
+  - region "Oznámenia"
