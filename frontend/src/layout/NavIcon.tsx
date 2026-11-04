@@ -105,13 +105,25 @@ export function NavIcon({ path }: { path: string }) {
   }
 }
 
-/** Small SolarOps logo glyph (sun over a panel). */
+/** SolarOps logo glyph (sun over a panel), from the landing page design. */
 export function BrandGlyph() {
   return (
-    <svg className="brand-glyph" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <rect width="20" height="20" rx="5" fill="var(--color-acid-lime)" />
-      <circle cx="10" cy="7.5" r="2.5" fill="var(--color-void)" />
-      <path d="M4.5 15.5 6 11h8l1.5 4.5h-11Z" fill="none" stroke="var(--color-void)" strokeWidth="1.5" strokeLinejoin="round" />
+    <svg
+      className="brand-glyph"
+      width="28"
+      height="28"
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke="var(--color-text)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="16" cy="9" r="4" stroke="var(--color-accent)" />
+      <path d="M16 2v1.5M9.5 4.5l1 1M22.5 4.5l-1 1M7 9h1.5M23.5 9H25" stroke="var(--color-accent)" />
+      <path d="M6 28l3-12h14l3 12z" />
+      <path d="M7.5 22h17M12.5 16l-1.2 12M19.5 16l1.2 12" />
     </svg>
   )
 }

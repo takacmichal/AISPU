@@ -17,7 +17,7 @@
   border-radius: var(--radius-buttons);
   background: var(--surface-subtle);
   box-shadow: var(--shadow-inset-border);
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   counter-increment: step;
 }
 
@@ -29,40 +29,40 @@
   width: 1.5rem;
   height: 1.5rem;
   border-radius: var(--radius-pills);
-  background: var(--color-graphite);
-  color: var(--color-mist);
+  background: var(--color-border);
+  color: var(--color-text-body);
   font-size: var(--text-label);
 }
 
 .stepper__step--done {
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .stepper__step--done::before {
   content: '\2713';
-  background: rgb(39 166 68 / 15%);
-  color: var(--color-pulse-green);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .stepper__step--current {
-  color: var(--color-paper);
-  box-shadow: inset 0 0 0 1px var(--color-signal-teal);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-info);
 }
 
 .stepper__step--current::before {
-  background: rgb(2 184 204 / 15%);
-  color: var(--color-signal-teal);
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .stepper__step--blocked {
-  color: var(--color-paper);
-  box-shadow: inset 0 0 0 1px var(--color-coral-red);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-danger);
 }
 
 .stepper__step--blocked::before {
   content: '!';
-  background: rgb(235 87 87 / 15%);
-  color: var(--color-coral-red);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .stepper__label {
@@ -71,7 +71,7 @@
 }
 
 .stepper__meta {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
@@ -83,25 +83,25 @@
 }
 
 .connection-alert--warning {
-  background: rgb(228 242 34 / 10%);
-  color: var(--color-acid-lime);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .connection-alert--overdue {
-  background: rgb(235 87 87 / 15%);
-  color: var(--color-coral-red);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .connection-alert--ok {
   background: var(--surface-tint);
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .timeline {
   margin: 0;
   padding: 0 0 0 var(--spacing-16);
   list-style: none;
-  border-left: 1px solid var(--color-graphite);
+  border-left: 1px solid var(--color-border);
 }
 
 .timeline li {
@@ -117,18 +117,18 @@
   width: 7px;
   height: 7px;
   border-radius: var(--radius-pills);
-  background: var(--color-signal-teal);
+  background: var(--color-info);
 }
 
 .timeline time {
   display: block;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
 .timeline__note {
   margin: var(--spacing-4) 0 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 

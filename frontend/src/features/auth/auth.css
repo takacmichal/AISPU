@@ -1,4 +1,4 @@
-/* Public account screens (login, registration, password reset): centered card on the void background. */
+/* Public account screens (login, registration, password reset): centered card on the cream background. */
 .auth-form .btn--primary {
   width: 100%;
   margin-top: var(--spacing-4);
@@ -10,27 +10,27 @@
 
 .auth-hint {
   margin: 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
 .auth-email {
   margin: 0 0 var(--spacing-16);
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
 .auth-email strong {
-  color: var(--color-mist);
-  font-weight: 510;
+  color: var(--color-text-body);
+  font-weight: 600;
 }
 
 .auth-notice {
   margin: 0 0 var(--spacing-16);
   padding: var(--spacing-12) var(--spacing-16);
   border-radius: var(--radius-buttons);
-  background: rgb(39 166 68 / 12%);
-  color: var(--color-pulse-green);
+  background: var(--color-success-bg);
+  color: var(--color-success);
   font-size: var(--text-caption);
 }
 
@@ -40,6 +40,6 @@
   justify-content: space-between;
   gap: var(--spacing-8) var(--spacing-16);
   margin: var(--spacing-16) 0 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }

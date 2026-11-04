@@ -16,8 +16,8 @@
 }
 
 .view-switch .btn[aria-pressed='true'] {
-  background: var(--surface-tint);
-  color: var(--color-paper);
+  background: var(--color-inverse);
+  color: var(--color-on-inverse);
 }
 
 .kanban {
@@ -35,8 +35,7 @@
   gap: var(--spacing-8);
   padding: var(--spacing-12);
   border-radius: var(--radius-cards);
-  background: var(--color-carbon);
-  box-shadow: var(--shadow-inset-border);
+  background: var(--surface-tint);
 }
 
 .kanban__column h3 {
@@ -58,18 +57,19 @@
   display: grid;
   gap: var(--spacing-8);
   padding: var(--spacing-12);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-buttons);
-  background: var(--surface-subtle);
-  box-shadow: var(--shadow-inset-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .kanban__card-title {
-  font-weight: 510;
+  font-weight: 600;
 }
 
 .kanban__empty {
   margin: 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
@@ -97,7 +97,7 @@
 }
 
 .ticket-meta dt {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
 }
 
 .ticket-meta dd {
@@ -118,11 +118,11 @@
 
 .timeline__item {
   padding-left: var(--spacing-12);
-  border-left: 2px solid var(--color-graphite);
+  border-left: 2px solid var(--color-border);
 }
 
 .timeline__item--comment {
-  border-left-color: var(--color-smoke);
+  border-left-color: var(--color-border-strong);
 }
 
 .timeline__head {
@@ -130,7 +130,7 @@
   flex-wrap: wrap;
   gap: var(--spacing-8);
   align-items: center;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
@@ -166,6 +166,6 @@
 .slot-note {
   padding: var(--spacing-12);
   border-radius: var(--radius-buttons);
-  border: 1px dashed var(--color-smoke);
-  color: var(--color-fog);
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-muted);
 }

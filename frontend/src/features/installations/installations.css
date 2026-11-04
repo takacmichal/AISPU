@@ -36,8 +36,8 @@
 }
 
 .installation-warning {
-  color: var(--color-mist);
-  border-left: 2px solid var(--color-coral-red);
+  color: var(--color-text-body);
+  border-left: 2px solid var(--color-danger);
   padding-left: var(--spacing-12);
   margin: var(--spacing-8) 0;
 }
@@ -53,7 +53,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-8);
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .technician-list input {
@@ -71,7 +71,7 @@
 
 .string-panel {
   padding: var(--spacing-4) var(--spacing-8);
-  border: 1px solid var(--color-graphite);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-buttons);
   background: var(--surface-subtle);
 }

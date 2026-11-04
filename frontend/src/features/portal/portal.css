@@ -1,4 +1,4 @@
-/* Customer portal (Moje elektrárne). Uses tokens from index.css; no lime: the portal has no primary action yet. */
+/* Customer portal (Moje elektrárne). Uses tokens from index.css. */
 .plant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -15,11 +15,11 @@
   gap: var(--spacing-16);
   height: 100%;
   padding: var(--spacing-20);
-  transition: background-color 120ms ease;
+  transition: box-shadow 120ms ease;
 }
 
 .plant-card:hover {
-  background: var(--color-obsidian);
+  box-shadow: var(--shadow-md);
 }
 
 .plant-card__header,
@@ -41,7 +41,7 @@
 }
 
 .plant-card__link {
-  color: var(--color-paper);
+  color: var(--color-text);
   text-decoration: none;
 }
 
@@ -69,23 +69,23 @@
 }
 
 .plant-facts dt {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
 .plant-facts dd {
   margin: var(--spacing-4) 0 0;
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .plant-card__next {
   margin-top: auto;
   padding-top: var(--spacing-12);
-  border-top: 1px solid var(--color-graphite);
+  border-top: 1px solid var(--color-border);
 }
 
 .plant-card__next-label {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
@@ -135,6 +135,6 @@
 }
 
 .plant-timeline time {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
