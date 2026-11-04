@@ -7,7 +7,10 @@ export const LAYOUT_TEXTS = {
   expand: 'Rozbaliť menu',
   openMenu: 'Otvoriť menu',
   closeMenu: 'Zavrieť menu',
-  quickJumpButton: 'Prejsť na…',
+  quickJumpButton: 'Hľadať zákazníkov, ponuky, inštalácie, tikety…',
+  topGroup: 'Prehľad',
+  help: 'Pomocník',
+  notifications: 'Notifikácie',
   userMenu: 'Používateľ',
   signOut: 'Odhlásiť',
   quickJump: {

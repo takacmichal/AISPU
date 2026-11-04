@@ -1,0 +1,52 @@
+import { Link } from 'react-router-dom'
+import { Skeleton } from '../../components/Skeleton'
+import { formatRelative } from '../../lib/format'
+import { fromTicket } from './alarms'
+import type { TicketSummary } from './data'
+import { MOCK_ALARMS } from './mock'
+import { DASHBOARD_PARTS as T } from './texts'
+import './dashboard.css'
+
+/** `summary` comes from the dashboard (one request shared with the KPI cards); undefined while loading. */
+export function RecentAlarmsCard({ summary }: { summary: TicketSummary | null | undefined }) {
+  const loading = summary === undefined
+  const now = new Date()
+  const data = summary && (summary.mock ? MOCK_ALARMS : summary.items.slice(0, 5).map(fromTicket))
+  return (
+    <article className="card dash-card" aria-labelledby="dash-alarms-title">
+      <header className="dash-card__header">
+        <div>
+          <h3 id="dash-alarms-title" className="dash-card__title">
+            {T.alarms.title}
+          </h3>
+          <p className="dash-card__subtitle">
+            {T.alarms.subtitle}
+            {summary?.mock && <span className="mock-tag">{T.mock}</span>}
+          </p>
+        </div>
+        <Link to="/tickets" className="dash-card__link">
+          {T.alarms.all} →
+        </Link>
+      </header>
+      {loading && <Skeleton lines={4} label={T.alarms.loading} />}
+      {data && data.length === 0 && <p className="dash-card__empty">{T.alarms.empty}</p>}
+      {data && data.length > 0 && (
+        <ul className="alarms">
+          {data.map((row) => (
+            <li key={row.id} className="alarms__item">
+              <div className="alarms__text">
+                <Link to={row.href} className="alarms__title">
+                  {row.title}
+                </Link>
+                <span className="alarms__meta">
+                  {row.meta} · {Number.isNaN(Date.parse(row.at)) ? row.at : formatRelative(row.at, now)}
+                </span>
+              </div>
+              <span className={`alarm-badge alarm-badge--${row.severity}`}>{T.alarms.severity[row.severity]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  )
+}

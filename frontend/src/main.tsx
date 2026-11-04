@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { AuthProvider } from './auth/AuthContext.tsx'
 import { ConfirmProvider } from './components/confirm.tsx'
 import { ToastProvider } from './components/toast.tsx'
+import './glass.css'
 
 // A data router is required for useBlocker (unsaved changes warning); routes themselves stay in <App />.
 const router = createBrowserRouter([

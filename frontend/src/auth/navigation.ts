@@ -38,7 +38,7 @@ export interface NavItem {
 
 /** Single source of truth for menu, route guards and breadcrumbs. */
 export const NAVIGATION: readonly NavItem[] = [
-  { path: HOME_PATH, label: 'Prehľad', roles: [] },
+  { path: HOME_PATH, label: 'Dashboard', roles: [] },
   { path: '/my-plants', label: 'Moje elektrárne', roles: ['Customer'] },
   { path: '/customers', label: 'Zákazníci', roles: ['Admin', 'Sales'], group: 'Obchod' },
   { path: '/customers/new', label: 'Nový zákazník', roles: ['Admin', 'Sales'], parent: '/customers', menu: false },
