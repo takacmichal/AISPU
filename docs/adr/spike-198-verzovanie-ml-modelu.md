@@ -7,7 +7,7 @@
 
 ## Kontext
 
-Model predikcie výroby z počasia sa bude opakovane pretrénovávať. Potrebujeme vedieť (1) ktorá verzia beží v produkcii, (2) z akých dát a kódu vznikla, (3) vedieť tréning zopakovať a (4) vrátiť sa na predošlú verziu. Rozsah: malý tabuľkový model (scikit-learn, dáta v rádoch MB až stoviek MB), jeden model, 2 až 3 ľudia v tíme, študentský rozpočet. V repozitári zatiaľ existuje len `ml/data` a `ml/notebooks`.
+Model predikcie výroby z počasia sa bude opakovane pretrénovávať. Potrebujeme vedieť (1) ktorá verzia beží v produkcii, (2) z akých dát a kódu vznikla, (3) vedieť tréning zopakovať a (4) vrátiť sa na predošlú verziu. Rozsah: malý tabuľkový model (scikit-learn, dáta v rádoch MB až stoviek MB), jeden model, 2 až 3 ľudia v tíme, študentský rozpočet. V repozitári je ML služba `ml/src/solarops_ml` (FastAPI, `/health` už vracia `modelVersion` zo `store.version()`); tréning s verzovaním metadát zatiaľ chýba.
 
 ## Alternatívy
 
@@ -65,7 +65,7 @@ datasets/pv-forecast/<sha256>.csv    # archív trénovacích dát podľa hashu
 
 1. Zistiť predošlú verziu: `metadata.json` aktuálnej verzie → `lineage.previous_version` (alebo zoznam `models/pv-forecast/`).
 2. Nastaviť premennú: `az containerapp update -n <ml-app> -g <rg> --set-env-vars MODEL_VERSION=1.0.0` (vytvorí novú revíziu; v Container Apps sa dá alternatívne aktivovať a presmerovať na staršiu revíziu, viď ADR #201).
-3. Overiť `GET /health` (vracia aktuálne `model_version` a `artifact_sha256`) a smoke test predikcie.
+3. Overiť `GET /health` (vracia aktuálne `modelVersion`, po rozšíraní aj `artifact_sha256`) a smoke test predikcie.
 4. Chybnú verziu v Blobe nemazať, v issue označiť ako `rejected` (pole `notes`), aby ostala sledovateľnosť.
 
 ## Dôsledky
@@ -74,7 +74,7 @@ datasets/pv-forecast/<sha256>.csv    # archív trénovacích dát podľa hashu
 - Zodpovednosť za disciplínu je na skripte a tíme (nič nevynucuje nástroj): treba test, že `train.py` zapíše všetky povinné polia, a CI kontrolu `git_dirty`.
 - Nie je UI na porovnávanie pokusov; porovnanie je cez `metadata.json` (alebo notebook).
 - Migrácia na MLflow neskôr je lacná: polia metadát sa mapujú na MLflow params/metrics/tags.
-- Nadväzujúce issues: implementovať `train.py` s tvorbou metadát; endpoint `/health` s verziou modelu; kontajner `models` a `datasets` v Blobe; test reprodukcie (dvojitý tréning dá rovnaké metriky).
+- Nadväzujúce issues: implementovať `train.py` s tvorbou metadát; rozšíriť `/health` o `artifact_sha256` (`modelVersion` už vracia); kontajner `models` a `datasets` v Blobe; test reprodukcie (dvojitý tréning dá rovnaké metriky).
 
 ## Neoverené
 
