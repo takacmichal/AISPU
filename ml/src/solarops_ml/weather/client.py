@@ -205,7 +205,7 @@ def parse_response(payload: dict, resolution: Resolution = Resolution.HOURLY) ->
     times = pd.to_datetime(block["time"], unit="s", utc=True).astype("datetime64[ns, UTC]")
     index = pd.DatetimeIndex(times, name="time")
     columns = {
-        column: pd.to_numeric(pd.Series(block.get(variable), dtype="float64"), errors="coerce")
+        column: pd.to_numeric(pd.Series(block.get(variable)), errors="coerce").astype("float64")
         if block.get(variable) is not None
         else pd.Series([float("nan")] * len(index), dtype="float64")
         for variable, column in VARIABLES.items()
