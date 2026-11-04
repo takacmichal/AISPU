@@ -52,7 +52,7 @@ describe('role navigation', () => {
     ])
     expect(sections('Technician')).toEqual([
       ['', ['Prehľad']],
-      ['Prevádzka', ['Inštalácie', 'Servisné tikety']],
+      ['Prevádzka', ['Inštalácie', 'Monitoring výroby', 'Servisné tikety']],
     ])
     expect(sections('Customer')).toEqual([
       ['', ['Prehľad']],

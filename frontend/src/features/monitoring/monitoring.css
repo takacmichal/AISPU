@@ -1,0 +1,25 @@
+.prod-controls { align-items: flex-end; margin-bottom: var(--spacing-16); }
+.prod-controls label { display: grid; gap: var(--spacing-4); min-width: 10rem; }
+.prod-presets { display: flex; gap: var(--spacing-4); }
+.prod-presets .btn[aria-pressed='true'] { background: var(--surface-tint); border-color: var(--color-fog); color: var(--color-paper); }
+.prod-chart-card { padding: var(--spacing-16) var(--spacing-20); margin-bottom: var(--spacing-16); }
+.prod-chart { position: relative; border-radius: var(--radius-inputs); }
+.prod-chart__svg { width: 100%; height: auto; display: block; }
+.prod-chart__grid { stroke: var(--color-graphite); stroke-width: 1; }
+.prod-chart__tick { fill: var(--color-fog); font-size: 11px; }
+.prod-chart__bar { fill: var(--color-signal-teal); }
+.prod-chart__bar--under { fill: var(--color-coral-red); }
+.prod-chart__bar[data-active] { fill: var(--color-paper); }
+.prod-chart__band { fill: rgb(255 255 255 / 12%); }
+.prod-chart__line { stroke: var(--color-lavender); stroke-width: 2; }
+.prod-chart__cursor { stroke: var(--color-fog); stroke-dasharray: 3 3; }
+.prod-chart__legend { display: flex; flex-wrap: wrap; gap: var(--spacing-16); margin: var(--spacing-8) 0 0; padding: 0; list-style: none; color: var(--color-fog); font-size: var(--text-label); }
+.prod-chart__swatch { display: inline-block; width: 10px; height: 10px; margin-right: var(--spacing-8); border-radius: 2px; }
+.prod-chart__swatch--actual { background: var(--color-signal-teal); }
+.prod-chart__swatch--predicted { background: var(--color-lavender); }
+.prod-chart__swatch--band { background: rgb(255 255 255 / 25%); }
+.prod-chart__swatch--under { background: var(--color-coral-red); }
+.prod-chart__tooltip { position: absolute; top: 0; display: grid; gap: 2px; transform: translateX(-50%); padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--color-smoke); border-radius: var(--radius-inputs); background: var(--color-obsidian); box-shadow: var(--shadow-sm); font-size: var(--text-label); pointer-events: none; white-space: nowrap; }
+.prod-table { margin-top: var(--spacing-12); }
+.prod-table summary { cursor: pointer; color: var(--color-mist); font-size: var(--text-caption); }
+.prod-anomalies { padding: var(--spacing-16) var(--spacing-20); margin-top: var(--spacing-16); }
