@@ -15,6 +15,7 @@ Nové ADR pridávaj v rovnakom formáte (Kontext, Možnosti, Rozhodnutie, Dôsle
 | #208 | [Metódy detekcie anomálií](spike-208-metody-detekcie-anomalii.md) | Ostať pri pravidle nad rezíduom (ADR #194); Isolation Forest zamietnutý, z-score len ako možný adaptívny prah |
 | #209 | [Štruktúra repa](spike-209-struktura-repa.md) | Monorepo, CI s `paths` filtrami, tajomstvá mimo gitu (frontend od Sprintu 1: React) |
 | #213 | [Databáza](spike-213-databaza.md) | PostgreSQL (Azure Flexible Server B1ms) + EF Core + Npgsql |
+| #222 | [Obnovovanie dashboardu](spike-222-obnovovanie-dashboardu.md) | Polling: dashboard a výroba 5 min, alarmy 60 s; SignalR/SSE až pri reálnej potrebe |
 
 Ďalšie záväzné rozhodnutia Sprintu 1 (autentifikácia #218, roly #207, PDF #219, časové rady #220, ML integrácia #196, hosting #211)
 dopĺňajú samostatné dokumentačné PR.

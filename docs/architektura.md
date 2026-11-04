@@ -94,6 +94,7 @@ ASP.NET Core Identity s JWT access tokenom (15 min) a rotujúcim refresh tokenom
 | Model výroby | fyzikálny baseline pre MVP, LightGBM challenger | #191 |
 | Podvýroba | pravidlo `r < 0,85` aspoň 2 h; Isolation Forest zamietnutý | #194, #208 |
 | Telemetria | JSON dávky po 5 min, deduplikácia | #185 |
+| Obnovovanie dashboardu | polling: dáta 5 min, alarmy 60 s; SignalR/SSE až pri reálnej potrebe | #222 |
 | Verzovanie modelu | `metadata.json` v Blob Storage + git tag | #198 |
 
 ## Známe medzery
