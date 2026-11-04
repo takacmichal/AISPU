@@ -21,6 +21,9 @@ export const DESCRIPTION_MAX = 4000
 export const NOTE_MAX = 2000
 export const COMMENT_MAX = 4000
 
+/** Resolved and closed tickets need no more work; every other state is open. */
+export const isOpenTicket = (ticket: { state: TicketState }) => ticket.state !== 'Resolved' && ticket.state !== 'Closed'
+
 /** States driven by visits (#36, #37); the generic transition endpoint answers 409 for them. */
 export const VISIT_WORKFLOW_STATES: readonly TicketState[] = ['VisitScheduled', 'OnSite', 'Verified']
 

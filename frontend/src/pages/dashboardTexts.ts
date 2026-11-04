@@ -6,6 +6,25 @@ export const DASHBOARD_TEXT = {
   kpiLoading: 'Načítavam ukazovateľ…',
   kpiError: 'Údaje sa nepodarilo načítať.',
   customers: { label: 'Zákazníci', detail: 'Evidovaní zákazníci' },
+  alarms: {
+    label: 'Aktívne alarmy',
+    detail: (high: number) => `Vysoká priorita: ${high}`,
+  },
+  tickets: {
+    label: 'Otvorené tikety',
+    detail: (fresh: number) => `Nové, čakajú na zatriedenie: ${fresh}`,
+    /** The list endpoint returns at most 100 tickets per page. */
+    partial: (count: number) => `Počítané z posledných ${count} tiketov.`,
+  },
+  alarmList: {
+    title: 'Posledné alarmy',
+    subtitle: 'Tikety z automatickej detekcie podvýroby',
+    all: 'Všetky alarmy',
+    loading: 'Načítavam alarmy…',
+    error: 'Alarmy sa nepodarilo načítať.',
+    emptyTitle: 'Žiadne aktívne alarmy',
+    emptyText: 'Keď monitoring zistí podvýrobu, založí tiket a zobrazí sa tu.',
+  },
   openQuotes: {
     label: 'Otvorené ponuky',
     detail: (sent: number, draft: number) => `Odoslané: ${sent} · Rozpracované: ${draft}`,

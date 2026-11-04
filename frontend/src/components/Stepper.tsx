@@ -17,6 +17,8 @@ interface StepperProps {
   /** Accessible name of the list. */
   label: string
   steps: readonly Step[]
+  /** Vertical list for narrow places (cards); horizontal steppers switch to vertical on mobile anyway. */
+  orientation?: 'horizontal' | 'vertical'
 }
 
 const MARKER: Record<StepStatus, (index: number) => string> = {
@@ -27,9 +29,9 @@ const MARKER: Record<StepStatus, (index: number) => string> = {
 }
 
 /** Process steps (offer, installation, connection request). The current or blocked step has aria-current="step". */
-export function Stepper({ label, steps }: StepperProps) {
+export function Stepper({ label, steps, orientation = 'horizontal' }: StepperProps) {
   return (
-    <ol className="stepper" aria-label={label}>
+    <ol className={orientation === 'vertical' ? 'stepper stepper--vertical' : 'stepper'} aria-label={label}>
       {steps.map((step, index) => (
         <li
           key={`${index}-${step.label}`}

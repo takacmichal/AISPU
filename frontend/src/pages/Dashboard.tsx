@@ -1,19 +1,25 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { ApiError } from '../api/problem'
 import { fetchSystemInfo, type SystemInfo } from '../api/system'
 import { useAuth } from '../auth/AuthContext'
 import { canAccess, findItem } from '../auth/navigation'
 import { EmptyState } from '../components/EmptyState'
+import { KpiCard } from '../components/KpiCard'
+import { PageHeader } from '../components/PageHeader'
 import { Skeleton } from '../components/Skeleton'
 import { useLoad } from '../components/useLoad'
 import { StateBadge } from '../features/installations/StateBadge'
 import { STATES, type InstallationState } from '../features/installations/messages'
+import PortalHome from '../features/portal/PortalHome'
 import { STATUS_BADGE, STATUS_LABELS, quoteNumber, type QuoteStatus } from '../features/quotes/quoteLabels'
+import { PriorityBadge } from '../features/tickets/TicketBadges'
+import { isOpenTicket, listTickets, type TicketList } from '../features/tickets/ticketsApi'
 import { formatNumber, formatRelative } from '../lib/format'
-import { MESSAGES } from '../lib/messages'
+import { activeAlarms, isCustomerOnly } from './dashboardModel'
 import { DASHBOARD_TEXT as T } from './dashboardTexts'
-import { PageHeader } from '../components/PageHeader'
+import './dashboard.css'
 
 /** The card is not shown: the role cannot use the module (navigation config) or the API answered 403. */
 const HIDDEN = 'hidden'
@@ -26,15 +32,25 @@ async function unlessForbidden<D>(request: Promise<{ data?: D; response: Respons
   return data
 }
 
+/** Same for the hand-written clients that throw ApiError (tickets). */
+async function unlessForbiddenError<D>(request: Promise<D>): Promise<D | Hidden> {
+  try {
+    return await request
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) return HIDDEN
+    throw error
+  }
+}
+
 function allowed(path: string, roles: readonly string[]): boolean {
   const item = findItem(path)
   return item !== undefined && canAccess(item, roles)
 }
 
 /** Loads a dashboard source only when the role may use it; 403 hides it as well. */
-function useSource<D>(path: string, roles: readonly string[], load: (signal: AbortSignal) => Promise<{ data?: D; response: Response }>) {
+function useSource<D>(path: string, roles: readonly string[], load: (signal: AbortSignal) => Promise<D | Hidden>) {
   const can = allowed(path, roles)
-  const result = useLoad<D | Hidden>(async (signal) => (can ? unlessForbidden(load(signal)) : HIDDEN), `${path}|${can}`)
+  const result = useLoad<D | Hidden>(async (signal) => (can ? load(signal) : HIDDEN), `${path}|${can}`)
   const hidden = !can || result.data === HIDDEN
   return {
     hidden,
@@ -47,7 +63,7 @@ function useSource<D>(path: string, roles: readonly string[], load: (signal: Abo
 
 type Source<D> = ReturnType<typeof useSource<D>>
 
-interface KpiCardProps<D> {
+interface SourceKpiProps<D> {
   source: Source<D>
   href: string
   label: string
@@ -55,35 +71,28 @@ interface KpiCardProps<D> {
   detail: (data: D) => ReactNode
 }
 
-function KpiCard<D>({ source, href, label, value, detail }: KpiCardProps<D>) {
+/** KPI card fed by one API source: skeleton while loading, retry on error, hidden for the wrong role. */
+function SourceKpi<D>({ source, href, label, value, detail }: SourceKpiProps<D>) {
   if (source.hidden) return null
+  const data = source.data
   return (
-    <article className="card kpi" aria-busy={source.loading}>
-      <h3 className="kpi__label">
-        <Link to={href}>{label}</Link>
-      </h3>
-      {source.loading && <Skeleton lines={2} label={`${T.kpiLoading} ${label}`} />}
-      {source.error && (
-        <div className="kpi__error">
-          <p>{T.kpiError}</p>
-          <button type="button" className="btn btn--sm" onClick={source.reload}>
-            {MESSAGES.retry}
-          </button>
-        </div>
-      )}
-      {source.data !== undefined && (
-        <>
-          <p className="kpi__value">{formatNumber(value(source.data), 0)}</p>
-          <div className="kpi__detail">{detail(source.data)}</div>
-        </>
-      )}
-    </article>
+    <KpiCard
+      href={href}
+      label={label}
+      loading={source.loading ? `${T.kpiLoading} ${label}` : undefined}
+      error={source.error ? { message: T.kpiError, onRetry: source.reload } : undefined}
+      value={data === undefined ? null : formatNumber(value(data), 0)}
+      detail={data === undefined ? null : detail(data)}
+    />
   )
 }
 
 const OPEN_QUOTE_STATUSES: readonly QuoteStatus[] = ['Draft', 'Sent']
 const ACTIVE_STATES: readonly InstallationState[] = STATES.filter((s) => s !== 'HandedOver')
 const PULSE_SIZE = 6
+const ALARM_LIST_SIZE = 5
+/** Largest page the tickets API returns (TicketService.MaxPageSize); the API sorts newest first. */
+const TICKET_SAMPLE = 100
 
 interface PulseItem {
   key: string
@@ -129,18 +138,26 @@ function ApiStatus() {
 
 export default function Dashboard() {
   const { roles } = useAuth()
+  if (isCustomerOnly(roles)) return <PortalHome footer={<ApiStatus />} />
+  return <InternalDashboard roles={roles} />
+}
 
+function InternalDashboard({ roles }: { roles: readonly string[] }) {
   const customers = useSource('/customers', roles, (signal) =>
-    api.GET('/api/customers', { params: { query: { page: 1, pageSize: 1 } }, signal }),
+    unlessForbidden(api.GET('/api/customers', { params: { query: { page: 1, pageSize: 1 } }, signal })),
   )
-  const quotes = useSource('/quotes', roles, (signal) => api.GET('/api/quotes', { signal }))
-  const contracts = useSource('/contracts', roles, (signal) => api.GET('/api/contracts', { signal }))
-  const installations = useSource('/installations', roles, (signal) => api.GET('/api/installations', { signal }))
+  const quotes = useSource('/quotes', roles, (signal) => unlessForbidden(api.GET('/api/quotes', { signal })))
+  const contracts = useSource('/contracts', roles, (signal) => unlessForbidden(api.GET('/api/contracts', { signal })))
+  const installations = useSource('/installations', roles, (signal) => unlessForbidden(api.GET('/api/installations', { signal })))
+  const tickets = useSource<TicketList>('/tickets', roles, (signal) =>
+    unlessForbiddenError(listTickets({ pageSize: TICKET_SAMPLE }, signal)),
+  )
 
-  const kpiVisible = [customers, quotes, contracts, installations].some((s) => !s.hidden)
+  const kpiVisible = [tickets, customers, quotes, contracts, installations].some((s) => !s.hidden)
   const pulseVisible = !quotes.hidden || !installations.hidden
   const pulseLoading = quotes.loading || installations.loading
   const pulseError = (!quotes.hidden && quotes.error) || (!installations.hidden && installations.error)
+  const partial = (list: TicketList) => (list.totalCount > list.items.length ? <p>{T.tickets.partial(list.items.length)}</p> : null)
 
   const now = new Date()
   const pulse: PulseItem[] = [
@@ -170,14 +187,31 @@ export default function Dashboard() {
 
       {kpiVisible ? (
         <div className="kpi-grid" role="group" aria-label={T.kpiRegion}>
-          <KpiCard
-            source={customers}
-            href="/customers"
-            label={T.customers.label}
-            value={(d) => Number(d.totalCount)}
-            detail={() => T.customers.detail}
+          <SourceKpi
+            source={tickets}
+            href="/tickets?origin=AnomalyDetected"
+            label={T.alarms.label}
+            value={(d) => activeAlarms(d.items).length}
+            detail={(d) => (
+              <>
+                <p>{T.alarms.detail(activeAlarms(d.items).filter((t) => t.priority === 'High').length)}</p>
+                {partial(d)}
+              </>
+            )}
           />
-          <KpiCard
+          <SourceKpi
+            source={tickets}
+            href="/tickets"
+            label={T.tickets.label}
+            value={(d) => d.items.filter(isOpenTicket).length}
+            detail={(d) => (
+              <>
+                <p>{T.tickets.detail(d.items.filter((t) => t.state === 'New').length)}</p>
+                {partial(d)}
+              </>
+            )}
+          />
+          <SourceKpi
             source={quotes}
             href="/quotes"
             label={T.openQuotes.label}
@@ -186,70 +220,114 @@ export default function Dashboard() {
               T.openQuotes.detail(d.filter((q) => q.status === 'Sent').length, d.filter((q) => q.status === 'Draft').length)
             }
           />
-          <KpiCard
+          <SourceKpi
             source={contracts}
             href="/contracts"
             label={T.contracts.label}
             value={(d) => d.filter((c) => c.status === 'Draft').length}
             detail={() => T.contracts.detail}
           />
-          <KpiCard
+          <SourceKpi
             source={installations}
             href="/installations"
             label={T.installations.label}
             value={(d) => d.filter((i) => ACTIVE_STATES.includes(i.state)).length}
             detail={(d) => <InstallationBreakdown states={d.map((i) => i.state)} />}
           />
+          <SourceKpi
+            source={customers}
+            href="/customers"
+            label={T.customers.label}
+            value={(d) => Number(d.totalCount)}
+            detail={() => T.customers.detail}
+          />
         </div>
       ) : (
-        <EmptyState
-          title={T.noKpi.title}
-          description={T.noKpi.description}
-          action={
-            allowed('/my-plants', roles) ? (
-              <Link to="/my-plants" className="btn">
-                {T.noKpi.myPlants}
-              </Link>
-            ) : undefined
-          }
-        />
+        <EmptyState title={T.noKpi.title} description={T.noKpi.description} />
       )}
 
-      {pulseVisible && (
-        <article className="card pulse" aria-labelledby="pulse-title">
-          <header className="pulse__header">
-            <h3 id="pulse-title" className="pulse__title">
-              {T.pulse.title}
-            </h3>
-            <p className="pulse__subtitle">{T.pulse.subtitle}</p>
-          </header>
-          {pulseLoading ? (
-            <Skeleton lines={4} label={T.pulse.loading} />
-          ) : pulse.length > 0 ? (
-            <ul className="pulse__list">
-              {pulse.map((item) => (
-                <li key={item.key} className="pulse__item">
-                  <span className="pulse__kind">{item.kind}</span>
-                  <Link to={item.href} className="pulse__link">
-                    {item.title}
-                  </Link>
-                  {item.badge}
-                  <time className="pulse__time" dateTime={item.updatedAt}>
-                    {formatRelative(item.updatedAt, now)}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          ) : pulseError ? (
-            <p className="pulse__empty">{T.pulse.error}</p>
-          ) : (
-            <p className="pulse__empty">{T.pulse.empty}</p>
+      {(pulseVisible || !tickets.hidden) && (
+        <div className="dashboard__columns">
+          {pulseVisible && (
+            <article className="card pulse" aria-labelledby="pulse-title">
+              <header className="pulse__header">
+                <h3 id="pulse-title" className="pulse__title">
+                  {T.pulse.title}
+                </h3>
+                <p className="pulse__subtitle">{T.pulse.subtitle}</p>
+              </header>
+              {pulseLoading ? (
+                <Skeleton lines={4} label={T.pulse.loading} />
+              ) : pulse.length > 0 ? (
+                <ul className="pulse__list">
+                  {pulse.map((item) => (
+                    <li key={item.key} className="pulse__item">
+                      <span className="pulse__kind">{item.kind}</span>
+                      <Link to={item.href} className="pulse__link">
+                        {item.title}
+                      </Link>
+                      {item.badge}
+                      <time className="pulse__time" dateTime={item.updatedAt}>
+                        {formatRelative(item.updatedAt, now)}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              ) : pulseError ? (
+                <p className="pulse__empty">{T.pulse.error}</p>
+              ) : (
+                <p className="pulse__empty">{T.pulse.empty}</p>
+              )}
+            </article>
           )}
-        </article>
+          {!tickets.hidden && <AlarmList source={tickets} now={now} />}
+        </div>
       )}
 
       <ApiStatus />
     </section>
+  )
+}
+
+/** Side block "Posledné alarmy": open tickets created by anomaly detection. */
+function AlarmList({ source, now }: { source: Source<TicketList>; now: Date }) {
+  const A = T.alarmList
+  const alarms = source.data ? activeAlarms(source.data.items).slice(0, ALARM_LIST_SIZE) : []
+  return (
+    <article className="card pulse alarm-list" aria-labelledby="alarms-title">
+      <header className="pulse__header alarm-list__header">
+        <div>
+          <h3 id="alarms-title" className="pulse__title">
+            {A.title}
+          </h3>
+          <p className="pulse__subtitle">{A.subtitle}</p>
+        </div>
+        <Link to="/tickets?origin=AnomalyDetected" className="alarm-list__all">
+          {A.all}
+        </Link>
+      </header>
+      {source.loading && <Skeleton lines={3} label={A.loading} />}
+      {source.error && <p className="pulse__empty">{A.error}</p>}
+      {source.data && alarms.length === 0 && <EmptyState title={A.emptyTitle} description={A.emptyText} />}
+      {alarms.length > 0 && (
+        <ul className="alarm-list__items">
+          {alarms.map((alarm) => (
+            <li key={alarm.id} className="alarm-list__item">
+              <span className="alarm-list__icon" aria-hidden="true" />
+              <div className="alarm-list__text">
+                <Link to={`/tickets/${alarm.id}`} className="pulse__link">
+                  {alarm.title}
+                </Link>
+                <time className="pulse__time" dateTime={alarm.createdAt}>
+                  {formatRelative(alarm.createdAt, now)}
+                </time>
+              </div>
+              <PriorityBadge priority={alarm.priority} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
   )
 }
 

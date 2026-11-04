@@ -28,6 +28,32 @@ const installations = json([
   { id: 'i3', name: 'FVE Kováč', state: 'HandedOver', updatedAt: minutesAgo(9000) },
 ])
 
+const ticket = (over: Record<string, unknown>) => ({
+  id: 't1',
+  installationId: 'i1',
+  customerId: 'c1',
+  title: 'Tiket',
+  priority: 'Medium',
+  origin: 'Manual',
+  state: 'New',
+  createdAt: minutesAgo(10),
+  updatedAt: minutesAgo(10),
+  ...over,
+})
+
+const tickets = json({
+  items: [
+    ticket({ id: 'a1', title: 'Pokles výkonu FVE Novák', origin: 'AnomalyDetected', priority: 'High', createdAt: minutesAgo(5) }),
+    ticket({ id: 'a2', title: 'Podvýroba FVE Kováč', origin: 'AnomalyDetected', state: 'Triaged', createdAt: minutesAgo(60) }),
+    ticket({ id: 'a3', title: 'Vyriešený alarm', origin: 'AnomalyDetected', state: 'Resolved', createdAt: minutesAgo(1) }),
+    ticket({ id: 'm1', title: 'Hlásenie zákazníka', origin: 'CustomerReport', state: 'RemoteDiagnosis' }),
+    ticket({ id: 'm2', title: 'Uzavretý tiket', state: 'Closed' }),
+  ],
+  page: 1,
+  pageSize: 100,
+  totalCount: 5,
+})
+
 function renderDashboard(...roles: string[]) {
   return render(
     <MemoryRouter>
@@ -59,6 +85,7 @@ describe('Dashboard', () => {
       'GET /api/quotes': pending,
       'GET /api/contracts': pending,
       'GET /api/installations': pending,
+      'GET /api/tickets': pending,
     })
     renderDashboard('Admin')
     expect(screen.getByText('Načítavam ukazovateľ… Zákazníci')).toBeInTheDocument()
@@ -73,6 +100,7 @@ describe('Dashboard', () => {
       'GET /api/quotes': quotes,
       'GET /api/contracts': contracts,
       'GET /api/installations': installations,
+      'GET /api/tickets': tickets,
     })
     renderDashboard('Admin')
 
@@ -132,6 +160,7 @@ describe('Dashboard', () => {
     mockApi({
       'GET /api/system/info': problem(503, 'down'),
       'GET /api/installations': () => (++calls === 1 ? problem(500, 'boom') : installations.clone()),
+      'GET /api/tickets': tickets,
     })
     renderDashboard('Operator')
 
@@ -144,14 +173,82 @@ describe('Dashboard', () => {
     expect(await within(inst()).findByText('Odovzdané zákazníkom: 1')).toBeInTheDocument()
   })
 
-  it('shows an empty state for roles without KPIs', async () => {
-    mockApi({ 'GET /api/system/info': systemInfo })
+  it('shows active alarms from anomaly detection for Operator', async () => {
+    mockApi({
+      'GET /api/system/info': systemInfo,
+      'GET /api/installations': installations,
+      'GET /api/tickets': tickets,
+    })
+    renderDashboard('Operator')
+
+    const alarms = await screen.findByRole('article', { name: 'Posledné alarmy' })
+    const items = await within(alarms).findAllByRole('listitem')
+    expect(items.map((li) => within(li).getByRole('link').textContent)).toEqual(['Pokles výkonu FVE Novák', 'Podvýroba FVE Kováč'])
+    expect(within(items[0]).getByRole('link')).toHaveAttribute('href', '/tickets/a1')
+    expect(within(items[0]).getByText('Vysoká')).toBeInTheDocument()
+    expect(within(alarms).getByRole('link', { name: 'Všetky alarmy' })).toHaveAttribute('href', '/tickets?origin=AnomalyDetected')
+
+    expect(within(card('Aktívne alarmy')).getByText('2')).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('Vysoká priorita: 1')).toBeInTheDocument()
+    expect(within(card('Otvorené tikety')).getByText('3')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Zákazníci' })).not.toBeInTheDocument()
+  })
+
+  it('shows an empty alarm list when nothing is detected', async () => {
+    mockApi({
+      'GET /api/system/info': systemInfo,
+      'GET /api/installations': installations,
+      'GET /api/tickets': json({ items: [], page: 1, pageSize: 100, totalCount: 0 }),
+    })
+    renderDashboard('Technician')
+
+    expect(await screen.findByText('Žiadne aktívne alarmy')).toBeInTheDocument()
+  })
+
+  it('hides tickets and alarms for Sales', async () => {
+    const fetch = mockApi({
+      'GET /api/system/info': systemInfo,
+      'GET /api/customers': json({ items: [], page: 1, pageSize: 1, totalCount: 3 }),
+      'GET /api/quotes': quotes,
+      'GET /api/contracts': contracts,
+    })
+    renderDashboard('Sales')
+
+    expect(await within(kpis()).findByRole('link', { name: 'Otvorené ponuky' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Aktívne alarmy' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Posledné alarmy' })).not.toBeInTheDocument()
+    const paths = fetch.mock.calls.map(([input]) => new URL(String(input instanceof Request ? input.url : input), 'http://x').pathname)
+    expect(paths).not.toContain('/api/tickets')
+  })
+
+  it('hides the alarms when the tickets API answers 403', async () => {
+    mockApi({
+      'GET /api/system/info': systemInfo,
+      'GET /api/installations': installations,
+      'GET /api/tickets': problem(403, 'Forbidden'),
+    })
+    renderDashboard('Technician')
+
+    expect(await within(kpis()).findByText('Odovzdané zákazníkom: 1')).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Posledné alarmy' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Otvorené tikety' })).not.toBeInTheDocument()
+  })
+
+  it('shows the customer portal instead of internal KPIs to customers', async () => {
+    const fetch = mockApi({
+      'GET /api/system/info': systemInfo,
+      'GET /api/installations': json([]),
+      'GET /api/connection-requests': json([]),
+      'GET /api/tickets': json({ items: [], page: 1, pageSize: 5, totalCount: 0 }),
+    })
     renderDashboard('Customer')
 
-    expect(screen.getByText('Vitajte v SolarOps')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Moje elektrárne' })).toHaveAttribute('href', '/my-plants')
+    expect(screen.getByRole('heading', { level: 2, name: 'Dobrý deň' })).toBeInTheDocument()
+    expect(await screen.findByText('Zatiaľ nemáte žiadnu elektráreň')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Kľúčové ukazovatele' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('article', { name: 'Posledná aktivita' })).not.toBeInTheDocument()
+    const paths = fetch.mock.calls.map(([input]) => new URL(String(input instanceof Request ? input.url : input), 'http://x').pathname)
+    expect(paths).not.toContain('/api/customers')
+    expect(paths).not.toContain('/api/quotes')
     expect(await screen.findByText(/SolarOps API/)).toBeInTheDocument()
   })
 })

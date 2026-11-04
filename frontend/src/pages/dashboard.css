@@ -1,0 +1,73 @@
+/* Dashboard (Prehľad): up to six KPIs in one row, then recent activity and the alarm side block. */
+.dashboard .kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+
+.dashboard__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+.dashboard__columns > :only-child {
+  grid-column: 1 / -1;
+}
+
+.alarm-list__header {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.alarm-list__all {
+  flex: none;
+  font-size: var(--text-caption);
+}
+
+.alarm-list__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alarm-list__item {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.alarm-list__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-danger-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a32900' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M2 12l4-4 3 2 5-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+
+.alarm-list__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.alarm-list__text .pulse__time {
+  text-align: left;
+}
+
+.alarm-list .empty-state {
+  margin: 0;
+  padding: var(--spacing-24) var(--spacing-12);
+  border: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 960px) {
+  .dashboard__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

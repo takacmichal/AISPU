@@ -94,6 +94,25 @@
   color: var(--color-danger);
 }
 
+/* Vertical: in narrow cards, and every stepper on mobile. */
+.stepper--vertical {
+  grid-auto-flow: row;
+  gap: var(--spacing-12);
+}
+
+.stepper--vertical .stepper__step {
+  padding: 4px 0 0 44px;
+}
+
+.stepper--vertical .stepper__step:not(:last-child)::after {
+  top: 36px;
+  right: auto;
+  bottom: calc(-1 * var(--spacing-12) + 4px);
+  left: 15px;
+  width: 2px;
+  height: auto;
+}
+
 @media (max-width: 760px) {
   .stepper {
     grid-auto-flow: row;
@@ -214,6 +233,15 @@
 .kpi-card__label a:hover {
   color: var(--color-primary);
   text-decoration: underline;
+}
+
+.kpi-card__error {
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+}
+
+.kpi-card__error p {
+  margin: 0 0 var(--spacing-8);
 }
 
 .kpi-card__detail {
