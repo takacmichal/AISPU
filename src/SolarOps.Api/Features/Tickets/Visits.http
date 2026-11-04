@@ -1,0 +1,114 @@
+# Technician assignment, visits and intervention of a service ticket (#36, #37).
+# Assign, plan, reschedule, close, technician calendar of others: Admin/Operator (TicketsManage).
+# Own calendar, start, protocol, material, device replacement, verify: Admin/Operator/Technician (TicketsField);
+# a technician acts only on own visits and tickets (404 otherwise).
+# Confirm and reopen: Customer, own ticket only (TicketsConfirm). Times are ISO 8601; in a query string write Z or encode "+" as %2B.
+# Port matches launchSettings.json (http profile).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@ticketId = 00000000-0000-0000-0000-000000000000
+@visitId = 00000000-0000-0000-0000-000000000000
+@technicianId = 00000000-0000-0000-0000-000000000000
+@deviceId = 00000000-0000-0000-0000-000000000000
+
+### Assign a technician (ticket in Triaged, RemoteDiagnosis or VisitScheduled)
+PUT {{baseUrl}}/api/tickets/{{ticketId}}/technician
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "technicianId": "{{technicianId}}" }
+
+### Plan a visit (RemoteDiagnosis to VisitScheduled); 409 on collision with another visit of the technician
+POST {{baseUrl}}/api/tickets/{{ticketId}}/visits
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "start": "2026-11-05T09:00:00Z", "estimatedMinutes": 90 }
+
+### Visits of a ticket (a customer sees its own, without technician and findings)
+GET {{baseUrl}}/api/tickets/{{ticketId}}/visits
+Authorization: Bearer {{token}}
+
+### Visit detail with protocol, reschedule log, material and replaced devices
+GET {{baseUrl}}/api/visits/{{visitId}}
+Authorization: Bearer {{token}}
+
+### Change the date of a planned visit (the reason is required)
+PUT {{baseUrl}}/api/visits/{{visitId}}/schedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "start": "2026-11-06T13:00:00Z", "estimatedMinutes": 60, "reason": "Zákazník nie je doma" }
+
+### My calendar (technician): visits starting in [from, to), at most 92 days
+GET {{baseUrl}}/api/technicians/me/visits?from=2026-11-01T00:00:00Z&to=2026-11-30T00:00:00Z
+Authorization: Bearer {{token}}
+
+### Calendar of any technician (planner)
+GET {{baseUrl}}/api/technicians/{{technicianId}}/visits?from=2026-11-01T00:00:00Z&to=2026-11-30T00:00:00Z
+Authorization: Bearer {{token}}
+
+### Arrival on site (visit InProgress, ticket OnSite)
+POST {{baseUrl}}/api/visits/{{visitId}}/start
+Authorization: Bearer {{token}}
+
+### Used material (replaces the whole list; only while on site)
+PUT {{baseUrl}}/api/visits/{{visitId}}/materials
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "materials": [ { "name": "DC konektor MC4", "quantity": 2, "unit": "ks" }, { "name": "Kábel 6 mm2", "quantity": 3.5, "unit": "m" } ] }
+
+### Replace an installed device (same flow as POST /api/installations/{id}/devices/{deviceId}/replace) and link it to the visit
+POST {{baseUrl}}/api/visits/{{visitId}}/device-replacements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "deviceId": "{{deviceId}}",
+  "replacement": {
+    "serialNumber": "INV-2026-0042",
+    "manufacturer": "Fronius",
+    "model": "Symo 10",
+    "powerW": 10000,
+    "reason": "Porucha výkonovej časti"
+  }
+}
+
+### Service protocol (cause: InverterFault, PanelFault, WiringFault, GridIssue, Shading, Monitoring, NoFaultFound, Other); written once
+POST {{baseUrl}}/api/visits/{{visitId}}/report
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cause": "InverterFault",
+  "findings": "Invertor hlási chybu izolácie DC.",
+  "workDone": "Vymenený DC konektor, reštart invertora.",
+  "arrivedAt": "2026-11-05T09:00:00Z",
+  "departedAt": "2026-11-05T10:15:00Z"
+}
+
+### Verify that production is restored (OnSite to Verified; needs the protocol)
+POST {{baseUrl}}/api/tickets/{{ticketId}}/verify
+Authorization: Bearer {{token}}
+
+### Close the ticket (Verified or RemoteDiagnosis to Resolved to Closed)
+POST {{baseUrl}}/api/tickets/{{ticketId}}/close
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "note": "Výroba obnovená" }
+
+### Customer confirms the fix
+POST {{baseUrl}}/api/tickets/{{ticketId}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "comment": "Funguje, ďakujem" }
+
+### Customer reopens within 7 days of closing (back to RemoteDiagnosis)
+POST {{baseUrl}}/api/tickets/{{ticketId}}/reopen
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "reason": "Porucha sa vrátila" }

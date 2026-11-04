@@ -54,10 +54,12 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
 | `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
 | `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export` (prehľady výroby, #28) |
-| `TicketsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/history`, `GET /api/tickets/{id}/comments`, `GET /api/tickets/{id}/attachments/{attachmentId}` |
+| `TicketsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/history`, `GET /api/tickets/{id}/comments`, `GET /api/tickets/{id}/attachments/{attachmentId}`, `GET /api/tickets/{id}/visits`, `GET /api/visits/{id}` |
 | `TicketsCreate` | Admin, Technician, Operator, Customer | `POST /api/tickets` (zákazník len pre vlastnú inštaláciu, pôvod `CustomerReport`) |
-| `TicketsManage` | Admin, Operator | `PUT /api/tickets/{id}/triage`, `POST /api/tickets/{id}/transition` |
+| `TicketsManage` | Admin, Operator | `PUT /api/tickets/{id}/triage`, `POST /api/tickets/{id}/transition`, `PUT /api/tickets/{id}/technician`, `POST /api/tickets/{id}/visits`, `PUT /api/visits/{id}/schedule`, `POST /api/tickets/{id}/close`, `GET /api/technicians/{technicianId}/visits` |
 | `TicketsComment` | Admin, Technician, Operator | `POST /api/tickets/{id}/comments` |
+| `TicketsField` | Admin, Technician, Operator | `GET /api/technicians/me/visits`, `POST /api/visits/{id}/start`, `POST /api/visits/{id}/report`, `PUT /api/visits/{id}/materials`, `POST /api/visits/{id}/device-replacements`, `POST /api/tickets/{id}/verify` (technik len na vlastných výjazdoch a tiketoch, cudzie dávajú 404; Admin a Operator na všetkých) |
+| `TicketsConfirm` | Customer | `POST /api/tickets/{id}/confirm`, `POST /api/tickets/{id}/reopen` (len vlastný tiket, cudzí dáva 404; znovuotvorenie do 7 dní od uzavretia) |
 
 `Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead` a `TicketsCreate`, ale vidí a smie
 použiť **len vlastné záznamy**: obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná

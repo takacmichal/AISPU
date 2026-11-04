@@ -81,6 +81,15 @@ public sealed class PostgresFixture : IAsyncLifetime
             {
                 using var connection = new NpgsqlConnection(ConnectionString);
                 connection.Open();
+                using var exists = connection.CreateCommand();
+                exists.CommandText = "SELECT 1 FROM pg_database WHERE datname = @name";
+                exists.Parameters.AddWithValue("name", databaseName);
+                if (exists.ExecuteScalar() is not null)
+                {
+                    // A derived host (WithWebHostBuilder) of the same factory reuses its database.
+                    return;
+                }
+
                 using var command = connection.CreateCommand();
                 command.CommandText = $"CREATE DATABASE \"{databaseName}\" TEMPLATE \"{TemplateName}\"";
                 command.ExecuteNonQuery();

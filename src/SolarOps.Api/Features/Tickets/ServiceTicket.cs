@@ -76,6 +76,9 @@ public sealed class ServiceTicket
     public const int FileNameMaxLength = 255;
     public const int ContentTypeMaxLength = 127;
 
+    /// <summary>How long after closing the customer may reopen the ticket (story #129).</summary>
+    public static readonly TimeSpan ReopenWindow = TimeSpan.FromDays(7);
+
     /// <summary>Photos or documents per ticket.</summary>
     public const int MaxAttachments = 5;
 
@@ -204,6 +207,71 @@ public sealed class ServiceTicket
         TransitionTo(ServiceTicketState.Triaged, by, note, now);
         Priority = priority;
     }
+
+    /// <summary>A technician visit is planned (RemoteDiagnosis to VisitScheduled, #125).</summary>
+    public void ScheduleVisit(Guid by, DateTimeOffset now) => TransitionTo(ServiceTicketState.VisitScheduled, by, null, now);
+
+    /// <summary>The technician arrived (VisitScheduled to OnSite, #127).</summary>
+    public void StartVisit(Guid by, DateTimeOffset now) => TransitionTo(ServiceTicketState.OnSite, by, null, now);
+
+    /// <summary>The technician verified that production is restored (OnSite to Verified, #127).</summary>
+    public void Verify(Guid by, DateTimeOffset now) => TransitionTo(ServiceTicketState.Verified, by, null, now);
+
+    /// <summary>
+    /// Resolves and closes the ticket (BPMN "Uzavrieť tiket", #129): from RemoteDiagnosis or Verified through Resolved,
+    /// or from Resolved directly. Any other state throws <see cref="DomainException"/> and changes nothing.
+    /// </summary>
+    public void Close(Guid by, string? note, DateTimeOffset now)
+    {
+        if (State is not (ServiceTicketState.RemoteDiagnosis or ServiceTicketState.Verified or ServiceTicketState.Resolved))
+        {
+            throw new DomainException($"Service ticket cannot be closed from {State}.");
+        }
+
+        if (State != ServiceTicketState.Resolved)
+        {
+            TransitionTo(ServiceTicketState.Resolved, by, note, now);
+            note = null;
+
+            // The history is ordered by time; one microsecond (the precision of timestamptz) keeps Closed after Resolved.
+            now = now.AddMicroseconds(1);
+        }
+
+        TransitionTo(ServiceTicketState.Closed, by, note, now);
+    }
+
+    /// <summary>
+    /// Reopens a closed ticket within <see cref="ReopenWindow"/> of the closing (#129). Deliberately not an edge of the
+    /// automaton, so the generic transition endpoint cannot reopen. The ticket returns to RemoteDiagnosis. The state
+    /// changes must be loaded.
+    /// </summary>
+    public void Reopen(Guid by, string? note, DateTimeOffset now)
+    {
+        if (State != ServiceTicketState.Closed)
+        {
+            throw new DomainException($"Only a closed service ticket can be reopened, this one is {State}.");
+        }
+
+        var closedAt = ClosedAt ?? throw new DomainException("The closing time of the service ticket is unknown.");
+        if (now - closedAt > ReopenWindow)
+        {
+            throw new DomainException($"A service ticket can be reopened only within {ReopenWindow.Days} days of closing.");
+        }
+
+        if (note?.Length > NoteMaxLength)
+        {
+            throw new RequestValidationException("Note", $"Note is at most {NoteMaxLength} characters.");
+        }
+
+        State = ServiceTicketState.RemoteDiagnosis;
+        UpdatedAt = now;
+        _stateChanges.Add(ServiceTicketStateChange.Create(Id, ServiceTicketState.Closed, ServiceTicketState.RemoteDiagnosis, by, note, now));
+    }
+
+    /// <summary>When the ticket was closed last, from the loaded history; null when it is not closed.</summary>
+    public DateTimeOffset? ClosedAt => State == ServiceTicketState.Closed
+        ? _stateChanges.Where(c => c.ToState == ServiceTicketState.Closed).Select(c => (DateTimeOffset?)c.ChangedAt).Max()
+        : null;
 
     /// <summary>
     /// Moves the ticket along the automaton and records who did it and when. An edge outside the map throws

@@ -38,6 +38,7 @@ internal sealed class ServiceTicketConfiguration : IEntityTypeConfiguration<Serv
         builder.Navigation(x => x.Attachments).UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Ignore(x => x.AllowedTransitions);
+        builder.Ignore(x => x.ClosedAt);
     }
 }
 
