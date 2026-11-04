@@ -5,25 +5,14 @@ import { EmptyState } from '../../../components/EmptyState'
 import { Skeleton } from '../../../components/Skeleton'
 import { useLoad } from '../../../components/useLoad'
 import { formatCurrency, formatDate, formatKwp } from '../../../lib/format'
+import { StateBadge } from '../../installations/StateBadge'
+import { STATUS_BADGE, STATUS_LABELS } from '../../quotes/quoteLabels'
 
 const date = formatDate
 const money = formatCurrency
 
-const QUOTE_STATUS: Record<string, string> = {
-  Draft: 'Koncept',
-  Sent: 'Odoslaná',
-  Accepted: 'Prijatá',
-  Rejected: 'Zamietnutá',
-  Expired: 'Expirovaná',
-}
-const CONTRACT_STATUS: Record<string, string> = { Draft: 'Koncept', Signed: 'Podpísaná', Cancelled: 'Zrušená' }
-const INSTALLATION_STATE: Record<string, string> = {
-  Planned: 'Plánovaná',
-  Scheduled: 'Naplánovaná',
-  InProgress: 'Prebieha',
-  Completed: 'Dokončená',
-  HandedOver: 'Odovzdaná',
-}
+const CONTRACT_STATUS: Record<string, string> = { Draft: 'Koncept', Signed: 'Podpísaná' }
+const CONTRACT_BADGE: Record<string, string> = { Draft: 'badge badge--attention', Signed: 'badge badge--success' }
 
 function Section({
   title,
@@ -41,8 +30,8 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <div>
-      <p>
+    <div className="linked-tab">
+      <p className="linked-tab__all">
         <Link to={listPath}>Všetky {title.toLowerCase()}</Link>
       </p>
       {loading && <Skeleton lines={3} />}
@@ -83,7 +72,9 @@ export function QuotesTab({ customerId }: { customerId: string }) {
                 <td>
                   <Link to={`/quotes/${q.id}`}>Ponuka z {date(q.createdAt)}</Link>
                 </td>
-                <td>{QUOTE_STATUS[q.status] ?? q.status}</td>
+                <td>
+                  <span className={STATUS_BADGE[q.status]}>{STATUS_LABELS[q.status]}</span>
+                </td>
                 <td>{date(q.validUntil)}</td>
                 <td>{money(q.grossTotal, q.currency)}</td>
               </tr>
@@ -122,7 +113,9 @@ export function ContractsTab({ customerId }: { customerId: string }) {
                 <td>
                   <Link to={`/contracts/${c.id}`}>{c.number}</Link>
                 </td>
-                <td>{CONTRACT_STATUS[c.status] ?? c.status}</td>
+                <td>
+                  <span className={CONTRACT_BADGE[c.status] ?? 'badge'}>{CONTRACT_STATUS[c.status] ?? c.status}</span>
+                </td>
                 <td>{date(c.signedOn)}</td>
                 <td>{money(c.grossTotal, c.currency)}</td>
               </tr>
@@ -161,7 +154,9 @@ export function InstallationsTab({ customerId }: { customerId: string }) {
                 <td>
                   <Link to={`/installations/${i.id}`}>{i.name}</Link>
                 </td>
-                <td>{INSTALLATION_STATE[i.state] ?? i.state}</td>
+                <td>
+                  <StateBadge state={i.state} />
+                </td>
                 <td>{formatKwp(i.plannedPowerKwp)}</td>
                 <td>{date(i.scheduledStart)}</td>
               </tr>

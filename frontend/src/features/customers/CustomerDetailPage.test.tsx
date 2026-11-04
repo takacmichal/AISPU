@@ -94,18 +94,45 @@ describe('CustomerDetailPage', () => {
   beforeEach(() => localStorage.clear())
   afterEach(() => vi.unstubAllGlobals())
 
-  it('shows the data tab first and only loads other tabs on demand', async () => {
-    const state: Api = { supplyPoints: [], calls: [] }
+  it('shows the overview first with counts on the tabs', async () => {
+    const state: Api = { supplyPoints: [sp('s1', '24ZSS1234567890A')], calls: [] }
     stubApi(state)
     renderAt('/customers/c1')
 
     expect(await screen.findByRole('heading', { name: 'Ján Novák' })).toBeInTheDocument()
-    expect(screen.getByText('jan@test.sk')).toBeInTheDocument()
-    expect(state.calls.some((c) => c.url.includes('supply-points'))).toBe(false)
+    expect(screen.getByRole('tab', { name: 'Prehľad' })).toHaveAttribute('aria-selected', 'true')
+    const contact = screen.getByRole('article', { name: 'Kontaktné údaje' })
+    expect(within(contact).getByRole('link', { name: 'jan@test.sk' })).toHaveAttribute('href', 'mailto:jan@test.sk')
+    expect(await screen.findByRole('tab', { name: 'Odberné miesta 1' })).toBeInTheDocument()
+    expect(await screen.findByRole('tab', { name: 'Ponuky 1' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: 'Odberné miesta' }))
-    expect(await screen.findByText('Zákazník zatiaľ nemá žiadne odberné miesto.')).toBeInTheDocument()
-    expect(state.calls.some((c) => c.url.includes('supply-points'))).toBe(true)
+    await user.click(screen.getByRole('tab', { name: 'Odberné miesta 1' }))
+    expect(await screen.findByText('24ZSS1234567890A')).toBeInTheDocument()
+  })
+
+  it('derives the next step and activity from the customer records', async () => {
+    stubApi({ supplyPoints: [], calls: [] })
+    renderAt('/customers/c1')
+
+    const next = await screen.findByRole('article', { name: 'Nasledujúci krok' })
+    expect(await within(next).findByText('Odpoveď na ponuku #Q1')).toBeInTheDocument()
+    expect(within(next).getByRole('link', { name: 'Otvoriť ponuku' })).toHaveAttribute('href', '/quotes/q1')
+    const activity = screen.getByRole('article', { name: 'Aktivita' })
+    expect(within(activity).getByRole('link', { name: 'Ponuka #Q1: Odoslaná' })).toBeInTheDocument()
+  })
+
+  it('moves between tabs with the arrow keys', async () => {
+    stubApi({ supplyPoints: [], calls: [] })
+    renderAt('/customers/c1')
+
+    const overview = await screen.findByRole('tab', { name: 'Prehľad' })
+    overview.focus()
+    await user.keyboard('{ArrowRight}')
+    const supply = screen.getByRole('tab', { name: /^Odberné miesta/ })
+    expect(supply).toHaveFocus()
+    expect(supply).toHaveAttribute('aria-selected', 'true')
+    await user.keyboard('{End}')
+    expect(screen.getByRole('tab', { name: /^Zmluvy/ })).toHaveFocus()
   })
 
   it('shows a loading state per tab and a load error', async () => {
@@ -125,8 +152,8 @@ describe('CustomerDetailPage', () => {
     renderAt('/customers/c1', ['Sales'])
 
     await screen.findByRole('heading', { name: 'Ján Novák' })
-    expect(screen.getByRole('tab', { name: 'Zmluvy' })).toBeInTheDocument()
-    expect(screen.queryByRole('tab', { name: 'Inštalácie' })).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /^Zmluvy/ })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /^Inštalácie/ })).not.toBeInTheDocument()
   })
 
   it('links quotes to their detail', async () => {

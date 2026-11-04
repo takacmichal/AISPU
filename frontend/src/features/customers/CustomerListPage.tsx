@@ -3,23 +3,35 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { formatDate } from '../../lib/format'
+import { Avatar } from '../../components/Avatar'
 import { DataTable, type Column, type SortState } from '../../components/DataTable'
+import { PageHeader } from '../../components/PageHeader'
+import { CUSTOMER_TEXTS, STATUS_BADGE, STATUS_LABELS, TYPE_LABELS } from './texts'
+import './customers.css'
 
 type Customer = components['schemas']['CustomerResponse']
 
+const T = CUSTOMER_TEXTS.list
 const PAGE_SIZE = 20
 const SORT_KEYS = ['name', 'email', 'createdAt'] as const
 
-const TYPE_LABELS: Record<string, string> = { Person: 'Fyzická osoba', Company: 'Právnická osoba' }
-const STATUS_LABELS: Record<string, string> = { Active: 'Aktívny', Archived: 'Archivovaný' }
-
 const columns: Column<Customer>[] = [
-  { key: 'name', header: 'Meno / firma', render: (c) => c.displayName, sortable: true },
+  {
+    key: 'name',
+    header: 'Meno / firma',
+    render: (c) => (
+      <span className="customer-name">
+        <Avatar name={c.displayName} size="sm" />
+        <span>{c.displayName}</span>
+      </span>
+    ),
+    sortable: true,
+  },
   { key: 'email', header: 'E-mail', render: (c) => c.email, sortable: true },
   { key: 'phone', header: 'Telefón', render: (c) => c.phone ?? '–' },
   { key: 'ico', header: 'IČO', render: (c) => c.ico ?? '–' },
   { key: 'type', header: 'Typ', render: (c) => TYPE_LABELS[c.type] ?? c.type },
-  { key: 'status', header: 'Stav', render: (c) => STATUS_LABELS[c.status] ?? c.status },
+  { key: 'status', header: 'Stav', render: (c) => <span className={STATUS_BADGE[c.status] ?? 'badge'}>{STATUS_LABELS[c.status] ?? c.status}</span> },
   { key: 'createdAt', header: 'Vytvorený', render: (c) => formatDate(c.createdAt), sortable: true },
 ]
 
@@ -72,12 +84,15 @@ export default function CustomerListPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>Zákazníci</h2>
-        <Link to="/customers/new" className="btn btn--primary">
-          Nový zákazník
-        </Link>
-      </div>
+      <PageHeader
+        title={T.title}
+        subtitle={current ? T.subtitle(current.totalCount) : undefined}
+        actions={
+          <Link to="/customers/new" className="btn btn--primary">
+            {T.create}
+          </Link>
+        }
+      />
       <DataTable
         columns={columns}
         rows={current?.items ?? []}
@@ -90,10 +105,10 @@ export default function CustomerListPage() {
         onSortChange={(next) => update({ sort: next.key, dir: next.direction, page: null })}
         filter={q}
         onFilterChange={(value) => update({ q: value.trim(), page: null })}
-        filterLabel="Hľadať podľa mena, IČO alebo e-mailu"
+        filterLabel={T.search}
         loading={loading}
-        error={current?.error ? 'Zoznam zákazníkov sa nepodarilo načítať.' : null}
-        emptyMessage={q ? 'Nenašli sme žiadneho zákazníka.' : 'Zatiaľ nie sú evidovaní žiadni zákazníci.'}
+        error={current?.error ? T.error : null}
+        emptyMessage={q ? T.emptySearch : T.empty}
         onRowClick={(c) => navigate(`/customers/${c.id}`)}
       />
     </section>

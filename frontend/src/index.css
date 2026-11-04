@@ -1261,6 +1261,26 @@ tr.clickable {
   box-shadow: var(--shadow-sm);
 }
 
+.tabs__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: var(--radius-pills);
+  background: var(--surface-tint);
+  color: var(--color-text-body);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+.tabs [aria-selected='true'] .tabs__count {
+  background: var(--color-text);
+  color: var(--color-on-inverse);
+}
+
 /* ---------- Dialog ---------- */
 .dialog-backdrop {
   position: fixed;
