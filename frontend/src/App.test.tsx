@@ -91,6 +91,16 @@ describe('role navigation', () => {
     expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
   })
 
+  it('wires the customer portal routes', async () => {
+    renderAt('/my-plants', session('Customer'))
+    expect(await screen.findByText('Zoznam elektrární sa nepodarilo načítať.')).toBeInTheDocument()
+  })
+
+  it('guards the customer portal detail with 403 for internal roles', () => {
+    renderAt('/my-plants/i1', session('Admin'))
+    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+  })
+
   it('redirects anonymous users to login', () => {
     renderAt('/customers', null)
     expect(screen.getByRole('heading', { name: 'Prihlásenie' })).toBeInTheDocument()
