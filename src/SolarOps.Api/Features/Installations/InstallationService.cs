@@ -25,6 +25,8 @@ public interface IInstallationService
     Task<InstallationDetailResponse> AssignTechniciansAsync(Guid id, AssignTechniciansRequest request, CancellationToken ct);
 
     Task<InstallationDetailResponse> TransitionAsync(Guid id, InstallationTransitionRequest request, CancellationToken ct);
+
+    Task<IReadOnlyList<TechnicianResponse>> ListTechniciansAsync(CancellationToken ct);
 }
 
 internal sealed class InstallationService(AppDbContext db, ICurrentUser currentUser, ICustomerScope customerScope, TimeProvider time) : IInstallationService
@@ -60,6 +62,11 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
         if (query.SupplyPointId is { } supplyPointId)
         {
             installations = installations.Where(x => x.SupplyPointId == supplyPointId);
+        }
+
+        if (query.MonitoringEnabled is { } monitored)
+        {
+            installations = installations.Where(x => x.MonitoringEnabled == monitored);
         }
 
         if (query.AssignedToMe)
@@ -130,7 +137,29 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
     public async Task<InstallationDetailResponse> ScheduleAsync(Guid id, ScheduleInstallationRequest request, CancellationToken ct)
     {
         var installation = await LoadAsync(id, ct);
-        installation.Schedule(request.ScheduledStart!.Value, request.ScheduledEnd!.Value, time.GetUtcNow());
+        var start = request.ScheduledStart!.Value;
+        var end = request.ScheduledEnd!.Value;
+        var now = time.GetUtcNow();
+
+        // #88: no date in the past. An unchanged start may be past already (extending an ongoing mounting).
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        if (start < today && start != installation.ScheduledStart)
+        {
+            throw new RequestValidationException(nameof(ScheduleInstallationRequest.ScheduledStart), "The installation date must not be in the past.");
+        }
+
+        if (end < today)
+        {
+            throw new RequestValidationException(nameof(ScheduleInstallationRequest.ScheduledEnd), "The installation date must not be in the past.");
+        }
+
+        if (!await ConnectionApproval.IsApprovedAsync(db, id, ct))
+        {
+            throw new DomainException("The installation can be scheduled only after the connection request is approved by the distributor.");
+        }
+
+        installation.Schedule(start, end, now);
+        await EnsureNoCollisionAsync(installation, ct);
         await SaveAsync(ct);
         return InstallationDetailResponse.From(installation);
     }
@@ -160,6 +189,7 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
         }
 
         installation.AssignTechnicians(requested, time.GetUtcNow());
+        await EnsureNoCollisionAsync(installation, ct);
         await SaveAsync(ct);
         return InstallationDetailResponse.From(installation);
     }
@@ -178,6 +208,46 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
         return InstallationDetailResponse.From(installation);
     }
 
+    public async Task<IReadOnlyList<TechnicianResponse>> ListTechniciansAsync(CancellationToken ct) =>
+        await (
+                from userRole in db.Set<IdentityUserRole<Guid>>()
+                join role in db.Set<IdentityRole<Guid>>() on userRole.RoleId equals role.Id
+                join user in db.Set<AppUser>() on userRole.UserId equals user.Id
+                where role.Name == Roles.Technician
+                orderby user.Email, user.Id
+                select new TechnicianResponse(user.Id, user.UserName, user.Email))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+    // #89: a technician must not be planned on two installations at once. Commissioned and handed-over installations
+    // no longer need the team, so they do not block the window.
+    private async Task EnsureNoCollisionAsync(Installation installation, CancellationToken ct)
+    {
+        if (installation.ScheduledStart is not { } start || installation.ScheduledEnd is not { } end || installation.TechnicianIds.Count == 0)
+        {
+            return;
+        }
+
+        var technicians = installation.TechnicianIds;
+        var collisions = await db.Set<Installation>().AsNoTracking()
+            .Where(x => x.Id != installation.Id
+                        && x.State != InstallationState.Commissioned
+                        && x.State != InstallationState.HandedOver
+                        && x.ScheduledStart != null && x.ScheduledEnd != null
+                        && x.ScheduledStart <= end && start <= x.ScheduledEnd
+                        && x.TechnicianIds.Any(t => technicians.Contains(t)))
+            .OrderBy(x => x.ScheduledStart)
+            .Select(x => new { x.Name, x.ScheduledStart, x.ScheduledEnd, x.TechnicianIds })
+            .ToListAsync(ct);
+
+        if (collisions.Count > 0)
+        {
+            var details = collisions.Select(c =>
+                $"'{c.Name}' {c.ScheduledStart:yyyy-MM-dd}..{c.ScheduledEnd:yyyy-MM-dd} (technicians {string.Join(", ", c.TechnicianIds.Intersect(technicians))})");
+            throw new DomainException($"Technician schedule collision with: {string.Join("; ", details)}.");
+        }
+    }
+
     // Realization starts with ordering components. A contract that does not exist (installation created by hand) is not checked.
     private async Task EnsureDepositPaidAsync(Guid contractId, CancellationToken ct)
     {
@@ -194,6 +264,8 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
     private async Task<Installation> LoadAsync(Guid id, CancellationToken ct) =>
         await db.Set<Installation>()
             .Include(x => x.StateChanges)
+            .Include(x => x.ChecklistItems)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(x => x.Id == id, ct)
         ?? throw new NotFoundException("Installation", id);
 

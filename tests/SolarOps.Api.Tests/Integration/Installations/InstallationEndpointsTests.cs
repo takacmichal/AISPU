@@ -8,7 +8,8 @@ namespace SolarOps.Api.Tests.Integration.Installations;
 [Collection(PostgresCollection.Name)]
 public sealed class InstallationEndpointsTests(PostgresFixture postgres) : IDisposable
 {
-    private readonly ApiFactory _factory = new(postgres);
+    // Fixed clock: the planned dates below must not become "in the past" (#88).
+    private readonly ApiFactory _factory = new ClockedApiFactory(postgres, new FixedTimeProvider(new DateTimeOffset(2026, 11, 3, 8, 0, 0, TimeSpan.Zero)));
 
     public void Dispose() => _factory.Dispose();
 
@@ -162,6 +163,7 @@ public sealed class InstallationEndpointsTests(PostgresFixture postgres) : IDisp
         var technicianId = await _factory.SeedTechnicianAsync();
         var created = await client.CreateInstallationAsync();
         var id = created.Installation.Id;
+        await _factory.SeedConnectionRequestAsync(created.Installation);
 
         foreach (var state in new[] { InstallationState.ComponentsOrdered, InstallationState.ComponentsReceived })
         {

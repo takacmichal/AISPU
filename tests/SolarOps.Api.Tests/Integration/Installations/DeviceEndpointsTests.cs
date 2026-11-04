@@ -74,25 +74,7 @@ public sealed class DeviceEndpointsTests(PostgresFixture postgres) : IDisposable
     // Walks the lifecycle through the domain model, so the test does not depend on the transition endpoints.
     private async Task HandOverAsync(Guid installationId)
     {
-        await _factory.ExecuteDbAsync(async db =>
-        {
-            var installation = (await db.Set<Installation>().FindAsync(installationId))!;
-            var by = Guid.CreateVersion7();
-            var now = DateTimeOffset.UtcNow;
-            installation.Schedule(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), now);
-            installation.AssignTechnicians([Guid.CreateVersion7()], now);
-            foreach (var state in new[]
-                     {
-                         InstallationState.ComponentsOrdered, InstallationState.ComponentsReceived, InstallationState.Mounting,
-                         InstallationState.MountingDone, InstallationState.Inspection, InstallationState.InspectionPassed,
-                         InstallationState.Commissioned, InstallationState.HandedOver,
-                     })
-            {
-                installation.TransitionTo(state, by, null, now);
-            }
-
-            await db.SaveChangesAsync();
-        });
+        await _factory.WalkToAsync(installationId, InstallationState.HandedOver, DateTimeOffset.UtcNow);
     }
 
     [Fact]

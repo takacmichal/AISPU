@@ -40,10 +40,11 @@ public sealed class InstallationTests
         var installation = ReadyForMounting();
 
         installation.StartMounting(User, Now);
+        InstallationLifecycle.CompleteChecklist(installation, User, Now);
         installation.CompleteMounting(User, Now);
         installation.StartInspection(User, Now);
-        installation.RecordInspection(passed: true, User, "OK", Now);
-        installation.Commission(User, Now);
+        installation.RecordRevision(InstallationLifecycle.NewReport(installation, RevisionResult.Passed, Now), User, Now);
+        installation.Commission(new DateOnly(2026, 10, 15), "Peter Zákazník", null, connectionApproved: true, User, Now);
         installation.HandOver(User, Now);
 
         Assert.Equal(InstallationState.HandedOver, installation.State);
@@ -56,10 +57,11 @@ public sealed class InstallationTests
     {
         var installation = ReadyForMounting();
         installation.StartMounting(User, Now);
+        InstallationLifecycle.CompleteChecklist(installation, User, Now);
         installation.CompleteMounting(User, Now);
         installation.StartInspection(User, Now);
 
-        installation.RecordInspection(passed: false, User, "Chýba uzemnenie", Now);
+        installation.RecordRevision(InstallationLifecycle.NewReport(installation, RevisionResult.Failed, Now), User, Now);
         Assert.Equal(InstallationState.InspectionFailed, installation.State);
 
         installation.Rework(User, null, Now);
@@ -127,14 +129,7 @@ public sealed class InstallationTests
     public void HandedOver_IsReadOnly()
     {
         var installation = ReadyForMounting();
-        foreach (var state in new[]
-                 {
-                     InstallationState.Mounting, InstallationState.MountingDone, InstallationState.Inspection,
-                     InstallationState.InspectionPassed, InstallationState.Commissioned, InstallationState.HandedOver,
-                 })
-        {
-            installation.TransitionTo(state, User, null, Now);
-        }
+        InstallationLifecycle.WalkTo(installation, InstallationState.HandedOver, Now);
 
         Assert.Throws<DomainException>(() => installation.UpdateDetails("x", null, null, Now));
         Assert.Throws<DomainException>(() => installation.AssignTechnicians([], Now));

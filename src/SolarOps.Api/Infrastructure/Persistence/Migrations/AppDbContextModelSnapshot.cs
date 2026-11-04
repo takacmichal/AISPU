@@ -1052,6 +1052,19 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("CommissionedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("commissioned_by");
+
+                    b.Property<DateOnly?>("CommissionedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("commissioned_on");
+
+                    b.Property<string>("CommissioningNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("commissioning_note");
+
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uuid")
                         .HasColumnName("contract_id");
@@ -1067,6 +1080,32 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid")
                         .HasColumnName("customer_id");
+
+                    b.Property<string>("HandoverAcceptedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("handover_accepted_by");
+
+                    b.Property<Guid?>("LastRevisionReportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_revision_report_id");
+
+                    b.Property<string>("LastRevisionResult")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("last_revision_result");
+
+                    b.Property<DateOnly?>("LastRevisionValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("last_revision_valid_until");
+
+                    b.Property<bool>("MonitoringEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("monitoring_enabled");
+
+                    b.Property<DateTimeOffset?>("MonitoringEnabledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("monitoring_enabled_at");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1132,6 +1171,49 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_installations_supply_point_id");
 
                     b.ToTable("installations", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationChecklistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("Done")
+                        .HasColumnType("boolean")
+                        .HasColumnName("done");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("StepCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("step_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_installation_checklist_items");
+
+                    b.HasIndex("InstallationId", "StepCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_installation_checklist_items_installation_id_step_code");
+
+                    b.ToTable("installation_checklist_items", (string)null);
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationDevice", b =>
@@ -1231,6 +1313,43 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("installation_devices", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationDocumentDownload", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<DateTimeOffset>("DownloadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("downloaded_at");
+
+                    b.Property<Guid>("DownloadedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("downloaded_by");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.HasKey("Id")
+                        .HasName("pk_installation_document_downloads");
+
+                    b.HasIndex("InstallationId", "DownloadedAt")
+                        .HasDatabaseName("ix_installation_document_downloads_installation_id_downloaded_");
+
+                    b.ToTable("installation_document_downloads", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationStateChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1309,6 +1428,91 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_panel_strings_installation_id_number");
 
                     b.ToTable("panel_strings", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.RevisionReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(127)
+                        .HasColumnType("character varying(127)")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("Findings")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("findings");
+
+                    b.Property<DateOnly>("InspectedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("inspected_on");
+
+                    b.Property<string>("InspectorCertificateNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("inspector_certificate_number");
+
+                    b.Property<string>("InspectorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("inspector_name");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("result");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("sha256")
+                        .IsFixedLength();
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<DateOnly?>("ValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id")
+                        .HasName("pk_installation_revision_reports");
+
+                    b.HasIndex("InstallationId", "RecordedAt")
+                        .HasDatabaseName("ix_installation_revision_reports_installation_id_recorded_at");
+
+                    b.ToTable("installation_revision_reports", (string)null);
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Quotes.Quote", b =>
@@ -1987,6 +2191,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_fve_design_versions_fve_designs_design_id");
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationChecklistItem", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
+                        .WithMany("ChecklistItems")
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_installation_checklist_items_installation_installation_id");
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationDevice", b =>
                 {
                     b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
@@ -2001,6 +2215,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("StringId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_installation_devices_panel_string_string_id");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationDocumentDownload", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_installation_document_downloads_installations_installation_");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationStateChange", b =>
@@ -2021,6 +2245,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_panel_strings_installations_installation_id");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Installations.RevisionReport", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_installation_revision_reports_installations_installation_id");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Quotes.QuoteLine", b =>
@@ -2109,6 +2343,8 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.Installation", b =>
                 {
+                    b.Navigation("ChecklistItems");
+
                     b.Navigation("StateChanges");
                 });
 

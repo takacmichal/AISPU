@@ -321,24 +321,7 @@ public sealed class StringEndpointsTests(PostgresFixture postgres) : IDisposable
         var installationId = await NewInstallationAsync();
         using var client = Technician();
         var s = await CreateStringAsync(client, installationId, NewString());
-        await _factory.ExecuteDbAsync(async db =>
-        {
-            var installation = (await db.Set<Installation>().FindAsync(installationId))!;
-            var now = DateTimeOffset.UtcNow;
-            installation.Schedule(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), now);
-            installation.AssignTechnicians([Guid.CreateVersion7()], now);
-            foreach (var state in new[]
-                     {
-                         InstallationState.ComponentsOrdered, InstallationState.ComponentsReceived, InstallationState.Mounting,
-                         InstallationState.MountingDone, InstallationState.Inspection, InstallationState.InspectionPassed,
-                         InstallationState.Commissioned, InstallationState.HandedOver,
-                     })
-            {
-                installation.TransitionTo(state, Guid.CreateVersion7(), null, now);
-            }
-
-            await db.SaveChangesAsync();
-        });
+        await _factory.WalkToAsync(installationId, InstallationState.HandedOver, DateTimeOffset.UtcNow);
 
         using var create = await client.PostJsonAsync(Url(installationId), NewString(2));
         using var delete = await client.DeleteAsync(Url(installationId, $"/{s.Id}"));
