@@ -489,6 +489,10 @@ textarea[aria-invalid='true'] {
   margin-bottom: var(--spacing-16);
 }
 
+.form-field__required {
+  color: var(--color-danger-border);
+}
+
 .form-field__error,
 .form-error {
   margin: 0;

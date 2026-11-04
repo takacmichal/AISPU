@@ -131,6 +131,12 @@ describe('role navigation', () => {
     expect(screen.getByRole('button', { name: 'Otvoriť menu' })).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('shows the public landing page on / to visitors', async () => {
+    renderAt('/', null)
+    expect(await screen.findByRole('heading', { level: 1, name: /Fotovoltika/ })).toBeInTheDocument()
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Prihlásiť sa' })).toHaveAttribute('href', '/login')
+  })
+
   it('redirects / to the dashboard on /app', async () => {
     renderAt('/', session('Admin'))
     expect(await screen.findByRole('heading', { name: 'Prehľad', level: 2 })).toBeInTheDocument()

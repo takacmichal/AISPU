@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { useAuth } from './auth/AuthContext'
 import { RequireAuth } from './auth/RequireAuth'
 import { HOME_PATH, NAVIGATION } from './auth/navigation'
 import { AppShell } from './layout/AppShell'
@@ -30,6 +31,20 @@ import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
 
+// The public landing page is a separate chunk: signed-in users never download it.
+const LandingPage = lazy(() => import('./features/landing/LandingPage'))
+
+/** "/" is the landing page for visitors; signed-in users go straight to the app. */
+function PublicHome() {
+  const { session } = useAuth()
+  if (session) return <Navigate to={HOME_PATH} replace />
+  return (
+    <Suspense fallback={null}>
+      <LandingPage />
+    </Suspense>
+  )
+}
+
 // Dev-only component overview; import.meta.env.DEV is false in production builds, so the chunk is dropped there.
 const UiShowcase = import.meta.env.DEV ? lazy(() => import('./dev/UiShowcase')) : null
 
@@ -42,8 +57,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      {/* The public landing page (#390) takes over "/"; until then it leads to the dashboard (or to login). */}
-      <Route path="/" element={<Navigate to={HOME_PATH} replace />} />
+      <Route path="/" element={<PublicHome />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route path={HOME_PATH} element={<Dashboard />} />
