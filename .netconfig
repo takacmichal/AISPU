@@ -1,0 +1,11 @@
+# Konfigurácia ReportGenerator (https://github.com/danielpalme/ReportGenerator).
+# Používa ju lokálne `dotnet reportgenerator` aj CI workflow `.github/workflows/backend.yml`.
+# Prah pokrytia sa predáva cez `--minimumCoverageThresholds` (pozri README a CI),
+# pretože ho ReportGenerator 5.5.x z `.netconfig` nečíta.
+[ReportGenerator]
+	reports = "tests/**/TestResults/**/coverage.cobertura.xml"
+	targetdir = "coverage-report"
+	reporttypes = "Html;MarkdownSummaryGithub;Cobertura"
+	assemblyfilters = "+SolarOps.Api;-SolarOps.Api.Tests"
+	filefilters = "-**/obj/**"
+	title = "SolarOps API coverage"

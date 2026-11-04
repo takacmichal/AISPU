@@ -82,6 +82,27 @@ CI (`.github/workflows/backend.yml`, `frontend.yml`, `ml.yml`) sa spúšťa pod�
 - CRUD scenáre sú v `Integration/<Modul>/`; `AuthorizationEndpointsTests` overuje, že každý endpoint má politiku a že anonymný volajúci dostane 401 a rola mimo matice 403.
 - Integračné testy bežia v CI workflow `backend.yml` na Docker runneri.
 
+### Pokrytie kódu
+
+Pokrytie meria `coverlet.collector` počas `dotnet test` a [ReportGenerator](https://github.com/danielpalme/ReportGenerator) z neho vytvorí čitateľný report.
+
+- **CI report:** workflow [`backend.yml`](https://github.com/takacmichal/AISPU/actions/workflows/backend.yml) publikuje artefakt **`backend-coverage-report`** (HTML + Cobertura + Markdown) a súhrn pokrytia pridá aj do prehľadu behu (GitHub Step Summary).
+- **Prah pokrytia:** CI vyžaduje minimálne **90 % pokrytie riadkov** a **80 % pokrytie vetiev** pre assembly `SolarOps.Api` (`--minimumCoverageThresholds` v `backend.yml`). Ak ho testy nedosiahnu, ReportGenerator vráti nenulový exit kód a job `build-test` zlyhá.
+- Z merania sú vylúčené testovacie projekty a kompilátorom generované súbory v `obj/` (`assemblyfilters`, `filefilters` v `.netconfig`).
+
+Lokálne:
+
+```bash
+dotnet tool restore                  # nainštaluje ReportGenerator z .config/dotnet-tools.json
+dotnet test --collect "XPlat Code Coverage"
+dotnet reportgenerator \
+  "--minimumCoverageThresholds:lineCoverage=90" \
+  "--minimumCoverageThresholds:branchCoverage=80"
+open coverage-report/index.html      # macOS; na Linuxe xdg-open
+```
+
+Konfigurácia reportu (vstupné súbory, výstupný priečinok, typy reportov, filtre) je v `.netconfig`; dopĺňajú sa už len prahy pokrytia, ktoré ReportGenerator 5.5.x z `.netconfig` nečíta.
+
 ## Backend: modulový vzor (pre feature PR)
 
 API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Features/<Modul>/`. **Feature PR nemení `Program.cs`, `AppDbContext` ani CI.** Vzorový modul: `Features/System/SystemModule.cs`.

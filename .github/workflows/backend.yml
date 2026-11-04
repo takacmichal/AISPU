@@ -11,6 +11,8 @@ on:
       - 'Directory.Packages.props'
       - 'global.json'
       - '.editorconfig'
+      - '.config/dotnet-tools.json'
+      - '.netconfig'
       - '.github/workflows/backend.yml'
   pull_request:
     paths:
@@ -21,6 +23,8 @@ on:
       - 'Directory.Packages.props'
       - 'global.json'
       - '.editorconfig'
+      - '.config/dotnet-tools.json'
+      - '.netconfig'
       - '.github/workflows/backend.yml'
 
 concurrency:
@@ -35,12 +39,32 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - name: Restore tools
+        run: dotnet tool restore
       - name: Restore
         run: dotnet restore SolarOps.slnx
       - name: Build
         run: dotnet build SolarOps.slnx --no-restore -c Release
       - name: Test (Testcontainers uses the runner's Docker)
         run: dotnet test SolarOps.slnx --no-build -c Release --logger "trx" --collect "XPlat Code Coverage"
+      - name: Generate coverage report
+        if: always()
+        run: >
+          dotnet reportgenerator
+          "--minimumCoverageThresholds:lineCoverage=90"
+          "--minimumCoverageThresholds:branchCoverage=80"
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage-report/SummaryGithub.md ]; then
+            cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: coverage-report/
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
