@@ -14,8 +14,7 @@ using SolarOps.Api.Tests.Integration.Customers;
 
 namespace SolarOps.Api.Tests.Integration.Quotes;
 
-[Collection(PostgresCollection.Name)]
-public sealed class QuoteWorkflowTests : IDisposable
+public sealed class QuoteWorkflowTests : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly FixedTimeProvider _clock = new(new DateTimeOffset(2026, 10, 25, 8, 0, 0, TimeSpan.Zero));
     private readonly ClockedFactory _factory;

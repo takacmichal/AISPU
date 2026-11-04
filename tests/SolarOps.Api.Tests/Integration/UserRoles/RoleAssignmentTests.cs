@@ -12,8 +12,7 @@ using SolarOps.Api.Tests.Integration.Auth;
 
 namespace SolarOps.Api.Tests.Integration.UserRoles;
 
-[Collection(PostgresCollection.Name)]
-public sealed class RoleAssignmentTests(PostgresFixture postgres) : IAsyncLifetime
+public sealed class RoleAssignmentTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
     private readonly JwtApiFactory _factory = new(postgres);
 

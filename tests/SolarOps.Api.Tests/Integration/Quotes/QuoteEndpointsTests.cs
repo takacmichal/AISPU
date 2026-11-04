@@ -10,8 +10,7 @@ using SolarOps.Api.Tests.Integration.Customers;
 
 namespace SolarOps.Api.Tests.Integration.Quotes;
 
-[Collection(PostgresCollection.Name)]
-public sealed class QuoteEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class QuoteEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

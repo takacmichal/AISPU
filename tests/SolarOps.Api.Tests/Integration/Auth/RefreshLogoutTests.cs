@@ -12,8 +12,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Auth;
 
-[Collection(PostgresCollection.Name)]
-public sealed class RefreshLogoutTests : IAsyncLifetime
+public sealed class RefreshLogoutTests : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
     private static readonly TimeSpan Grace = TimeSpan.FromSeconds(JwtOptions.DefaultRefreshReuseGraceSeconds);
 

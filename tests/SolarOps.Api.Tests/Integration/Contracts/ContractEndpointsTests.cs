@@ -12,8 +12,7 @@ using static SolarOps.Api.Tests.Integration.Contracts.ContractTestData;
 
 namespace SolarOps.Api.Tests.Integration.Contracts;
 
-[Collection(PostgresCollection.Name)]
-public sealed class ContractEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class ContractEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

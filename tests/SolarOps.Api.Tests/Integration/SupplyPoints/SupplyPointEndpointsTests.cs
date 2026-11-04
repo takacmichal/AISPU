@@ -8,8 +8,7 @@ using SolarOps.Api.Tests.Integration.Customers;
 
 namespace SolarOps.Api.Tests.Integration.SupplyPoints;
 
-[Collection(PostgresCollection.Name)]
-public sealed class SupplyPointEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class SupplyPointEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private const string Eic = "24ZSS1234567890A";
 

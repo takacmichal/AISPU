@@ -9,8 +9,7 @@ using InstallationsTestData = SolarOps.Api.Tests.Integration.Installations.Insta
 
 namespace SolarOps.Api.Tests.Integration.DeviceKeys;
 
-[Collection(PostgresCollection.Name)]
-public sealed class DeviceApiKeyTests(PostgresFixture postgres) : IDisposable
+public sealed class DeviceApiKeyTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

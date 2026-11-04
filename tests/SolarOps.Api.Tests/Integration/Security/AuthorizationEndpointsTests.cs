@@ -14,8 +14,7 @@ namespace SolarOps.Api.Tests.Integration.Security;
 /// End-to-end authorization checks (#136): every API endpoint is either explicitly anonymous or uses one
 /// documented policy, and each policy answers 401 for anonymous callers and 403 for a role outside the matrix.
 /// </summary>
-[Collection(PostgresCollection.Name)]
-public sealed class AuthorizationEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class AuthorizationEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     /// <summary>Endpoints that are anonymous on purpose; everything else must have a policy.</summary>
     private static readonly string[] AnonymousPrefixes = ["api/auth/", "api/system/"];

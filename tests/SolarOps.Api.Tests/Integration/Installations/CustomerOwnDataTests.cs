@@ -9,8 +9,7 @@ using SolarOps.Api.Tests.Integration.Customers;
 namespace SolarOps.Api.Tests.Integration.Installations;
 
 /// <summary>A customer account sees only the installations of its own customer (#137).</summary>
-[Collection(PostgresCollection.Name)]
-public sealed class CustomerOwnDataTests(PostgresFixture postgres) : IDisposable
+public sealed class CustomerOwnDataTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

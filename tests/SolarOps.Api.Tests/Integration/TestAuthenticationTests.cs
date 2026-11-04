@@ -9,8 +9,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration;
 
-[Collection(PostgresCollection.Name)]
-public sealed class TestAuthenticationTests(PostgresFixture postgres) : IDisposable
+public sealed class TestAuthenticationTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

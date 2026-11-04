@@ -3,8 +3,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Auth;
 
-[Collection(PostgresCollection.Name)]
-public sealed class JwtConfigurationTests(PostgresFixture postgres)
+public sealed class JwtConfigurationTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
 {
     private sealed class MissingKeyFactory(PostgresFixture postgres) : ApiFactory(postgres)
     {

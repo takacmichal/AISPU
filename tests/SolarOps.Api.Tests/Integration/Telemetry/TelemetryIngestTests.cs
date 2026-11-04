@@ -11,8 +11,7 @@ using InstallationsTestData = SolarOps.Api.Tests.Integration.Installations.Insta
 
 namespace SolarOps.Api.Tests.Integration.Telemetry;
 
-[Collection(PostgresCollection.Name)]
-public sealed class TelemetryIngestTests(PostgresFixture postgres) : IDisposable
+public sealed class TelemetryIngestTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private const string Url = "/api/telemetry";
     private static readonly DateTimeOffset T0 = new(2026, 6, 21, 10, 0, 0, TimeSpan.Zero);

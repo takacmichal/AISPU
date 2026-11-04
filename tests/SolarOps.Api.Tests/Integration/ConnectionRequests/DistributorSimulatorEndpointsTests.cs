@@ -11,8 +11,7 @@ using Data = SolarOps.Api.Tests.Integration.Installations.InstallationsTestData;
 namespace SolarOps.Api.Tests.Integration.ConnectionRequests;
 
 /// <summary>Mock of the distributor's answer (#87): decision and conclusion drive the same transitions as the real flow.</summary>
-[Collection(PostgresCollection.Name)]
-public sealed class DistributorSimulatorEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class DistributorSimulatorEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly FixedTimeProvider _clock = new(new DateTimeOffset(2026, 10, 27, 8, 0, 0, TimeSpan.Zero));
     private ClockedFactory? _factory;

@@ -14,8 +14,7 @@ using static SolarOps.Api.Tests.Integration.FveDesigns.FveDesignTestApi;
 namespace SolarOps.Api.Tests.Integration.FveDesigns;
 
 /// <summary>Approval, rework and quote creation from a design (#78).</summary>
-[Collection(PostgresCollection.Name)]
-public sealed class FveDesignApprovalTests(PostgresFixture postgres) : IDisposable
+public sealed class FveDesignApprovalTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
     private readonly Guid _salesId = Guid.CreateVersion7();

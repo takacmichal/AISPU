@@ -4,8 +4,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Weather;
 
-[Collection(PostgresCollection.Name)]
-public sealed class WeatherForecastRefreshTests : IDisposable
+public sealed class WeatherForecastRefreshTests : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly FakeWeatherForecastClient _client = new();
     private readonly RecordingLoggerProvider _logs = new();

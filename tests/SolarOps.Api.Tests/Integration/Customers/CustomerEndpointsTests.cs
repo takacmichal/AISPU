@@ -7,8 +7,7 @@ using SolarOps.Api.Tests.Infrastructure;
 
 namespace SolarOps.Api.Tests.Integration.Customers;
 
-[Collection(PostgresCollection.Name)]
-public sealed class CustomerEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class CustomerEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 

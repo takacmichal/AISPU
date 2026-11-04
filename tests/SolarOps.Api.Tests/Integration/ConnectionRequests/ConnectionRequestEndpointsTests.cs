@@ -14,8 +14,7 @@ using Data = SolarOps.Api.Tests.Integration.Installations.InstallationsTestData;
 
 namespace SolarOps.Api.Tests.Integration.ConnectionRequests;
 
-[Collection(PostgresCollection.Name)]
-public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : IDisposable
+public sealed class ConnectionRequestEndpointsTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>, IDisposable
 {
     private readonly ApiFactory _factory = new(postgres);
 
