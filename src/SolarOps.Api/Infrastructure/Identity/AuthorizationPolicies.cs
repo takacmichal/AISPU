@@ -55,6 +55,18 @@ public static class AuthorizationPolicies
     /// <summary>Production overviews and export from telemetry (#28; ADR #207 row "Alerty, telemetria": R for all, customer own).</summary>
     public const string ProductionRead = "ProductionRead";
 
+    /// <summary>Service tickets (#35); a customer sees only its own tickets and only public comments.</summary>
+    public const string TicketsRead = "TicketsRead";
+
+    /// <summary>Reporting a fault: the customer for its own installation (ADR #207: "W nahlásenie poruchy"), staff manually.</summary>
+    public const string TicketsCreate = "TicketsCreate";
+
+    /// <summary>Triage and state transitions of a ticket (BPMN lane Obchod/Operátor, ADR #207: Operator RWT).</summary>
+    public const string TicketsManage = "TicketsManage";
+
+    /// <summary>Internal and public comments on a ticket (#123).</summary>
+    public const string TicketsComment = "TicketsComment";
+
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
@@ -91,6 +103,10 @@ public static class AuthorizationPolicies
             [ConnectionRequestsSimulate] = [Roles.Admin, Roles.Operator],
 
             [ProductionRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
+            [TicketsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
+            [TicketsCreate] = [Roles.Admin, Roles.Operator, Roles.Technician, Roles.Customer],
+            [TicketsManage] = [Roles.Admin, Roles.Operator],
+            [TicketsComment] = [Roles.Admin, Roles.Operator, Roles.Technician],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>

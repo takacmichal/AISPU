@@ -54,10 +54,15 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
 | `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
 | `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export` (prehľady výroby, #28) |
+| `TicketsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/history`, `GET /api/tickets/{id}/comments`, `GET /api/tickets/{id}/attachments/{attachmentId}` |
+| `TicketsCreate` | Admin, Technician, Operator, Customer | `POST /api/tickets` (zákazník len pre vlastnú inštaláciu, pôvod `CustomerReport`) |
+| `TicketsManage` | Admin, Operator | `PUT /api/tickets/{id}/triage`, `POST /api/tickets/{id}/transition` |
+| `TicketsComment` | Admin, Technician, Operator | `POST /api/tickets/{id}/comments` |
 
-`Customer` je v `InstallationsRead`, `ConnectionRequestsRead` a `ProductionRead`, ale vidí **len vlastné záznamy**:
-obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná politika. Politika rozhoduje,
-či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti.
+`Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead` a `TicketsCreate`, ale vidí a smie
+použiť **len vlastné záznamy**: obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná
+politika. Politika rozhoduje, či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti. Pri tiketoch
+zákazník navyše vidí len verejné komentáre a v histórii nevidí interné poznámky prechodov.
 
 ### Zariadenia (API kľúč)
 
