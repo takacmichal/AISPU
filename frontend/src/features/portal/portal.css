@@ -1,0 +1,140 @@
+/* Customer portal (Moje elektrárne). Uses tokens from index.css; no lime: the portal has no primary action yet. */
+.plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--spacing-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plant-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  height: 100%;
+  padding: var(--spacing-20);
+  transition: background-color 120ms ease;
+}
+
+.plant-card:hover {
+  background: var(--color-obsidian);
+}
+
+.plant-card__header,
+.plant-detail__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8) var(--spacing-12);
+  align-items: center;
+}
+
+.plant-detail__header h2,
+.plant-detail__header h3 {
+  margin: 0;
+}
+
+.plant-card__title {
+  margin: 0;
+  font-size: var(--text-body);
+}
+
+.plant-card__link {
+  color: var(--color-paper);
+  text-decoration: none;
+}
+
+/* Stretched link: the whole card is one click target, while the link stays the only tab stop. */
+.plant-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-cards);
+}
+
+.plant-card__link:focus-visible {
+  outline: none;
+}
+
+.plant-card__link:focus-visible::after {
+  box-shadow: var(--focus-ring);
+}
+
+.plant-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--spacing-12);
+  margin: 0;
+}
+
+.plant-facts dt {
+  color: var(--color-fog);
+  font-size: var(--text-label);
+}
+
+.plant-facts dd {
+  margin: var(--spacing-4) 0 0;
+  color: var(--color-mist);
+}
+
+.plant-card__next {
+  margin-top: auto;
+  padding-top: var(--spacing-12);
+  border-top: 1px solid var(--color-graphite);
+}
+
+.plant-card__next-label {
+  color: var(--color-fog);
+  font-size: var(--text-label);
+}
+
+.plant-card__next p {
+  margin: var(--spacing-4) 0 0;
+}
+
+.portal-back {
+  margin-bottom: var(--spacing-16);
+}
+
+.portal-section {
+  margin-top: var(--spacing-16);
+}
+
+.portal-section h3 {
+  margin-top: 0;
+}
+
+.portal-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  align-items: center;
+}
+
+.portal-error p {
+  margin: 0;
+}
+
+.plant-timeline,
+.plant-documents {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plant-timeline li,
+.plant-documents li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  align-items: center;
+}
+
+.plant-timeline time {
+  color: var(--color-fog);
+  font-variant-numeric: tabular-nums;
+}
