@@ -87,7 +87,7 @@ describe('session handling', () => {
 
     await userEvent.type(await screen.findByLabelText('E-mail'), 'a@test.sk')
     await userEvent.type(screen.getByLabelText('Heslo'), 'Secret12345')
-    await userEvent.click(screen.getByRole('button', { name: 'Prihlásiť' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Prihlásiť sa' }))
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Zákazníci' })).toBeInTheDocument())
   })

@@ -501,8 +501,7 @@ textarea[aria-invalid='true'] {
   font-weight: 500;
 }
 
-.form-field--stack label,
-.auth-card label {
+.form-field--stack label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -510,8 +509,7 @@ textarea[aria-invalid='true'] {
 }
 
 /* ---------- Cards, badges ---------- */
-.card,
-.auth-card {
+.card {
   padding: var(--spacing-24);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-cards);
@@ -587,12 +585,6 @@ textarea[aria-invalid='true'] {
 }
 
 /* ---------- Layout / AppShell ---------- */
-.app {
-  max-width: 28rem;
-  margin: var(--spacing-96) auto;
-  padding: 0 var(--spacing-16);
-}
-
 .shell {
   --sidebar-width: 15.5rem;
 

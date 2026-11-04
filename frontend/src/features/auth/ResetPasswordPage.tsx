@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout title={T.reset.title} intro={T.reset.intro}>
-      <form ref={formRef} onSubmit={onSubmit} className="card auth-form" noValidate>
+      <form ref={formRef} onSubmit={onSubmit} className="auth-form" noValidate>
         <p className="auth-email">
           {T.email}: <strong>{email}</strong>
         </p>

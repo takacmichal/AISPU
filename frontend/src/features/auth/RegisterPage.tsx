@@ -72,8 +72,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title={T.register.title} intro={T.register.intro}>
-      <form ref={formRef} onSubmit={onSubmit} className="card auth-form" noValidate>
+    <AuthLayout title={T.register.title} intro={T.register.intro} tab="register">
+      <form ref={formRef} onSubmit={onSubmit} className="auth-form" noValidate>
         <FormField label={T.email} errors={errors.email}>
           {(field) => (
             <input

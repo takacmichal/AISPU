@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
     <AuthLayout title={T.forgot.title} intro={sent ? undefined : T.forgot.intro}>
       <div role="status">{sent && <p className="auth-notice">{T.forgot.sent}</p>}</div>
       {!sent && (
-        <form ref={formRef} onSubmit={onSubmit} className="card auth-form" noValidate>
+        <form ref={formRef} onSubmit={onSubmit} className="auth-form" noValidate>
           <FormField label={T.email} errors={emailError ? [emailError] : []}>
             {(field) => (
               <input

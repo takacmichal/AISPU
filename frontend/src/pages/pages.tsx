@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { HOME_PATH, findItem } from '../auth/navigation'
 import { safeReturnUrl } from '../auth/session'
 import type { LoginNotice } from '../features/auth/formHelpers'
 import { AUTH_TEXTS } from '../features/auth/texts'
-import '../features/auth/auth.css'
+import { AuthLayout, FormAlert } from '../features/auth/AuthLayout'
 import { MESSAGES } from '../lib/messages'
 import { PageHeader } from '../components/PageHeader'
 
@@ -17,6 +17,8 @@ export function LoginPage() {
   const returnUrl = safeReturnUrl(params.get('returnUrl'))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const id = useId()
+  const T = AUTH_TEXTS
 
   if (session) return <Navigate to={returnUrl} replace />
 
@@ -29,45 +31,47 @@ export function LoginPage() {
       await signIn(String(form.get('email')), String(form.get('password')))
       navigate(returnUrl, { replace: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Prihlásenie zlyhalo.')
+      setError(e instanceof Error ? e.message : T.login.failed)
       setBusy(false)
     }
   }
 
   return (
-    <main className="app">
-      <h1>Prihlásenie</h1>
-      {signOutReason === 'expired' && <p role="status">{MESSAGES.errors.unauthorized}</p>}
+    <AuthLayout title={T.login.title} intro={T.login.intro} tab="login">
+      {signOutReason === 'expired' && (
+        <p role="status" className="auth-notice auth-notice--info">
+          {MESSAGES.errors.unauthorized}
+        </p>
+      )}
       {notice?.notice && (
         <p role="status" className="auth-notice">
           {notice.notice}
         </p>
       )}
-      <form onSubmit={onSubmit} className="auth-card">
-        <label>
-          E-mail
-          <input name="email" type="email" required autoComplete="username" defaultValue={notice?.email} />
-        </label>
-        <label>
-          Heslo
-          <input name="password" type="password" required autoComplete="current-password" />
-        </label>
-        {error && (
-          <p role="alert" className="form-error">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn--primary" disabled={busy}>
-          Prihlásiť
+      <form onSubmit={onSubmit} className="auth-form">
+        <div className="form-field">
+          <label htmlFor={`${id}-email`}>{T.email}</label>
+          <input id={`${id}-email`} name="email" type="email" required autoComplete="username" defaultValue={notice?.email} />
+        </div>
+        <div className="form-field">
+          {/* The link sits next to the label, not inside it, so the label stays a plain name of the field. */}
+          <div className="auth-label-row">
+            <label htmlFor={`${id}-password`}>{T.password}</label>
+            <Link to="/forgot-password">{T.login.forgotLink}</Link>
+          </div>
+          <input id={`${id}-password`} name="password" type="password" required autoComplete="current-password" />
+        </div>
+        <FormAlert message={error} />
+        <button type="submit" className="btn btn--primary" disabled={busy} aria-busy={busy}>
+          {busy ? T.login.submitting : T.login.submit}
         </button>
       </form>
       <p className="auth-links">
         <span>
-          {AUTH_TEXTS.login.registerPrompt} <Link to="/register">{AUTH_TEXTS.login.registerLink}</Link>
+          {T.login.registerPrompt} <Link to="/register">{T.login.registerLink}</Link>
         </span>
-        <Link to="/forgot-password">{AUTH_TEXTS.login.forgotLink}</Link>
       </p>
-    </main>
+    </AuthLayout>
   )
 }
 
