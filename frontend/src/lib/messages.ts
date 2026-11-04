@@ -10,6 +10,27 @@ export const MESSAGES = {
   close: 'Zavrieť',
   notifications: 'Oznámenia',
   skipToContent: 'Preskočiť na obsah',
+  search: 'Hľadať',
+  stepStatus: {
+    done: 'dokončené',
+    current: 'aktuálny krok',
+    upcoming: 'čaká',
+    blocked: 'zastavené',
+  },
+  pager: {
+    label: 'Stránkovanie',
+    previous: 'Predchádzajúca',
+    next: 'Ďalšia',
+    page: (n: number) => `Strana ${n}`,
+    summary: (from: number, to: number, total: number) => `Zobrazené ${from}–${to} z ${total}`,
+    empty: 'Žiadne záznamy',
+  },
+  chart: {
+    actual: 'Skutočná',
+    predicted: 'Predikovaná',
+    under: 'Podvýroba',
+    time: 'Čas',
+  },
   errors: {
     validation: 'Údaje nie sú v poriadku. Skontrolujte zvýraznené polia.',
     unauthorized: 'Platnosť relácie vypršala, prihláste sa znova.',

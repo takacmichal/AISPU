@@ -2,11 +2,12 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
 import { EmptyState } from '../../components/EmptyState'
 import { Skeleton } from '../../components/Skeleton'
+import { Stepper, type Step } from '../../components/Stepper'
 import { useLoad } from '../../components/useLoad'
 import { formatDate } from '../../lib/format'
 import './connection.css'
 import { deadlineInfo, stepStatuses, type ConnectionRequest } from './model'
-import { CONNECTION_TEXTS as T, STEP_LABELS, STEP_STATUS_TEXT } from './texts'
+import { CONNECTION_TEXTS as T, STEP_LABELS } from './texts'
 
 /** Deadline notice: warns when the proposal deadline is near or missed. */
 export function DeadlineNotice({ request }: { request: ConnectionRequest }) {
@@ -27,33 +28,23 @@ function stepDate(request: ConnectionRequest, index: number): string | null {
   return value ? formatDate(value) : null
 }
 
-/** Presentational stepper: an ordered list of the process steps with the current one marked via aria-current. */
+/** Presentational stepper: the process steps with the current one marked via aria-current. */
 export function ConnectionSteps({ request }: { request: ConnectionRequest }) {
   const statuses = stepStatuses(request.state)
   const sideNote =
     request.state === 'InfoRequested' ? T.infoRequestedNote : request.state === 'Rejected' ? T.rejectedNote : null
+  const steps: Step[] = STEP_LABELS.map((label, index) => {
+    const status = statuses[index]
+    return {
+      label,
+      status,
+      meta: (status === 'upcoming' ? null : stepDate(request, index)) ?? undefined,
+      note: index === 1 && sideNote && status !== 'done' ? sideNote : undefined,
+    }
+  })
   return (
     <div>
-      <ol className="stepper" aria-label={T.stepperLabel}>
-        {STEP_LABELS.map((label, index) => {
-          const status = statuses[index]
-          const date = status === 'upcoming' ? null : stepDate(request, index)
-          return (
-            <li
-              key={label}
-              className={`stepper__step stepper__step--${status}`}
-              aria-current={status === 'current' || status === 'blocked' ? 'step' : undefined}
-            >
-              <span className="stepper__label">{label}</span>
-              <span className="stepper__meta">
-                {STEP_STATUS_TEXT[status]}
-                {date && ` · ${date}`}
-              </span>
-              {index === 1 && sideNote && status !== 'done' && <span className="stepper__meta">{sideNote}</span>}
-            </li>
-          )
-        })}
-      </ol>
+      <Stepper label={T.stepperLabel} steps={steps} />
       <DeadlineNotice request={request} />
     </div>
   )

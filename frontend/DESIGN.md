@@ -35,3 +35,24 @@ Vzhľad je prevzatý z `docs/artefact-page-html/Main.dc.html` (landing page), ro
 - Text: `--color-text-muted` má 5,6 : 1 na krémovej a 5,1 : 1 na pieskovej, `--color-primary` 5,0 : 1 na bielej.
 - **Odchýlka od návrhu:** okraj inputov je tmavší (`--color-input-border`, 45 % čiernej, ~3,3 : 1) ako v mockupe (10 %), aby hranica poľa spĺňala 3 : 1 pre ovládacie prvky.
 - Focus: dvojitý prstenec (biela + akcent) na všetkom interaktívnom.
+
+## Komponenty
+
+Spoločné komponenty sú v `src/components/`, ukážka všetkých na `/dev/ui` (len `pnpm dev`, v produkčnom builde nie je). Vychádzajú z knižnice K-01 až K-10 vo wireframe.
+
+| Komponent | Na čo | Poznámka |
+|---|---|---|
+| `Toolbar`, `SearchField`, `FilterSelect` | Riadok nad tabuľkou: vyhľadávanie, filtre ako „chip“ (Stav: Všetky), vpravo doplnkové info | Filter je natívny `select`, takže funguje klávesnica aj čítačka |
+| `Pager` | Stránkovanie „Zobrazené 1–10 z 248“ s číslami strán | Používa ho `DataTable` |
+| `KpiCard` | Ukazovateľ: ikona, hodnota s jednotkou, popis, trend alebo cieľ | Hodnotu formátuj vopred (`formatNumber`) |
+| `Stepper` | Priebeh procesu (ponuka, inštalácia, pripojenie) | Stavy `done`, `current`, `blocked`, `upcoming`; aktuálny krok má `aria-current="step"` |
+| `ProgressBar` | Lehota, SLA, plnenie plánu | Hodnota nad maximom (po lehote) sa kreslí plná a tmavá |
+| `SegmentedControl` | Prepínač zobrazenia alebo obdobia (Kanban/Zoznam, Deň/Týždeň) | Radio group: jeden tab stop, šípky, Home/End |
+| `Avatar` | Iniciály pri mene | Dekoratívny, meno musí byť vedľa ako text |
+| `KeyValueList` | Údaje „Kontaktné údaje“, „Realizácia“, „Detaily“ | `<dl>` |
+| `ActivityTimeline` | Aktivita zákazníka, história tiketu | Poradie určuje volajúci |
+| `FormErrorSummary` | Súhrn chýb nad formulárom | Chyby pri poliach ostávajú (`FormField`) |
+| `ConfirmDialog` | Potvrdenie; s `danger` má ikonu „!“ a červené tlačidlo | Zrušiť je prvé, dostane focus |
+| `charts/ProductionAreaChart` | Skutočná vs. predikovaná výroba s pásmom podvýroby, `variant="dark"` pre landing page | Vlastné SVG za stabilným API (ADR #224, bod 5); `summary` a skrytá tabuľka ako textová alternatíva |
+
+Tóny badge: `badge--success`, `--info`, `--warning`, `--error`, `--attention` (vyžaduje akciu, obrys), `--muted` (neaktívne, prerušovaný obrys); bez tónu = neutrálny. Tlačidlo počas ukladania dostane `aria-busy="true"` (zobrazí sa spinner).

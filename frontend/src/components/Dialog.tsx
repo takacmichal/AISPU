@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 're
 
 interface DialogProps {
   title: string
+  /** Short decorative mark above the title, e.g. "!" for destructive confirmations (K-06). */
+  icon?: string
   onClose: () => void
   children: ReactNode
 }
@@ -9,7 +11,7 @@ interface DialogProps {
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /** Modal dialog: Escape closes it, Tab is trapped inside, focus moves in on open and returns to the opener on close. */
-export function Dialog({ title, onClose, children }: DialogProps) {
+export function Dialog({ title, icon, onClose, children }: DialogProps) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -46,6 +48,11 @@ export function Dialog({ title, onClose, children }: DialogProps) {
   return (
     <div className="dialog-backdrop">
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} className="dialog" onKeyDown={onKeyDown}>
+        {icon && (
+          <span className="dialog__icon" aria-hidden="true">
+            {icon}
+          </span>
+        )}
         <h3 id={titleId}>{title}</h3>
         {children}
       </div>

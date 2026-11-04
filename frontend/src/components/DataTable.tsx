@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { MESSAGES } from '../lib/messages'
 import { EmptyState } from './EmptyState'
+import { Pager } from './Pager'
 import { SkeletonRows } from './Skeleton'
 
 export type SortDirection = 'asc' | 'desc'
@@ -58,8 +59,6 @@ export function DataTable<T>({
   emptyMessage = MESSAGES.emptyDefault,
   onRowClick,
 }: DataTableProps<T>) {
-  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
-
   return (
     <div className="data-table">
       {onFilterChange && (
@@ -112,17 +111,7 @@ export function DataTable<T>({
       </div>
       {loading && <p role="status" className="sr-only">{MESSAGES.loading}</p>}
       {!loading && !error && rows.length === 0 && <EmptyState title={emptyMessage} />}
-      <nav aria-label="Stránkovanie" className="pager">
-        <button type="button" className="btn btn--ghost" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-          Predchádzajúca
-        </button>
-        <span>
-          Strana {page} z {pageCount} ({totalCount})
-        </span>
-        <button type="button" className="btn btn--ghost" disabled={page >= pageCount} onClick={() => onPageChange(page + 1)}>
-          Ďalšia
-        </button>
-      </nav>
+      <Pager page={page} pageSize={pageSize} totalCount={totalCount} onPageChange={onPageChange} />
     </div>
   )
 }

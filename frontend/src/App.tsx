@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/RequireAuth'
 import { NAVIGATION } from './auth/navigation'
@@ -28,6 +29,9 @@ import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
+
+// Dev-only component overview; import.meta.env.DEV is false in production builds, so the chunk is dropped there.
+const UiShowcase = import.meta.env.DEV ? lazy(() => import('./dev/UiShowcase')) : null
 
 const WIRED = ['/', '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring']
 
@@ -68,6 +72,16 @@ export default function App() {
           <Route path="/tickets/new" element={<TicketCreatePage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
+          {UiShowcase && (
+            <Route
+              path="/dev/ui"
+              element={
+                <Suspense fallback={null}>
+                  <UiShowcase />
+                </Suspense>
+              }
+            />
+          )}
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

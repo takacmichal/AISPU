@@ -13,13 +13,6 @@ export const STATE_LABELS: Record<string, string> = {
 /** Steps of the happy path, in order (see STEP_STATES in model.ts). */
 export const STEP_LABELS = ['Príprava žiadosti', 'Posúdenie distribučkou', 'Zmluva o pripojení', 'Podpis zákazníka', 'Odoslanie zmluvy', 'Uzavreté'] as const
 
-export const STEP_STATUS_TEXT = {
-  done: 'dokončené',
-  current: 'aktuálny krok',
-  upcoming: 'čaká',
-  blocked: 'zastavené',
-} as const
-
 export const TYPE_LABELS: Record<string, string> = {
   SmallSource: 'Malý zdroj (do 10,8 kW)',
   LargeSource: 'Väčší zdroj (nad 10,8 kW)',

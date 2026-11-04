@@ -41,7 +41,7 @@ describe('DataTable', () => {
   it('pages through results', async () => {
     const onPageChange = vi.fn()
     render(table({ onPageChange }))
-    expect(screen.getByText('Strana 2 z 4 (35)')).toBeInTheDocument()
+    expect(screen.getByText('Zobrazené 11–20 z 35')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Ďalšia' }))
     await userEvent.click(screen.getByRole('button', { name: 'Predchádzajúca' }))
     expect(onPageChange).toHaveBeenNthCalledWith(1, 3)
