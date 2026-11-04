@@ -17,15 +17,27 @@ import ConnectionRequestPage from './features/connection/ConnectionRequestPage'
 import { ConnectionStepper } from './features/connection/ConnectionStepper'
 import InstallationListPage from './features/installations/InstallationListPage'
 import InstallationDetailPage from './features/installations/InstallationDetailPage'
+import MyPlantsPage from './features/portal/MyPlantsPage'
+import MyPlantDetailPage from './features/portal/MyPlantDetailPage'
+import TicketListPage from './features/tickets/TicketListPage'
+import TicketDetailPage from './features/tickets/TicketDetailPage'
+import TicketCreatePage from './features/tickets/TicketCreatePage'
+import MonitoringPage from './features/monitoring/MonitoringPage'
+import RegisterPage from './features/auth/RegisterPage'
+import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
+import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
 
-const WIRED = ['/', '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs']
+const WIRED = ['/', '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring']
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<Dashboard />} />
@@ -50,6 +62,12 @@ export default function App() {
             path="/installations/:id"
             element={<InstallationDetailPage renderConnection={(i) => <ConnectionStepper installationId={i.id} />} />}
           />
+          <Route path="/my-plants" element={<MyPlantsPage />} />
+          <Route path="/my-plants/:id" element={<MyPlantDetailPage />} />
+          <Route path="/tickets" element={<TicketListPage />} />
+          <Route path="/tickets/new" element={<TicketCreatePage />} />
+          <Route path="/tickets/:id" element={<TicketDetailPage />} />
+          <Route path="/monitoring" element={<MonitoringPage />} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -1,0 +1,171 @@
+.tickets-filters {
+  align-items: flex-end;
+  margin-bottom: var(--spacing-16);
+}
+
+.tickets-filters label {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 11rem;
+}
+
+.view-switch {
+  display: inline-flex;
+  gap: var(--spacing-4);
+  margin-left: auto;
+}
+
+.view-switch .btn[aria-pressed='true'] {
+  background: var(--surface-tint);
+  color: var(--color-paper);
+}
+
+.kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 1fr);
+  gap: var(--spacing-12);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-8);
+}
+
+.kanban__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border-radius: var(--radius-cards);
+  background: var(--color-carbon);
+  box-shadow: var(--shadow-inset-border);
+}
+
+.kanban__column h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: var(--text-body-sm);
+}
+
+.kanban__cards {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kanban__card {
+  display: grid;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-subtle);
+  box-shadow: var(--shadow-inset-border);
+}
+
+.kanban__card-title {
+  font-weight: 510;
+}
+
+.kanban__empty {
+  margin: 0;
+  color: var(--color-fog);
+  font-size: var(--text-caption);
+}
+
+.ticket-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  align-items: center;
+  margin-bottom: var(--spacing-16);
+}
+
+.ticket-header h2 {
+  margin: 0;
+}
+
+.ticket-section {
+  margin-bottom: var(--spacing-24);
+}
+
+.ticket-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--spacing-4) var(--spacing-16);
+  margin: 0 0 var(--spacing-16);
+}
+
+.ticket-meta dt {
+  color: var(--color-fog);
+}
+
+.ticket-meta dd {
+  margin: 0;
+}
+
+.ticket-description {
+  white-space: pre-wrap;
+}
+
+.timeline {
+  display: grid;
+  gap: var(--spacing-12);
+  margin: 0 0 var(--spacing-16);
+  padding: 0;
+  list-style: none;
+}
+
+.timeline__item {
+  padding-left: var(--spacing-12);
+  border-left: 2px solid var(--color-graphite);
+}
+
+.timeline__item--comment {
+  border-left-color: var(--color-smoke);
+}
+
+.timeline__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  align-items: center;
+  color: var(--color-fog);
+  font-size: var(--text-caption);
+}
+
+.timeline__body {
+  margin: var(--spacing-4) 0 0;
+  white-space: pre-wrap;
+}
+
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.check-field input {
+  width: auto;
+}
+
+.file-list {
+  display: grid;
+  gap: var(--spacing-4);
+  margin: 0 0 var(--spacing-16);
+  padding: 0;
+  list-style: none;
+}
+
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.slot-note {
+  padding: var(--spacing-12);
+  border-radius: var(--radius-buttons);
+  border: 1px dashed var(--color-smoke);
+  color: var(--color-fog);
+}

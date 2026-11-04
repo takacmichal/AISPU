@@ -5,7 +5,7 @@ import App from './App'
 import { AuthProvider } from './auth/AuthContext'
 import { ConfirmProvider } from './components/confirm'
 import { ToastProvider } from './components/toast'
-import { breadcrumbs, menuItems } from './auth/navigation'
+import { breadcrumbs, menuGroups, menuItems } from './auth/navigation'
 import type { Session } from './auth/session'
 
 function session(...roles: string[]): Session {
@@ -38,9 +38,45 @@ describe('role navigation', () => {
     expect(labels('Sales')).toContain('Zákazníci')
     expect(labels('Sales')).not.toContain('Servisné tikety')
     expect(labels('Technician')).toContain('Servisné tikety')
-    expect(labels('Customer')).toEqual(['Prehľad', 'Moje elektrárne'])
+    expect(labels('Customer')).toEqual(['Prehľad', 'Servisné tikety', 'Moje elektrárne'])
     expect(labels('Admin')).toContain('Používatelia a roly')
     expect(labels('Admin')).not.toContain('Administrácia')
+  })
+
+  it('groups menu items into sections and drops empty ones', () => {
+    const sections = (role: string) => menuGroups([role]).map((s) => [s.group ?? '', s.items.map((i) => i.label)])
+    expect(sections('Admin').map(([group]) => group)).toEqual(['', 'Obchod', 'Prevádzka', 'Administrácia'])
+    expect(sections('Sales')).toEqual([
+      ['', ['Prehľad']],
+      ['Obchod', ['Zákazníci', 'Katalóg', 'Návrhy FVE', 'Ponuky', 'Zmluvy']],
+    ])
+    expect(sections('Technician')).toEqual([
+      ['', ['Prehľad']],
+      ['Prevádzka', ['Inštalácie', 'Monitoring výroby', 'Servisné tikety']],
+    ])
+    expect(sections('Customer')).toEqual([
+      ['', ['Prehľad']],
+      ['Prevádzka', ['Servisné tikety', 'Moje elektrárne']],
+    ])
+  })
+
+  it('renders labelled sidebar sections with links', () => {
+    renderAt('/', session('Admin'))
+    const nav = screen.getByRole('navigation', { name: 'Hlavná navigácia' })
+    const sales = within(nav).getByRole('list', { name: 'Obchod' })
+    expect(within(sales).getByRole('link', { name: 'Zákazníci' })).toBeInTheDocument()
+    expect(within(sales).queryByRole('link', { name: 'Inštalácie' })).not.toBeInTheDocument()
+    const ops = within(nav).getByRole('list', { name: 'Prevádzka' })
+    expect(within(ops).getByRole('link', { name: 'Inštalácie' })).toBeInTheDocument()
+    expect(within(nav).getByRole('list', { name: 'Administrácia' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Odhlásiť' })).toBeInTheDocument()
+  })
+
+  it('hides empty sidebar sections for the role', () => {
+    renderAt('/', session('Technician'))
+    const nav = screen.getByRole('navigation', { name: 'Hlavná navigácia' })
+    expect(within(nav).queryByRole('list', { name: 'Obchod' })).not.toBeInTheDocument()
+    expect(within(nav).getByRole('list', { name: 'Prevádzka' })).toBeInTheDocument()
   })
 
   it('shows only allowed items in the menu', () => {
@@ -52,6 +88,16 @@ describe('role navigation', () => {
 
   it('guards unauthorized routes with 403', () => {
     renderAt('/tickets', session('Sales'))
+    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+  })
+
+  it('wires the customer portal routes', async () => {
+    renderAt('/my-plants', session('Customer'))
+    expect(await screen.findByText('Zoznam elektrární sa nepodarilo načítať.')).toBeInTheDocument()
+  })
+
+  it('guards the customer portal detail with 403 for internal roles', () => {
+    renderAt('/my-plants/i1', session('Admin'))
     expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
   })
 
@@ -81,6 +127,6 @@ describe('role navigation', () => {
 
   it('renders the dashboard API status', async () => {
     renderAt('/', session('Admin'))
-    expect(await screen.findByRole('alert')).toHaveTextContent('API je nedostupné.')
+    expect(await screen.findByText('API je nedostupné.')).toBeInTheDocument()
   })
 })
