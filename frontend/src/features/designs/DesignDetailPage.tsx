@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
 import { EmptyState } from '../../components/EmptyState'
+import { PageHeader } from '../../components/PageHeader'
 import { Skeleton } from '../../components/Skeleton'
 import { useLoad } from '../../components/useLoad'
 import { MESSAGES } from '../../lib/messages'
@@ -66,13 +67,15 @@ export default function DesignDetailPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>Návrh FVE</h2>
-        <span className={`badge ${STATUS_BADGES[d.status] ?? ''}`}>{STATUS_LABELS[d.status] ?? d.status}</span>
-      </div>
-      <p>
-        <Link to="/designs">{TEXT.back}</Link>
-      </p>
+      <PageHeader
+        title="Návrh FVE"
+        status={<span className={`badge ${STATUS_BADGES[d.status] ?? ''}`}>{STATUS_LABELS[d.status] ?? d.status}</span>}
+        actions={
+          <Link to="/designs" className="btn btn--ghost">
+            {TEXT.back}
+          </Link>
+        }
+      />
 
       {d.requestNotes && (
         <p>

@@ -122,3 +122,19 @@ export function nextAction(request: ConnectionRequest): NextAction | null {
       return null
   }
 }
+
+/** Still in progress: neither concluded nor rejected. */
+export const isOpenRequest = (request: Pick<ConnectionRequest, 'state'>) => request.state !== 'Concluded' && request.state !== 'Rejected'
+
+/**
+ * How much of the distributor's proposal period has passed, in days (for the deadline progress bar).
+ * Null when the request is not waiting for the distributor or the API did not send the dates.
+ * When overdue, `elapsed` is larger than `total`.
+ */
+export function deadlineProgress(request: ConnectionRequest, today: Date = new Date()): { elapsed: number; total: number } | null {
+  const info = deadlineInfo(request, today)
+  if (!info || !request.submittedAt || !request.proposalDueDate) return null
+  const total = Math.max(1, daysUntil(request.proposalDueDate, new Date(request.submittedAt)))
+  const elapsed = info.level === 'overdue' ? total + info.days : total - info.days
+  return { elapsed: Math.max(0, elapsed), total }
+}

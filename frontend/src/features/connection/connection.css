@@ -62,3 +62,21 @@
 .connection-section h3 {
   margin: 0 0 var(--spacing-12);
 }
+
+/* ---------- Connection request list ---------- */
+.connection-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.deadline {
+  min-width: 11rem;
+}
+
+.deadline--warning .progress__fill {
+  background: var(--color-warning);
+}
+
+.deadline--overdue .progress-field__value {
+  color: var(--color-danger);
+  font-weight: 600;
+}

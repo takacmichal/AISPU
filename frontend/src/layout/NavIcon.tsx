@@ -75,6 +75,12 @@ export function NavIcon({ path }: { path: string }) {
           <path d="M9.6 2.4a3 3 0 0 0-3.9 3.9L2 10a1.4 1.4 0 0 0 2 2l3.7-3.7a3 3 0 0 0 3.9-3.9L9.75 6.25l-1.5-.5-.5-1.5 1.85-1.85Z" />
         </Icon>
       )
+    case '/connection-requests':
+      return (
+        <Icon>
+          <path d="M6 2v3M10 2v3M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0V5ZM8 11v3" />
+        </Icon>
+      )
     case '/monitoring':
       return (
         <Icon>

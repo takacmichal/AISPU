@@ -1219,10 +1219,16 @@ tr.clickable {
 
 .data-table__filter {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 24rem;
   margin-bottom: var(--spacing-16);
+}
+
+.data-table__filter .search-field {
+  flex: 0 1 24rem;
+}
+
+/* A page toolbar right above the table keeps the search in the same row of controls. */
+.list-toolbar + .data-table .data-table__filter {
+  margin-top: calc(-1 * var(--spacing-8));
 }
 
 

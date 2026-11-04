@@ -4,6 +4,8 @@ import { api } from '../../api/client'
 import { userMessage } from '../../api/problem'
 import { useAuth } from '../../auth/AuthContext'
 import { EmptyState } from '../../components/EmptyState'
+import { KeyValueList } from '../../components/KeyValueList'
+import { PageHeader } from '../../components/PageHeader'
 import { Skeleton } from '../../components/Skeleton'
 import { useConfirm } from '../../components/confirm'
 import { useToast } from '../../components/toast'
@@ -41,10 +43,16 @@ export default function ConnectionRequestPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>{T.title}</h2>
-        <span className="badge badge--info">{STATE_LABELS[data.state] ?? data.state}</span>
-      </div>
+      <PageHeader
+        title={T.title}
+        status={<span className="badge badge--info">{STATE_LABELS[data.state] ?? data.state}</span>}
+        subtitle={<span className="mono">{data.eicCode}</span>}
+        actions={
+          <Link to="/connection-requests" className="btn btn--ghost">
+            {T.allRequests}
+          </Link>
+        }
+      />
 
       <ConnectionSteps request={data} />
 
@@ -57,24 +65,21 @@ export default function ConnectionRequestPage() {
 
       <div className="connection-section">
         <h3>{T.data}</h3>
-        <dl className="card">
-          {(
-            [
-              [T.eic, data.eicCode],
-              [T.power, formatKwp(data.ratedAcPowerKw)],
-              [T.breaker, data.mainBreakerAmps === null ? null : `${data.mainBreakerAmps} A`],
-              [T.type, TYPE_LABELS[data.type] ?? data.type],
-              [T.state, STATE_LABELS[data.state] ?? data.state],
-            ] as [string, string | null | undefined][]
-          )
-            .filter(([, value]) => value)
-            .map(([label, value]) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
-        </dl>
+        <div className="card connection-facts">
+          <KeyValueList
+            items={(
+              [
+                [T.eic, data.eicCode],
+                [T.power, formatKwp(data.ratedAcPowerKw)],
+                [T.breaker, data.mainBreakerAmps === null ? null : `${data.mainBreakerAmps} A`],
+                [T.type, TYPE_LABELS[data.type] ?? data.type],
+                [T.state, STATE_LABELS[data.state] ?? data.state],
+              ] as [string, string | null | undefined][]
+            )
+              .filter(([, value]) => value)
+              .map(([label, value]) => ({ label, value }))}
+          />
+        </div>
       </div>
 
       <div className="connection-section">

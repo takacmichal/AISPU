@@ -3,6 +3,7 @@ import { MESSAGES } from '../lib/messages'
 import { EmptyState } from './EmptyState'
 import { Pager } from './Pager'
 import { SkeletonRows } from './Skeleton'
+import { SearchField } from './Toolbar'
 
 export type SortDirection = 'asc' | 'desc'
 export interface SortState {
@@ -142,10 +143,10 @@ function FilterInput({
     return () => clearTimeout(timer)
   }, [text, value, debounceMs, onChange])
 
+  // Same look as the toolbar search (K-01); the label is the accessible name and the placeholder.
   return (
-    <label className="data-table__filter">
-      {label}
-      <input type="search" value={text} onChange={(event) => setText(event.target.value)} />
-    </label>
+    <div className="data-table__filter">
+      <SearchField label={label} placeholder={`${label}…`} value={text} onChange={setText} />
+    </div>
   )
 }

@@ -9,6 +9,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
 export const CONTRACT_TEXTS = {
   listTitle: 'Zmluvy',
+  listSubtitle: 'Zmluvy o dielo, podpisy a zálohové platby',
   listError: 'Zoznam zmlúv sa nepodarilo načítať.',
   listEmpty: 'Zatiaľ nie sú evidované žiadne zmluvy. Zmluvu vytvoríte z prijatej ponuky.',
   listEmptyFiltered: 'Nenašli sme žiadnu zmluvu.',

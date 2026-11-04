@@ -6,6 +6,8 @@ import { problemToApiError, userMessage, type FieldErrors } from '../../api/prob
 import { useAuth } from '../../auth/AuthContext'
 import { Dialog } from '../../components/Dialog'
 import { EmptyState } from '../../components/EmptyState'
+import { KeyValueList } from '../../components/KeyValueList'
+import { PageHeader } from '../../components/PageHeader'
 import { FormField } from '../../components/forms'
 import { Skeleton } from '../../components/Skeleton'
 import { useToast } from '../../components/toast'
@@ -71,44 +73,55 @@ export default function ContractDetailPage() {
 
   return (
     <section>
-      <p>
-        <Link to="/contracts">{T.back}</Link>
-      </p>
-      <div className="toolbar">
-        <h2>{T.detail.title(contract.number)}</h2>
-        <span>
-          <span className="badge badge--info">{CONTRACT_STATUS_LABELS[contract.status] ?? contract.status}</span>{' '}
-          <span className={paid ? 'badge badge--success' : 'badge'}>
-            {T.detail.deposit}: {DEPOSIT_STATUS_LABELS[contract.depositStatus] ?? contract.depositStatus}
-          </span>
-        </span>
-      </div>
-
-      {canWrite && !signed && (
-        <p>
-          <button type="button" className="btn btn--primary" onClick={() => setDialog('sign')}>
-            {T.sign.open}
-          </button>
-        </p>
-      )}
-      {canWrite && signed && !paid && (
-        <p>
-          <button type="button" className="btn btn--primary" onClick={() => setDialog('deposit')}>
-            {T.depositForm.open}
-          </button>
-        </p>
-      )}
+      <PageHeader
+        title={T.detail.title(contract.number)}
+        status={
+          <>
+            <span className={signed ? 'badge badge--success' : 'badge badge--attention'}>
+              {CONTRACT_STATUS_LABELS[contract.status] ?? contract.status}
+            </span>
+            <span className={paid ? 'badge badge--success' : 'badge'}>
+              {T.detail.deposit}: {DEPOSIT_STATUS_LABELS[contract.depositStatus] ?? contract.depositStatus}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Link to="/contracts" className="btn btn--ghost">
+              {T.back}
+            </Link>
+            {canWrite && !signed && (
+              <button type="button" className="btn btn--primary" onClick={() => setDialog('sign')}>
+                {T.sign.open}
+              </button>
+            )}
+            {canWrite && signed && !paid && (
+              <button type="button" className="btn btn--primary" onClick={() => setDialog('deposit')}>
+                {T.depositForm.open}
+              </button>
+            )}
+          </>
+        }
+      />
 
       <div className="contract-section">
         <h3>{T.detail.data}</h3>
-        <dl className="card">
-          <Row label={T.detail.signedOn} value={contract.signedOn ? formatDate(contract.signedOn) : null} />
-          <Row label={T.detail.depositPaid} value={paid ? formatCurrency(contract.depositPaidAmount, contract.currency) : null} />
-          <Row label={T.detail.depositPaidOn} value={contract.depositPaidOn ? formatDate(contract.depositPaidOn) : null} />
-          <Row label={T.detail.netTotal} value={formatCurrency(contract.netTotal, contract.currency)} />
-          <Row label={T.detail.vatTotal(formatNumber(contract.vatRatePercent))} value={formatCurrency(contract.vatTotal, contract.currency)} />
-          <Row label={T.detail.grossTotal} value={formatCurrency(contract.grossTotal, contract.currency)} />
-        </dl>
+        <div className="card contract-facts">
+          <KeyValueList
+            items={(
+              [
+                [T.detail.signedOn, contract.signedOn ? formatDate(contract.signedOn) : null],
+                [T.detail.depositPaid, paid ? formatCurrency(contract.depositPaidAmount, contract.currency) : null],
+                [T.detail.depositPaidOn, contract.depositPaidOn ? formatDate(contract.depositPaidOn) : null],
+                [T.detail.netTotal, formatCurrency(contract.netTotal, contract.currency)],
+                [T.detail.vatTotal(formatNumber(contract.vatRatePercent)), formatCurrency(contract.vatTotal, contract.currency)],
+                [T.detail.grossTotal, formatCurrency(contract.grossTotal, contract.currency)],
+              ] as [string, string | null][]
+            )
+              .filter(([, value]) => value)
+              .map(([label, value]) => ({ label, value }))}
+          />
+        </div>
         {signed && contract.installationId && (
           <p>
             {paid ? T.detail.installationUnlocked : T.detail.installationLocked}{' '}
@@ -183,16 +196,6 @@ export default function ContractDetailPage() {
         <DepositDialog contract={contract} onClose={() => setDialog(null)} onSaved={() => saved(T.depositForm.success)} />
       )}
     </section>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string | null }) {
-  if (!value) return null
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
   )
 }
 

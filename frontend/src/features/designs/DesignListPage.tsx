@@ -2,6 +2,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { DataTable, type Column } from '../../components/DataTable'
+import { PageHeader } from '../../components/PageHeader'
+import { FilterSelect, Toolbar } from '../../components/Toolbar'
 import { useLoad } from '../../components/useLoad'
 import { formatDate, formatNumber } from '../../lib/format'
 import './designs.css'
@@ -59,20 +61,15 @@ export default function DesignListPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>{TEXT.listTitle}</h2>
-        <label className="data-table__filter">
-          {TEXT.statusFilter}
-          <select value={status ?? ''} onChange={(e) => update({ status: e.target.value, page: null })}>
-            <option value="">{TEXT.allStatuses}</option>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <PageHeader title={TEXT.listTitle} subtitle={TEXT.listSubtitle} />
+      <Toolbar>
+        <FilterSelect
+          label={TEXT.statusFilter}
+          value={status ?? ''}
+          onChange={(value) => update({ status: value, page: null })}
+          options={[{ value: '', label: TEXT.allStatuses }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))]}
+        />
+      </Toolbar>
       <DataTable
         columns={columns}
         rows={rows}
