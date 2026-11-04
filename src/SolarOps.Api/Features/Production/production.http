@@ -1,0 +1,38 @@
+# Production overviews (#28: #100, #101, #102). Readings come from POST /api/telemetry (see telemetry.http).
+# Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+# from/to: ISO 8601 with Z (or an offset, + encoded as %2B) or a date = local midnight in timeZone (default Europe/Bratislava).
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+@installationId = 00000000-0000-0000-0000-000000000000
+
+### Hourly production for one day (default granularity hour)
+GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-06-21&to=2026-06-22
+Authorization: Bearer {{token}}
+
+### 5-minute detail for one hour (UTC bounds)
+GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-06-21T10:00:00Z&to=2026-06-21T11:00:00Z&granularity=fiveMinutes
+Authorization: Bearer {{token}}
+
+### Daily production for a month, days by the local calendar
+GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-06-01&to=2026-07-01&granularity=day
+Authorization: Bearer {{token}}
+
+### Monthly production for a year, months in UTC
+GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-01-01&to=2027-01-01&granularity=month&timeZone=UTC
+Authorization: Bearer {{token}}
+
+### Actual vs. predicted (predicted values are null until predictions are stored, #111)
+GET {{baseUrl}}/api/installations/{{installationId}}/production/comparison?from=2026-06-21&to=2026-06-28&granularity=day
+Authorization: Bearer {{token}}
+
+### CSV export, semicolon and decimal comma (Slovak Excel)
+GET {{baseUrl}}/api/installations/{{installationId}}/production/export?from=2026-06-01&to=2026-07-01&granularity=hour
+Authorization: Bearer {{token}}
+
+### CSV export, comma and decimal point, a year of 5-minute rows (streamed)
+GET {{baseUrl}}/api/installations/{{installationId}}/production/export?from=2025-07-01&to=2026-07-01&granularity=fiveMinutes&separator=comma
+Authorization: Bearer {{token}}
+
+### Invalid: period too long for 5-minute buckets -> 400 with key "to"
+GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-01-01&to=2026-03-01&granularity=fiveMinutes
+Authorization: Bearer {{token}}

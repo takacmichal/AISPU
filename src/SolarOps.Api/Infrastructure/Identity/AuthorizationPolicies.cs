@@ -52,6 +52,9 @@ public static class AuthorizationPolicies
     /// <summary>The simulated distributor is operated by the back office or an admin (BPMN lane Distribučka is an external party, #87).</summary>
     public const string ConnectionRequestsSimulate = "ConnectionRequestsSimulate";
 
+    /// <summary>Production overviews and export from telemetry (#28; ADR #207 row "Alerty, telemetria": R for all, customer own).</summary>
+    public const string ProductionRead = "ProductionRead";
+
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
@@ -86,6 +89,8 @@ public static class AuthorizationPolicies
             [ConnectionRequestsSubmit] = [Roles.Admin, Roles.Designer],
             [ConnectionRequestsProcess] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer],
             [ConnectionRequestsSimulate] = [Roles.Admin, Roles.Operator],
+
+            [ProductionRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>
