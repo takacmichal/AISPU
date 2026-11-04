@@ -28,6 +28,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { path: '/quotes', label: 'Ponuky', roles: ['Admin', 'Sales', 'Designer'], group: 'Obchod' },
   { path: '/contracts', label: 'Zmluvy', roles: ['Admin', 'Sales'], group: 'Obchod' },
   { path: '/installations', label: 'Inštalácie', roles: ['Admin', 'Designer', 'Technician', 'Operator'], group: 'Prevádzka' },
+  { path: '/monitoring', label: 'Monitoring výroby', roles: ['Admin', 'Operator', 'Technician', 'Designer'], group: 'Prevádzka' },
   { path: '/tickets', label: 'Servisné tikety', roles: ['Admin', 'Technician', 'Operator', 'Customer'], group: 'Prevádzka' },
   { path: '/tickets/new', label: 'Nahlásiť poruchu', roles: ['Admin', 'Technician', 'Operator', 'Customer'], parent: '/tickets', menu: false },
   { path: '/my-plants', label: 'Moje elektrárne', roles: ['Customer'], group: 'Prevádzka' },
