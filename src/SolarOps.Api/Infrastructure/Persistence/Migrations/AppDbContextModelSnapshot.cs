@@ -1920,6 +1920,41 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("service_tickets", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_by");
+
+                    b.Property<Guid>("ServiceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_ticket_id");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technician_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_ticket_assignments");
+
+                    b.HasIndex("ServiceTicketId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_service_ticket_assignments_service_ticket_id");
+
+                    b.HasIndex("TechnicianId")
+                        .HasDatabaseName("ix_service_ticket_assignments_technician_id");
+
+                    b.ToTable("service_ticket_assignments", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2001,6 +2036,44 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("service_ticket_comments", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketConfirmation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<Guid>("DecidedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("decision");
+
+                    b.Property<Guid>("ServiceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_ticket_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_ticket_confirmations");
+
+                    b.HasIndex("ServiceTicketId", "DecidedAt")
+                        .HasDatabaseName("ix_service_ticket_confirmations_service_ticket_id_decided_at");
+
+                    b.ToTable("service_ticket_confirmations", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketStateChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2042,6 +2115,229 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_service_ticket_state_changes_service_ticket_id_changed_at");
 
                     b.ToTable("service_ticket_state_changes", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArrivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("arrived_at");
+
+                    b.Property<string>("Cause")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cause");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DepartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("departed_at");
+
+                    b.Property<int>("EstimatedMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("estimated_minutes");
+
+                    b.Property<string>("Findings")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("findings");
+
+                    b.Property<Guid>("PlannedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("planned_by");
+
+                    b.Property<DateTimeOffset>("PlannedEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("planned_end");
+
+                    b.Property<DateTimeOffset>("PlannedStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("planned_start");
+
+                    b.Property<DateTimeOffset?>("ReportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reported_at");
+
+                    b.Property<Guid?>("ReportedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reported_by");
+
+                    b.Property<Guid>("ServiceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_ticket_id");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technician_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("WorkDone")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("work_done");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_visits");
+
+                    b.HasIndex("ServiceTicketId")
+                        .HasDatabaseName("ix_service_visits_service_ticket_id");
+
+                    b.HasIndex("TechnicianId", "PlannedStart")
+                        .HasDatabaseName("ix_service_visits_technician_id_planned_start");
+
+                    b.ToTable("service_visits", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitDeviceReplacement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("NewDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("new_device_id");
+
+                    b.Property<Guid>("OldDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("old_device_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("ReplacedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("replaced_at");
+
+                    b.Property<Guid>("ReplacedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaced_by");
+
+                    b.Property<Guid>("ServiceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_ticket_id");
+
+                    b.Property<Guid>("ServiceVisitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_visit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_visit_device_replacements");
+
+                    b.HasIndex("ServiceTicketId")
+                        .HasDatabaseName("ix_service_visit_device_replacements_service_ticket_id");
+
+                    b.HasIndex("ServiceVisitId")
+                        .HasDatabaseName("ix_service_visit_device_replacements_service_visit_id");
+
+                    b.ToTable("service_visit_device_replacements", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid>("ServiceTicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_ticket_id");
+
+                    b.Property<Guid>("ServiceVisitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_visit_id");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("unit");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_visit_materials");
+
+                    b.HasIndex("ServiceTicketId")
+                        .HasDatabaseName("ix_service_visit_materials_service_ticket_id");
+
+                    b.HasIndex("ServiceVisitId")
+                        .HasDatabaseName("ix_service_visit_materials_service_visit_id");
+
+                    b.ToTable("service_visit_materials", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitReschedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<DateTimeOffset>("PreviousEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("previous_end");
+
+                    b.Property<DateTimeOffset>("PreviousStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("previous_start");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("ServiceVisitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_visit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_visit_reschedules");
+
+                    b.HasIndex("ServiceVisitId", "ChangedAt")
+                        .HasDatabaseName("ix_service_visit_reschedules_service_visit_id_changed_at");
+
+                    b.ToTable("service_visit_reschedules", (string)null);
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Weather.WeatherForecast", b =>
@@ -2533,6 +2829,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketAssignment", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_ticket_assignments_service_ticket_service_ticket_id");
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketAttachment", b =>
                 {
                     b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
@@ -2553,6 +2859,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_service_ticket_comments_service_ticket_service_ticket_id");
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketConfirmation", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_ticket_confirmations_service_tickets_service_ticket");
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceTicketStateChange", b =>
                 {
                     b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
@@ -2561,6 +2877,60 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_service_ticket_state_changes_service_tickets_service_ticket");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisit", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visits_service_tickets_service_ticket_id");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitDeviceReplacement", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visit_device_replacements_service_tickets_service_t");
+
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceVisit", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceVisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visit_device_replacements_service_visits_service_vi");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitMaterial", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceTicket", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visit_materials_service_tickets_service_ticket_id");
+
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceVisit", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceVisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visit_materials_service_visits_service_visit_id");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisitReschedule", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Tickets.ServiceVisit", null)
+                        .WithMany("Reschedules")
+                        .HasForeignKey("ServiceVisitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_visit_reschedules_service_visits_service_visit_id");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.ConnectionRequests.ConnectionRequest", b =>
@@ -2594,6 +2964,11 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("Attachments");
 
                     b.Navigation("StateChanges");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Tickets.ServiceVisit", b =>
+                {
+                    b.Navigation("Reschedules");
                 });
 #pragma warning restore 612, 618
         }

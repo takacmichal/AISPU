@@ -68,6 +68,15 @@ public static class AuthorizationPolicies
     public const string TicketsComment = "TicketsComment";
 
     /// <summary>
+    /// Technician field work on tickets (#36, #37): own calendar, start, protocol, material, device replacement, verification.
+    /// A technician acts only on visits and tickets assigned to them (404 otherwise); Admin and Operator act on any.
+    /// </summary>
+    public const string TicketsField = "TicketsField";
+
+    /// <summary>The customer confirms a closed ticket or reopens it within 7 days (#129); only its own tickets (scope).</summary>
+    public const string TicketsConfirm = "TicketsConfirm";
+
+    /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
     /// </summary>
@@ -107,6 +116,8 @@ public static class AuthorizationPolicies
             [TicketsCreate] = [Roles.Admin, Roles.Operator, Roles.Technician, Roles.Customer],
             [TicketsManage] = [Roles.Admin, Roles.Operator],
             [TicketsComment] = [Roles.Admin, Roles.Operator, Roles.Technician],
+            [TicketsField] = [Roles.Admin, Roles.Operator, Roles.Technician],
+            [TicketsConfirm] = [Roles.Customer],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>
