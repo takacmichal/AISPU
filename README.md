@@ -61,6 +61,14 @@ Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier
 | `pnpm api:fetch` zlyhá s chybou spojenia | API musí bežať na `http://localhost:5080`, alebo nastav `OPENAPI_URL`. |
 | `uv run pytest` v `ml/` padá na `lightgbm` / `libomp.dylib` (macOS) | Nainštaloval sa voliteľný balík zo skupiny `experiment` (`uv run --group experiment ...`), ktorý potrebuje `brew install libomp`. Obnov prostredie príkazom `uv sync`; testy s lightgbm sa potom preskočia. |
 
+## CORS a validácia vstupov
+
+Prehliadač môže volať API len z originov uvedených v `Cors:AllowedOrigins`. `appsettings.json` má prázdny zoznam, `appsettings.Development.json` povoľuje `http://localhost:5173`. V Azure ho nastav cez environment, napr. `Cors__AllowedOrigins__0=https://<swa>.azurestaticapps.net` a `Cors__AllowedOrigins__1=https://app.example.com`.
+
+Hodnota musí byť presné `scheme://host[:port]` bez cesty. API odmietne `*` aj neplatný origin už pri štarte, aby sa preklep neprejavil až v prehliadači.
+
+DTO sa validujú DataAnnotations cez `WithValidation<T>()` (vrátane `IValidatableObject`). Validačné chyby vracajú `400 application/problem+json` s poľom `errors`; chyby bindingu (prázdne alebo nevalidné JSON telo, zlý typ v query) majú rovnaký typ odpovede s `traceId`. Rovnaký formát majú aj 404/409/429 z `ApiExceptionHandler` a rate limitu.
+
 ## Frontend: generovaný API klient
 
 Typy API sa generujú z OpenAPI (`frontend/openapi/openapi.json`) do `frontend/src/api/generated/` (negeneruj ručne, needituj). Typovaný klient je `api` v `frontend/src/api/client.ts`.
