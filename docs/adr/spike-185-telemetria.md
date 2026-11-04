@@ -258,5 +258,7 @@ Tvrdenia o bežnom 5/15-min intervale dataloggerov a o PVGIS/verejných dataseto
 
 ## Príloha
 
+> Záväzný kontrakt je JSON Schema v prílohe nižšie. Inline schéma a príklad v sekcii „JSON schéma a príklad“ sú pôvodný návrh zo spiku; implementovaný ingest (`Features/Telemetry`) používa polia `installationId`, `sentAt`, `source` a `intervalSec`, ktoré sú len v súbore schémy.
+
 - JSON Schema kontraktu: [spike-185-telemetry.schema.json](assets/spike-185-telemetry.schema.json)
 - Príklad payloadu (3 záznamy: noc, MPPT, FAULT; validný voči schéme): [spike-185-telemetry-example.json](assets/spike-185-telemetry-example.json)
