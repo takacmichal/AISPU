@@ -41,7 +41,7 @@ describe('DataTable', () => {
   it('pages through results', async () => {
     const onPageChange = vi.fn()
     render(table({ onPageChange }))
-    expect(screen.getByText('Strana 2 z 4 (35)')).toBeInTheDocument()
+    expect(screen.getByText('Zobrazené 11–20 z 35')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Ďalšia' }))
     await userEvent.click(screen.getByRole('button', { name: 'Predchádzajúca' }))
     expect(onPageChange).toHaveBeenNthCalledWith(1, 3)
@@ -108,6 +108,15 @@ describe('DataTable', () => {
     const onRowClick = vi.fn()
     render(table({ onRowClick }))
     await userEvent.click(within(screen.getAllByRole('row')[1]).getByText('Anna'))
+    expect(onRowClick).toHaveBeenCalledWith(rows[0])
+  })
+
+  it('opens a clickable row from the keyboard', async () => {
+    const onRowClick = vi.fn()
+    render(table({ onRowClick }))
+    await userEvent.tab()
+    expect(screen.getAllByRole('row')[1]).toHaveFocus()
+    await userEvent.keyboard('{Enter}')
     expect(onRowClick).toHaveBeenCalledWith(rows[0])
   })
 })

@@ -1,80 +1,3 @@
-.stepper {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: var(--spacing-12);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.stepper__step {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  padding: var(--spacing-12);
-  border-radius: var(--radius-buttons);
-  background: var(--surface-subtle);
-  box-shadow: var(--shadow-inset-border);
-  color: var(--color-fog);
-  counter-increment: step;
-}
-
-.stepper__step::before {
-  content: counter(step);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: var(--radius-pills);
-  background: var(--color-graphite);
-  color: var(--color-mist);
-  font-size: var(--text-label);
-}
-
-.stepper__step--done {
-  color: var(--color-mist);
-}
-
-.stepper__step--done::before {
-  content: '\2713';
-  background: rgb(39 166 68 / 15%);
-  color: var(--color-pulse-green);
-}
-
-.stepper__step--current {
-  color: var(--color-paper);
-  box-shadow: inset 0 0 0 1px var(--color-signal-teal);
-}
-
-.stepper__step--current::before {
-  background: rgb(2 184 204 / 15%);
-  color: var(--color-signal-teal);
-}
-
-.stepper__step--blocked {
-  color: var(--color-paper);
-  box-shadow: inset 0 0 0 1px var(--color-coral-red);
-}
-
-.stepper__step--blocked::before {
-  content: '!';
-  background: rgb(235 87 87 / 15%);
-  color: var(--color-coral-red);
-}
-
-.stepper__label {
-  font-size: var(--text-caption);
-  font-weight: 500;
-}
-
-.stepper__meta {
-  color: var(--color-fog);
-  font-size: var(--text-label);
-}
-
 .connection-alert {
   margin: var(--spacing-12) 0 0;
   padding: var(--spacing-8) var(--spacing-12);
@@ -83,25 +6,25 @@
 }
 
 .connection-alert--warning {
-  background: rgb(228 242 34 / 10%);
-  color: var(--color-acid-lime);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .connection-alert--overdue {
-  background: rgb(235 87 87 / 15%);
-  color: var(--color-coral-red);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .connection-alert--ok {
   background: var(--surface-tint);
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .timeline {
   margin: 0;
   padding: 0 0 0 var(--spacing-16);
   list-style: none;
-  border-left: 1px solid var(--color-graphite);
+  border-left: 1px solid var(--color-border);
 }
 
 .timeline li {
@@ -117,18 +40,18 @@
   width: 7px;
   height: 7px;
   border-radius: var(--radius-pills);
-  background: var(--color-signal-teal);
+  background: var(--color-info);
 }
 
 .timeline time {
   display: block;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
 .timeline__note {
   margin: var(--spacing-4) 0 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
@@ -138,4 +61,22 @@
 
 .connection-section h3 {
   margin: 0 0 var(--spacing-12);
+}
+
+/* ---------- Connection request list ---------- */
+.connection-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.deadline {
+  min-width: 11rem;
+}
+
+.deadline--warning .progress__fill {
+  background: var(--color-warning);
+}
+
+.deadline--overdue .progress-field__value {
+  color: var(--color-danger);
+  font-weight: 600;
 }

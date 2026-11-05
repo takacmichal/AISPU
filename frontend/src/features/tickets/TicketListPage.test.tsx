@@ -6,7 +6,7 @@ import { json, problem, renderRoute, stubFetch, ticketItem, ticketList } from '.
 
 afterEach(() => vi.unstubAllGlobals())
 
-const render = (roles = ['Admin'], route = '/tickets') => renderRoute(<TicketListPage />, route, '/tickets', roles)
+const render = (roles = ['Admin'], route = '/tickets?view=list') => renderRoute(<TicketListPage />, route, '/tickets', roles)
 
 describe('TicketListPage table', () => {
   it('shows rows with state and priority badges', async () => {
@@ -42,6 +42,26 @@ describe('TicketListPage table', () => {
     render(['Customer'])
     expect(await screen.findByRole('link', { name: 'Nahlásiť poruchu' })).toHaveAttribute('href', '/tickets/new')
   })
+
+  it('starts on the Kanban for planners and on the list for everybody else', async () => {
+    stubFetch(({ path }) => (path === '/api/tickets' ? json(ticketList([ticketItem()])) : undefined))
+    const first = render(['Operator'], '/tickets')
+    expect(await screen.findByRole('region', { name: 'Nástenka tiketov podľa stavu' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Kanban' })).toBeChecked()
+    first.unmount()
+    render(['Customer'], '/tickets')
+    expect(await screen.findByRole('cell', { name: 'Nový' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Zoznam' })).toBeChecked()
+  })
+
+  it('switches the view with the segmented control and keeps it in the URL', async () => {
+    stubFetch(({ path }) => (path === '/api/tickets' ? json(ticketList([ticketItem()])) : undefined))
+    const { router } = render(['Admin'])
+    await screen.findByRole('cell', { name: 'Nový' })
+    await userEvent.click(screen.getByRole('radio', { name: 'Kanban' }))
+    expect(await screen.findByRole('region', { name: 'Nástenka tiketov podľa stavu' })).toBeInTheDocument()
+    expect(router.state.location.search).toContain('view=board')
+  })
 })
 
 describe('TicketListPage Kanban', () => {
@@ -54,10 +74,24 @@ describe('TicketListPage Kanban', () => {
         ? json(ticketList([ticketItem(), ticketItem({ id: 't2', title: 'Poistka', state: 'Resolved', priority: 'Low' })]))
         : undefined,
     )
+    stubFetch(({ path }) => {
+      if (path === '/api/installations') return json([{ id: 'i1', name: 'FVE Nitra' }])
+      if (path === '/api/tickets')
+        return json(
+          ticketList([
+            ticketItem({ priority: 'High', origin: 'AnomalyDetected' }),
+            ticketItem({ id: 't2', title: 'Poistka', state: 'Resolved', priority: 'Low' }),
+          ]),
+        )
+    })
     board()
     const region = await screen.findByRole('region', { name: 'Nástenka tiketov podľa stavu' })
+    expect(within(region).getAllByRole('heading', { level: 3 })).toHaveLength(8)
     const nový = within(region).getByRole('heading', { name: /Nový/ }).closest('section')!
     expect(within(nový).getByText('Invertor nesvieti')).toBeInTheDocument()
+    expect(within(nový).getByText('Vysoká')).toBeInTheDocument()
+    expect(within(nový).getByText('Automatická detekcia')).toBeInTheDocument()
+    expect(await within(nový).findByText('FVE Nitra')).toBeInTheDocument()
     const done = within(region).getByRole('heading', { name: /Vyriešený/ }).closest('section')!
     expect(within(done).getByText('Poistka')).toBeInTheDocument()
     expect(within(done).getByText('Nízka')).toBeInTheDocument()

@@ -11,20 +11,55 @@ function render(roles: string[] = ['Admin'], route = '/installations/i1', props 
 }
 
 const base = (extra?: (call: Call) => Response | undefined) => (call: Call) => {
+  const custom = extra?.(call)
+  if (custom) return custom
   if (call.path === '/api/installations/i1' && call.method === 'GET') return json(detailOf())
   if (call.path === '/api/customers/c1') return json({ id: 'c1', displayName: 'Ján Novák' })
-  return extra?.(call)
+  if (call.path === '/api/installations/i1/devices' && call.method === 'GET')
+    return json([
+      device(),
+      device({ id: 'd2', serialNumber: 'JA2410-000124' }),
+      device({ id: 'd3', type: 'Inverter', serialNumber: 'INV-1', manufacturer: 'Huawei', model: 'SUN2000-10K', powerW: 10000 }),
+    ])
 }
+const NEXT = 'Posunúť do ďalšej fázy'
 
 describe('InstallationDetailPage', () => {
-  it('shows header, state badge, overview and history', async () => {
+  it('shows header, state badge, workflow, realization and history', async () => {
     stubFetch(base())
     render()
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'FVE Nitra', level: 2 })).toBeInTheDocument()
-    expect(screen.getAllByText('Naplánovaná').length).toBeGreaterThan(0)
-    expect(await screen.findByText('Ján Novák')).toBeInTheDocument()
-    expect(screen.getByText(/\(Vytvorená\)/)).toBeInTheDocument()
+    const workflow = screen.getByRole('list', { name: 'Workflow inštalácie' })
+    expect(within(workflow).getAllByRole('listitem')).toHaveLength(6)
+    expect(within(workflow).getByText('Naplánovaná').closest('li')).toHaveAttribute('aria-current', 'step')
+    expect(await screen.findAllByText('Ján Novák')).not.toHaveLength(0)
+    expect(screen.getByText('Ďalší krok: Komponenty objednané')).toBeInTheDocument()
+    const history = await screen.findByRole('list', { name: 'História stavov' })
+    expect(within(history).getByText(/Vytvorená/)).toBeInTheDocument()
+  })
+
+  it('shows component cards with serial number counts that open the filtered devices tab', async () => {
+    const calls = stubFetch(base())
+    const { router } = render()
+    const panels = await screen.findByRole('article', { name: 'Panely' })
+    expect(within(panels).getByText('2 ks')).toBeInTheDocument()
+    expect(within(panels).getByText('JA Solar JAM54S30-450')).toBeInTheDocument()
+    expect(within(panels).getByText('0,9 kWp')).toBeInTheDocument()
+    expect(within(screen.getByRole('article', { name: 'Striedače' })).getByText('1 ks')).toBeInTheDocument()
+    await userEvent.click(within(panels).getByRole('button', { name: 'Sériové čísla (2)' }))
+    expect(router.state.location.search).toContain('type=Panel')
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/installations/i1/devices' && c.search.includes('type=Panel'))).toBe(true))
+  })
+
+  it('links to production monitoring only for roles that can open it', async () => {
+    stubFetch(base())
+    const { unmount } = render(['Operator'])
+    expect(await screen.findByRole('link', { name: 'Monitoring výroby' })).toHaveAttribute('href', '/monitoring?installation=i1')
+    unmount()
+    render(['Sales'])
+    await screen.findByRole('heading', { name: 'FVE Nitra' })
+    expect(screen.queryByRole('link', { name: 'Monitoring výroby' })).not.toBeInTheDocument()
   })
 
   it('shows an error when the installation cannot be loaded', async () => {
@@ -42,18 +77,18 @@ describe('InstallationDetailPage', () => {
       }),
     )
     render()
-    await userEvent.click(await screen.findByRole('button', { name: 'Komponenty objednané' }))
+    await userEvent.click(await screen.findByRole('button', { name: NEXT }))
     const dialog = await screen.findByRole('dialog')
     expect(calls.some((c) => c.path.endsWith('/transitions'))).toBe(false)
     await userEvent.click(within(dialog).getByRole('button', { name: 'Komponenty objednané' }))
     await waitFor(() => expect(calls.find((c) => c.path.endsWith('/transitions'))?.body).toEqual({ targetState: 'ComponentsOrdered' }))
-    expect(await screen.findByRole('button', { name: 'Komponenty prijaté' })).toBeInTheDocument()
+    expect(await screen.findByText('Ďalší krok: Komponenty prijaté')).toBeInTheDocument()
   })
 
   it('does not post when the confirmation is cancelled', async () => {
     const calls = stubFetch(base())
     render()
-    await userEvent.click(await screen.findByRole('button', { name: 'Komponenty objednané' }))
+    await userEvent.click(await screen.findByRole('button', { name: NEXT }))
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Zrušiť' }))
     expect(calls.some((c) => c.method === 'POST')).toBe(false)
   })
@@ -61,7 +96,7 @@ describe('InstallationDetailPage', () => {
   it('shows a conflict from the server when the transition is rejected', async () => {
     stubFetch(base((c) => (c.path.endsWith('/transitions') ? problem(409, 'Neplatný prechod.') : undefined)))
     render()
-    await userEvent.click(await screen.findByRole('button', { name: 'Komponenty objednané' }))
+    await userEvent.click(await screen.findByRole('button', { name: NEXT }))
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Komponenty objednané' }))
     expect(await screen.findByText('Neplatný prechod.')).toBeInTheDocument()
   })
@@ -73,14 +108,35 @@ describe('InstallationDetailPage', () => {
         : undefined,
     )
     render()
-    expect(await screen.findByRole('button', { name: 'Montáž' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: NEXT })).toBeDisabled()
+    expect(screen.getByRole('note')).toHaveTextContent('Montáž možno začať až po naplánovaní termínu a pridelení technika.')
+  })
+
+  it('offers no main action when the next state needs a revision report', async () => {
+    stubFetch(base((c) => (c.path === '/api/installations/i1' ? json(detailOf({ state: 'Inspection', allowedTransitions: ['InspectionPassed', 'InspectionFailed'] })) : undefined)))
+    render()
+    expect(await screen.findByRole('note')).toHaveTextContent(/revíznou správou/)
+    expect(screen.queryByRole('button', { name: NEXT })).not.toBeInTheDocument()
+  })
+
+  it('returns a failed inspection to mounting as rework', async () => {
+    stubFetch(
+      base((c) =>
+        c.path === '/api/installations/i1'
+          ? json(detailOf({ state: 'InspectionFailed', allowedTransitions: ['Mounting'], scheduledStart: '2026-11-04', scheduledEnd: '2026-11-05', technicianIds: ['t1'] }))
+          : undefined,
+      ),
+    )
+    render()
+    expect(await screen.findByRole('button', { name: 'Vrátiť na montáž' })).toBeEnabled()
+    expect(within(screen.getByRole('list', { name: 'Workflow inštalácie' })).getByText('Revízia').closest('li')).toHaveClass('stepper__step--blocked')
   })
 
   it('hides transitions and planning for roles without access', async () => {
     stubFetch(base())
     render(['Sales'])
     await screen.findByRole('heading', { name: 'FVE Nitra' })
-    expect(screen.queryByRole('button', { name: 'Komponenty objednané' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: NEXT })).not.toBeInTheDocument()
   })
 
   it('renders the connection slot, or a placeholder when it is not wired', async () => {

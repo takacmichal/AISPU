@@ -33,7 +33,8 @@ describe('session handling', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     renderApp('/customers', admin)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Odhlásiť' }))
+    await userEvent.click(screen.getByRole('button', { name: /a@test\.sk/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Odhlásiť' }))
 
     expect(await screen.findByRole('heading', { name: 'Prihlásenie' })).toBeInTheDocument()
     expect(loadSession()).toBeNull()
@@ -68,7 +69,7 @@ describe('session handling', () => {
       vi.fn(async (url: string) => (url.includes('/api/system/info') ? new Response(null, { status: 503 }) : new Response(null, { status: 401 }))),
     )
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    renderApp('/', admin)
+    renderApp('/app', admin)
 
     await authFetch('/api/protected')
 
@@ -86,7 +87,7 @@ describe('session handling', () => {
 
     await userEvent.type(await screen.findByLabelText('E-mail'), 'a@test.sk')
     await userEvent.type(screen.getByLabelText('Heslo'), 'Secret12345')
-    await userEvent.click(screen.getByRole('button', { name: 'Prihlásiť' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Prihlásiť sa' }))
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Zákazníci' })).toBeInTheDocument())
   })
@@ -95,13 +96,14 @@ describe('session handling', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })))
     renderApp('/nope', admin)
-    expect(screen.getByRole('link', { name: 'Späť na prehľad' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Späť na prehľad' })).toHaveAttribute('href', '/app')
   })
 
   it('rejects unsafe return URLs', () => {
-    expect(safeReturnUrl('//evil.com')).toBe('/')
-    expect(safeReturnUrl('https://evil.com')).toBe('/')
+    expect(safeReturnUrl('//evil.com')).toBe('/app')
+    expect(safeReturnUrl('https://evil.com')).toBe('/app')
     expect(safeReturnUrl('/customers?page=2')).toBe('/customers?page=2')
-    expect(safeReturnUrl(null)).toBe('/')
+    expect(safeReturnUrl(null)).toBe('/app')
+    expect(safeReturnUrl('/')).toBe('/app')
   })
 })

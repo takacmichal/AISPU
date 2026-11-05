@@ -24,7 +24,7 @@ function Icon({ children }: { children: ReactNode }) {
 /** Sidebar icon for a navigation path (falls back to a neutral dot). */
 export function NavIcon({ path }: { path: string }) {
   switch (path) {
-    case '/':
+    case '/app':
       return (
         <Icon>
           <rect x="2" y="2" width="5" height="5" rx="1" />
@@ -75,11 +75,30 @@ export function NavIcon({ path }: { path: string }) {
           <path d="M9.6 2.4a3 3 0 0 0-3.9 3.9L2 10a1.4 1.4 0 0 0 2 2l3.7-3.7a3 3 0 0 0 3.9-3.9L9.75 6.25l-1.5-.5-.5-1.5 1.85-1.85Z" />
         </Icon>
       )
+    case '/connection-requests':
+      return (
+        <Icon>
+          <path d="M6 2v3M10 2v3M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0V5ZM8 11v3" />
+        </Icon>
+      )
+    case '/monitoring':
+      return (
+        <Icon>
+          <path d="M2 13.5h12M3 10.5l3-3.5 2.5 2 4.5-5.5" />
+        </Icon>
+      )
     case '/tickets':
       return (
         <Icon>
           <path d="M2 4.5h12v2a1.5 1.5 0 0 0 0 3v2H2v-2a1.5 1.5 0 0 0 0-3v-2Z" />
           <path d="M10 4.5v7" strokeDasharray="1.25 1.5" />
+        </Icon>
+      )
+    case '/my-visits':
+      return (
+        <Icon>
+          <path d="M8 14s4.5-4.1 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.9 8 14 8 14Z" />
+          <circle cx="8" cy="6.5" r="1.6" />
         </Icon>
       )
     case '/my-plants':
@@ -105,13 +124,25 @@ export function NavIcon({ path }: { path: string }) {
   }
 }
 
-/** Small SolarOps logo glyph (sun over a panel). */
+/** SolarOps logo glyph (sun over a panel), from the landing page design. */
 export function BrandGlyph() {
   return (
-    <svg className="brand-glyph" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <rect width="20" height="20" rx="5" fill="var(--color-acid-lime)" />
-      <circle cx="10" cy="7.5" r="2.5" fill="var(--color-void)" />
-      <path d="M4.5 15.5 6 11h8l1.5 4.5h-11Z" fill="none" stroke="var(--color-void)" strokeWidth="1.5" strokeLinejoin="round" />
+    <svg
+      className="brand-glyph"
+      width="28"
+      height="28"
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke="var(--color-text)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="16" cy="9" r="4" stroke="var(--color-accent)" />
+      <path d="M16 2v1.5M9.5 4.5l1 1M22.5 4.5l-1 1M7 9h1.5M23.5 9H25" stroke="var(--color-accent)" />
+      <path d="M6 28l3-12h14l3 12z" />
+      <path d="M7.5 22h17M12.5 16l-1.2 12M19.5 16l1.2 12" />
     </svg>
   )
 }
@@ -120,6 +151,59 @@ export function SignOutIcon() {
   return (
     <Icon>
       <path d="M6.5 2.5H3.5v11h3M10.5 5l3 3-3 3M13.25 8H6.5" />
+    </Icon>
+  )
+}
+
+export function MenuIcon() {
+  return (
+    <Icon>
+      <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+    </Icon>
+  )
+}
+
+export function SearchIcon() {
+  return (
+    <Icon>
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="m10.5 10.5 3 3" />
+    </Icon>
+  )
+}
+
+export function ChevronIcon() {
+  return (
+    <Icon>
+      <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
+    </Icon>
+  )
+}
+
+/** Double chevron; rotated by CSS when the sidebar is collapsed. */
+export function CollapseIcon() {
+  return (
+    <Icon>
+      <path d="M9.5 4.5 6 8l3.5 3.5M13 4.5 9.5 8l3.5 3.5" />
+    </Icon>
+  )
+}
+
+export function BellIcon() {
+  return (
+    <Icon>
+      <path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z" />
+      <path d="M6.5 14a1.5 1.5 0 0 0 3 0" />
+    </Icon>
+  )
+}
+
+export function HelpIcon() {
+  return (
+    <Icon>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.3-.8.6-.8 1.2" />
+      <path d="M8 11.5v.01" />
     </Icon>
   )
 }

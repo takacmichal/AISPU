@@ -22,7 +22,7 @@ interface Props {
   design: Design
   /** Called with the saved design so the page can refresh its state. */
   onSaved: () => void
-  /** Only one lime button per view: the page decides whether this form owns it. */
+  /** Only one primary button per view: the page decides whether this form owns it. */
   primary?: boolean
 }
 

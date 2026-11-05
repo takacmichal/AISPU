@@ -7,6 +7,8 @@ import { useConfirm } from '../../components/confirm'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Dialog } from '../../components/Dialog'
 import { FormField } from '../../components/forms'
+import { PageHeader } from '../../components/PageHeader'
+import { FilterSelect, Toolbar } from '../../components/Toolbar'
 import { useToast } from '../../components/toast'
 import { useFormSubmit } from '../../components/useFormSubmit'
 import { useLoad } from '../../components/useLoad'
@@ -132,7 +134,7 @@ export default function CatalogPage() {
   if (!canRead) {
     return (
       <section>
-        <h2>Katalóg komponentov</h2>
+        <PageHeader title="Katalóg komponentov" />
         <p role="alert" className="alert">
           Na zobrazenie katalógu nemáte oprávnenie.
         </p>
@@ -146,35 +148,35 @@ export default function CatalogPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>Katalóg komponentov</h2>
-        {canWrite && (
-          <button type="button" className="btn btn--primary" onClick={() => setDialog({})}>
-            Nový komponent
-          </button>
-        )}
-      </div>
-      <div className="toolbar">
-        <label className="data-table__filter">
-          Typ
-          <select value={type} onChange={(e) => update({ type: e.target.value, page: null })}>
-            <option value="">Všetky typy</option>
-            {COMPONENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="data-table__filter">
-          Dostupnosť
-          <select value={active} onChange={(e) => update({ active: e.target.value, page: null })}>
-            <option value="">Všetky</option>
-            <option value="true">Aktívne</option>
-            <option value="false">Neaktívne</option>
-          </select>
-        </label>
-      </div>
+      <PageHeader
+        title="Katalóg komponentov"
+        subtitle="Panely, meniče a práca s cenami pre ponuky a návrhy"
+        actions={
+          canWrite && (
+            <button type="button" className="btn btn--primary" onClick={() => setDialog({})}>
+              Nový komponent
+            </button>
+          )
+        }
+      />
+      <Toolbar>
+        <FilterSelect
+          label="Typ"
+          value={type}
+          onChange={(value) => update({ type: value, page: null })}
+          options={[{ value: '', label: 'Všetky typy' }, ...COMPONENT_TYPES.map((t) => ({ value: t, label: TYPE_LABELS[t] }))]}
+        />
+        <FilterSelect
+          label="Dostupnosť"
+          value={active}
+          onChange={(value) => update({ active: value, page: null })}
+          options={[
+            { value: '', label: 'Všetky' },
+            { value: 'true', label: 'Aktívne' },
+            { value: 'false', label: 'Neaktívne' },
+          ]}
+        />
+      </Toolbar>
       <DataTable
         columns={columns}
         rows={pageItems}

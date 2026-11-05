@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0;background:#e4e4e1;font-family:Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1d1d1b;-webkit-font-smoothing:antialiased}a{color:oklch(0.55 0.13 255);text-decoration:none}a:hover{text-decoration:underline}*{box-sizing:border-box}button{font-family:inherit;white-space:nowrap}</style></helmet>
+<div style="min-height:100vh;background:#e4e4e1;font-size:13px">
+<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#1d1d1b;color:#cfcfcb;font-size:12px">
+<strong style="color:#fff;font-weight:600">SolarOps · kostra UI</strong>
+<span style="opacity:.6">Klikateľný wireframe v0.1 · sivá škála + 1 akcent</span>
+<div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap">
+<span style="opacity:.7">Rola:</span>
+<sc-for list="{{ roles }}" as="r" hint-placeholder-count="6"><button onClick="{{ r.go }}" style="height:24px;padding:0 10px;border-radius:999px;border:1px solid #4a4a46;background:{{ r.bg }};color:{{ r.fg }};font-size:12px;cursor:pointer">{{ r.l }}</button></sc-for>
+<span style="width:1px;height:16px;background:#4a4a46;margin:0 4px"></span>
+<button onClick="{{ goLogin }}" style="height:24px;padding:0 10px;border-radius:999px;border:1px solid #4a4a46;background:transparent;color:#fff;font-size:12px;cursor:pointer">Prihlásenie</button>
+<button onClick="{{ goComponents }}" style="height:24px;padding:0 10px;border-radius:999px;border:1px solid #4a4a46;background:transparent;color:#fff;font-size:12px;cursor:pointer">Komponenty</button>
+</div>
+</div>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center;padding:32px">
+<div style="width:100%;max-width:980px;display:flex;flex-wrap:wrap;background:#f4f4f2;border:1px solid #d4d4d0;border-radius:24px;overflow:hidden">
+<div style="flex:1 1 400px;padding:40px;display:flex;flex-direction:column;gap:22px;background:#fff">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:10px;border:1.5px solid #1d1d1b"></span><div><div style="font-weight:600;font-size:15px">SolarOps</div><div style="font-size:11px;color:#8a8a85">Informačný systém FVE</div></div></div>
+<div><h1 style="margin:0;font-size:26px;font-weight:600">{{ authTitle }}</h1><p style="margin:6px 0 0;color:#6e6e6a">{{ authSub }}</p></div>
+<div style="display:flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px">
+<sc-for list="{{ authTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.go }}" style="flex:1;height:32px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:500;cursor:pointer">{{ t.l }}</button></sc-for>
+</div>
+<sc-if value="{{ isAuthLogin }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:14px">
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">E-mail</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px;color:#1d1d1b">lucia.horvathova@solarops.sk</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;justify-content:space-between;font-size:12px;font-weight:600">Heslo<a href="#">Zabudnuté heslo?</a></span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px;letter-spacing:3px">••••••••••</span></label>
+<label style="display:flex;align-items:center;gap:8px;color:#45453f"><span style="width:16px;height:16px;border-radius:4px;background:#1d1d1b;color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center">✓</span>Zapamätať si ma na tomto zariadení</label>
+<button onClick="{{ doLogin }}" style="height:42px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Prihlásiť sa</button>
+<div style="display:flex;align-items:center;gap:10px;color:#a2a29e;font-size:11px"><span style="flex:1;height:1px;background:#e0e0dc"></span>alebo<span style="flex:1;height:1px;background:#e0e0dc"></span></div>
+<button style="height:42px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;font-size:13px;cursor:pointer">Prihlásiť sa firemným účtom (SSO)</button>
+</div>
+</sc-if>
+<sc-if value="{{ isAuthReg }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:12px;flex-wrap:wrap">
+<label style="flex:1 1 140px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Meno</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">Ján</span></label>
+<label style="flex:1 1 140px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Priezvisko</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">Novák</span></label>
+</div>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">E-mail</span><span style="height:40px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;padding:0 12px">jan.novak@gmail</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600"><span style="width:14px;height:14px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center">!</span>Zadajte platnú e-mailovú adresu.</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Číslo zmluvy alebo zákaznícke číslo</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px;color:#a2a29e">napr. ZK-00412</span><span style="font-size:12px;color:#8a8a85">Nájdete ho na zmluve o dielo alebo vo faktúre.</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Heslo</span><span style="height:40px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;padding:0 12px;letter-spacing:3px">•••••</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600"><span style="width:14px;height:14px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center">!</span>Heslo musí mať aspoň 10 znakov a jedno číslo.</span></label>
+<label style="display:flex;align-items:flex-start;gap:8px;color:#45453f"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #8a8a85;flex:none;margin-top:1px"></span>Súhlasím so spracovaním osobných údajov a obchodnými podmienkami.</label>
+<button onClick="{{ doLogin }}" style="height:42px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Vytvoriť účet</button>
+</div>
+</sc-if>
+</div>
+<div style="flex:1 1 340px;padding:40px;display:flex;flex-direction:column;gap:20px;justify-content:center">
+<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a8a85;font-weight:600">Celý životný cyklus FVE</div>
+<h2 style="margin:0;font-size:22px;font-weight:600;line-height:1.25;text-wrap:pretty">Od prvej ponuky až po servis elektrárne v jednom systéme.</h2>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ lifecycle }}" as="l" hint-placeholder-count="5"><div style="display:flex;gap:12px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;border:1.5px solid #8a8a85;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none">{{ l.n }}</span><div><div style="font-weight:600">{{ l.t }}</div><div style="font-size:12px;color:#6e6e6a">{{ l.s }}</div></div></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:12px;padding:12px;align-items:flex-start">
+<aside style="width:{{ sideW }};flex:none;position:sticky;top:12px;height:calc(100vh - 64px);background:#f4f4f2;border:1px solid #d4d4d0;border-radius:20px;display:flex;flex-direction:column;padding:14px 10px;gap:16px;overflow:auto;transition:width .2s">
+<div style="display:flex;align-items:center;gap:10px;padding:0 4px">
+<span style="width:32px;height:32px;border-radius:10px;border:1.5px solid #1d1d1b;flex:none"></span>
+<sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">SolarOps</div><div style="font-size:11px;color:#8a8a85">{{ user.role }} · riadiace centrum</div></div></sc-if>
+<button onClick="{{ toggleSide }}" title="Zbaliť / rozbaliť" style="width:26px;height:26px;border-radius:8px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:12px;color:#6e6e6a;flex:none">{{ sideIcon }}</button>
+</div>
+<nav style="display:flex;flex-direction:column;gap:14px;flex:1">
+<sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9a9a95;padding:0 10px 4px;font-weight:600">{{ g.g }}</div></sc-if>
+<sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+<button onClick="{{ it.go }}" title="{{ it.l }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:10px;border:none;background:{{ it.bg }};color:{{ it.fg }};font-size:13px;cursor:pointer;text-align:left;justify-content:{{ navJustify }}">
+<span style="width:15px;height:15px;border-radius:4px;border:1.5px solid currentColor;opacity:.6;flex:none"></span>
+<sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.l }}</span><sc-if value="{{ it.hasN }}"><span style="min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:{{ it.nbg }};color:{{ it.nfg }};font-size:11px;display:inline-flex;align-items:center;justify-content:center">{{ it.n }}</span></sc-if></sc-if>
+</button>
+</sc-for>
+</div>
+</sc-for>
+</nav>
+<sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">Výroba dnes</span><span style="color:#6e6e6a">1 284 / 1 600 kWh</span></div>
+<div style="height:6px;border-radius:99px;background:#e6e6e3;overflow:hidden"><div style="width:80%;height:100%;background:oklch(0.55 0.13 255)"></div></div>
+<div style="font-size:11px;color:#8a8a85">62 inštalácií online · 2 offline</div>
+</div>
+</sc-if>
+</aside>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+<header style="display:flex;align-items:center;gap:12px;position:relative;flex-wrap:wrap">
+<div style="flex:1 1 280px;max-width:600px;height:42px;background:#f4f4f2;border:1px solid #d4d4d0;border-radius:999px;display:flex;align-items:center;gap:10px;padding:0 8px 0 16px;color:#8a8a85">
+<span style="width:13px;height:13px;border-radius:50%;border:1.5px solid currentColor;flex:none"></span>
+<span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Hľadať zákazníkov, ponuky, inštalácie, tikety…</span>
+<span style="font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid #cfcfcb;background:#fff">⌘K</span>
+</div>
+<div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+<button title="Pomocník" style="width:40px;height:40px;border-radius:50%;border:1px solid #d4d4d0;background:#f4f4f2;cursor:pointer;color:#6e6e6a">?</button>
+<button onClick="{{ toggleNotif }}" title="Notifikácie" style="width:40px;height:40px;border-radius:50%;border:1px solid #d4d4d0;background:#f4f4f2;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border-radius:4px 4px 7px 7px;border:1.5px solid #6e6e6a"></span><span style="position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;border-radius:999px;background:oklch(0.55 0.13 255);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #e4e4e1">3</span></button>
+<button onClick="{{ toggleUser }}" style="height:42px;display:flex;align-items:center;gap:10px;padding:0 14px 0 5px;border-radius:999px;border:1px solid #d4d4d0;background:#f4f4f2;cursor:pointer;text-align:left">
+<span style="width:32px;height:32px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ user.ini }}</span>
+<span style="display:flex;flex-direction:column"><span style="font-size:12px;font-weight:600">{{ user.name }}</span><span style="font-size:11px;color:#8a8a85">{{ user.role }}</span></span>
+<span style="color:#8a8a85;font-size:10px">▾</span>
+</button>
+</div>
+<sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:150px;top:50px;width:340px;max-width:90vw;background:#fff;border:1px solid #d4d4d0;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.12);z-index:30;overflow:hidden">
+<div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #ececea"><strong>Notifikácie</strong><a href="#">Označiť ako prečítané</a></div>
+<sc-for list="{{ notifs }}" as="n" hint-placeholder-count="3"><div style="display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid #f0f0ee"><span style="width:8px;height:8px;border-radius:50%;background:{{ n.dot }};margin-top:5px;flex:none"></span><div><div style="font-weight:600">{{ n.t }}</div><div style="font-size:12px;color:#8a8a85">{{ n.s }}</div></div></div></sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ userOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;right:0;top:50px;width:220px;background:#fff;border:1px solid #d4d4d0;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.12);z-index:30;padding:6px;display:flex;flex-direction:column">
+<span style="padding:9px 10px;border-radius:8px">Môj profil</span><span style="padding:9px 10px;border-radius:8px">Nastavenia</span><span style="padding:9px 10px;border-radius:8px">Prepnúť rolu</span><span style="height:1px;background:#ececea;margin:4px 0"></span>
+<button onClick="{{ goLogin }}" style="padding:9px 10px;border-radius:8px;border:none;background:none;text-align:left;cursor:pointer;font-size:13px">Odhlásiť sa</button>
+</div>
+</sc-if>
+</header>
+
+<main style="background:#f4f4f2;border:1px solid #d4d4d0;border-radius:24px;padding:28px 28px 32px;display:flex;flex-direction:column;gap:18px;min-height:calc(100vh - 130px);min-width:0">
+<sc-if value="{{ head.hasCrumb }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;font-size:12px;color:#8a8a85;margin-bottom:-8px"><button onClick="{{ head.crumbGo }}" style="border:none;background:none;padding:0;color:oklch(0.55 0.13 255);cursor:pointer;font-size:12px">{{ head.crumb }}</button><span>/</span><span>{{ head.t }}</span></div></sc-if>
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+<div style="min-width:0">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-.01em">{{ head.t }}</h1><sc-if value="{{ head.hasBadge }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ head.badge.bg }};color:{{ head.badge.fg }};border:1px solid {{ head.badge.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ head.badge.t }}</span></sc-if></div>
+<p style="margin:4px 0 0;font-size:13px;color:#6e6e6a">{{ head.s }}</p>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-if value="{{ head.hasA2 }}"><button onClick="{{ head.onA2 }}" style="height:36px;padding:0 16px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;color:#1d1d1b;font-size:13px;font-weight:500;cursor:pointer">{{ head.a2 }}</button></sc-if>
+<sc-if value="{{ head.hasA1 }}"><button onClick="{{ head.onA1 }}" style="height:36px;padding:0 16px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;font-size:13px;font-weight:600;cursor:pointer">{{ head.a1 }}</button></sc-if>
+</div>
+</div>
+
+<sc-if value="{{ isMonitoring }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+<span style="font-size:12px;color:#6e6e6a">Inštalácia</span>
+<span style="height:36px;min-width:300px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px;white-space:nowrap"><span><strong>FVE-0231</strong> · Ján Novák, Žilina · 9,9 kWp</span><span style="color:#8a8a85;font-size:10px">▾</span></span>
+<div style="display:inline-flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px"><sc-for list="{{ monPeriods }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="height:28px;padding:0 12px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:12px;cursor:pointer">{{ t.l }}</button></sc-for></div>
+<span style="height:36px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px;white-space:nowrap">1. 10. – 31. 10. 2026</span>
+<button onClick="{{ toggleUnder }}" style="margin-left:auto;display:flex;align-items:center;gap:8px;border:none;background:none;cursor:pointer;font-size:13px"><span style="width:34px;height:20px;border-radius:99px;background:{{ underTrack }};position:relative;transition:background .2s"><span style="position:absolute;top:2px;left:{{ underKnob }};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></span></span>Zvýrazniť podvýrobu</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasKpis }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+<sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+<div onClick="{{ k.go }}" style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;cursor:{{ k.cursor }}" style-hover="border-color:#a2a29e">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="width:30px;height:30px;border-radius:50%;border:1.5px solid #cfcfcb;display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid #8a8a85"></span></span><sc-if value="{{ k.hasD }}"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:#ebebe8;color:#45453f;white-space:nowrap">{{ k.d }}</span></sc-if></div>
+<div style="font-size:26px;font-weight:600;letter-spacing:-.01em">{{ k.v }}</div>
+<div><div style="font-weight:600">{{ k.l }}</div><div style="font-size:12px;color:#8a8a85;margin-top:2px">{{ k.s }}</div></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<div style="flex:2 1 480px;min-width:0;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div style="font-size:15px;font-weight:600">Výroba v čase</div><div style="font-size:12px;color:#8a8a85">Všetky inštalácie · kWh/deň</div></div>
+<div style="display:inline-flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px"><sc-for list="{{ periods }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="height:28px;padding:0 12px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:12px;cursor:pointer">{{ t.l }}</button></sc-for></div></div>
+<div style="display:flex;gap:10px;height:230px">
+<div style="display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:#a2a29e;padding-bottom:18px;text-align:right;width:36px"><span>2 000</span><span>1 500</span><span>1 000</span><span>500</span><span>0</span></div>
+<div style="flex:1;display:flex;gap:6px;align-items:stretch;border-bottom:1px solid #e0e0dc;padding-bottom:0;position:relative">
+<sc-for list="{{ bars }}" as="d" hint-placeholder-count="14"><div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;position:relative"><div style="width:70%;max-width:26px;height:{{ d.h }};background:{{ d.bg }};border-radius:6px 6px 0 0"></div><span style="position:absolute;bottom:-18px;font-size:10px;color:#a2a29e">{{ d.l }}</span></div></sc-for>
+</div>
+</div>
+<div style="height:6px"></div>
+</div>
+<div style="flex:1 1 300px;min-width:0;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><div><div style="font-size:15px;font-weight:600">Posledné alarmy</div><div style="font-size:12px;color:#8a8a85">Za posledných 24 hodín</div></div><button onClick="{{ goMonitoring }}" style="border:none;background:none;color:oklch(0.55 0.13 255);cursor:pointer;font-size:12px">Všetky →</button></div>
+<sc-for list="{{ alarms }}" as="a" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f0f0ee"><span style="width:28px;height:28px;border-radius:8px;border:1.5px solid #cfcfcb;flex:none"></span><div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.t }}</div><div style="font-size:12px;color:#8a8a85">{{ a.s }}</div></div><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ a.b.bg }};color:{{ a.b.fg }};border:1px solid {{ a.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ a.b.t }}</span></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMonitoring }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:15px;font-weight:600">Skutočná vs. očakávaná výroba</div><div style="font-size:12px;color:#8a8a85">Október 2026 · kWh/deň · očakávaná podľa modelu počasia</div></div>
+<div style="display:flex;gap:14px;font-size:12px;color:#45453f;flex-wrap:wrap;align-items:center"><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;background:#b5b5b0"></span>Skutočná</span><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;border:1.5px dashed #6e6e6a"></span>Očakávaná</span><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;background:repeating-linear-gradient(45deg,oklch(0.93 0.035 255) 0 3px,transparent 3px 6px);border:1px solid oklch(0.55 0.13 255)"></span>Podvýroba (&lt; 80 %)</span></div></div>
+<div style="display:flex;gap:10px;height:260px">
+<div style="display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:#a2a29e;padding-bottom:18px;text-align:right;width:28px"><span>60</span><span>45</span><span>30</span><span>15</span><span>0</span></div>
+<div style="flex:1;display:flex;gap:3px;border-bottom:1px solid #e0e0dc;min-width:0">
+<sc-for list="{{ monDays }}" as="d" hint-placeholder-count="31"><div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;background:{{ d.colBg }};border-radius:4px 4px 0 0;min-width:0"><div style="position:absolute;bottom:0;left:8%;right:8%;height:{{ d.exp }};border:1.5px dashed #8a8a85;border-bottom:none;border-radius:3px 3px 0 0"></div><div style="width:56%;height:{{ d.act }};background:{{ d.actBg }};border-radius:3px 3px 0 0"></div><span style="position:absolute;bottom:-18px;font-size:10px;color:#a2a29e">{{ d.l }}</span></div></sc-for>
+</div>
+</div>
+<div style="height:4px"></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid #f0f0ee;padding-top:14px"><span style="font-size:12px;font-weight:600">Obdobia podvýroby:</span>
+<sc-for list="{{ underList }}" as="u" hint-placeholder-count="3"><span style="height:26px;padding:0 10px;border-radius:999px;border:1px solid oklch(0.55 0.13 255);color:oklch(0.55 0.13 255);background:oklch(0.93 0.035 255);display:inline-flex;align-items:center;font-size:12px;font-weight:500">{{ u }}</span></sc-for>
+<span style="font-size:12px;color:#8a8a85;margin-left:auto">Kliknutím na obdobie vytvoríte servisný tiket</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCustDetail }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px;overflow-x:auto">
+<sc-for list="{{ cTabs }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.go }}" style="flex:1;min-width:110px;height:34px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px">{{ t.l }}<sc-if value="{{ t.hasN }}"><span style="font-size:10px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:{{ t.nbg }};color:{{ t.nfg }};display:inline-flex;align-items:center;justify-content:center">{{ t.n }}</span></sc-if></button></sc-for>
+</div>
+<sc-if value="{{ isCOverview }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+<div style="flex:1 1 340px;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="font-size:15px;font-weight:600;margin-bottom:10px">Kontaktné údaje</div>
+<sc-for list="{{ contact }}" as="r" hint-placeholder-count="7"><div style="display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #f0f0ee"><span style="color:#8a8a85">{{ r.k }}</span><span>{{ r.v }}</span></div></sc-for>
+</div>
+<div style="flex:1 1 300px;display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<sc-for list="{{ cSummary }}" as="s" hint-placeholder-count="4"><button onClick="{{ s.go }}" style="text-align:left;border:1px solid #ececea;background:#fafaf8;border-radius:12px;padding:12px;cursor:pointer"><div style="font-size:22px;font-weight:600">{{ s.v }}</div><div style="font-size:12px;color:#6e6e6a">{{ s.l }}</div></button></sc-for>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:8px">
+<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a85;font-weight:600">Nasledujúci krok</div>
+<div style="font-weight:600">Interné schválenie ponuky CP-2026-0412</div>
+<div style="font-size:12px;color:#6e6e6a">Termín: 6. 11. 2026 · zodpovedá Martin Kováč</div>
+<button onClick="{{ goOfferDetail }}" style="align-self:flex-start;height:32px;padding:0 14px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:12px;margin-top:4px">Otvoriť ponuku</button>
+</div>
+</div>
+<div style="flex:1 1 320px;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="font-size:15px;font-weight:600;margin-bottom:12px">Aktivita</div>
+<sc-for list="{{ activity }}" as="a" hint-placeholder-count="4"><div style="display:flex;gap:12px;padding-bottom:14px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #8a8a85;margin-top:3px"></span><span style="flex:1;width:1px;background:#e0e0dc;margin-top:4px"></span></div><div><div>{{ a.t }}</div><div style="font-size:12px;color:#8a8a85;margin-top:2px">{{ a.s }}</div></div></div></sc-for>
+</div>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ isOfferDetail }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+<div style="flex:2 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px 18px 14px">
+<div style="font-size:15px;font-weight:600;margin-bottom:16px">Priebeh ponuky</div>
+<div style="display:flex;align-items:flex-start;overflow-x:auto">
+<sc-for list="{{ offSteps }}" as="st" hint-placeholder-count="5"><div style="flex:1;min-width:110px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center"><span style="width:28px;height:28px;border-radius:50%;background:{{ st.cbg }};color:{{ st.cfg }};border:1.5px solid {{ st.cbd }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none">{{ st.n }}</span><span style="flex:1;height:2px;background:{{ st.line }};margin:0 8px;opacity:{{ st.lineOp }}"></span></div><div style="font-size:12px;font-weight:600;color:{{ st.lfg }};padding-right:8px">{{ st.l }}</div><div style="font-size:11px;color:#8a8a85;padding-right:8px">{{ st.sub }}</div></div></sc-for>
+</div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:600">Návrh FVE</div><span style="font-size:12px;color:#8a8a85">Verzia 2 · Peter Baláž · 30. 10. 2026</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+<sc-for list="{{ design }}" as="d" hint-placeholder-count="6"><div style="border:1px solid #ececea;background:#fafaf8;border-radius:12px;padding:12px"><div style="font-size:11px;color:#8a8a85">{{ d.k }}</div><div style="font-weight:600;font-size:15px;margin-top:4px">{{ d.v }}</div></div></sc-for>
+</div>
+<div style="height:180px;border-radius:12px;border:1px dashed #b5b5b0;background:repeating-linear-gradient(135deg,#f4f4f2 0 8px,#ececea 8px 16px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#6e6e6a">[ nákres rozloženia panelov na streche ]</div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="font-size:15px;font-weight:600;margin-bottom:8px">Rozpočet</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 100px;gap:12px;padding:8px 0;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a8a85"><span>Položka</span><span>Množstvo</span><span style="text-align:right">Cena bez DPH</span></div>
+<sc-for list="{{ budget }}" as="r" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 100px;gap:12px;padding:10px 0;border-top:1px solid #f0f0ee"><span>{{ r.a }}</span><span style="color:#6e6e6a">{{ r.q }}</span><span style="text-align:right">{{ r.p }}</span></div></sc-for>
+<div style="border-top:1px solid #1d1d1b;margin-top:4px;padding-top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+<div style="display:flex;gap:24px;color:#6e6e6a"><span>Spolu bez DPH</span><span style="min-width:90px;text-align:right">9 333 €</span></div>
+<div style="display:flex;gap:24px;color:#6e6e6a"><span>DPH 23 %</span><span style="min-width:90px;text-align:right">2 147 €</span></div>
+<div style="display:flex;gap:24px;font-weight:600;font-size:15px"><span>Spolu s DPH</span><span style="min-width:90px;text-align:right">11 480 €</span></div>
+</div>
+</div>
+</div>
+<div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:600">Schvaľovanie návrhu</div>
+<sc-for list="{{ approvers }}" as="a" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:50%;background:#ebebe8;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ a.ini }}</span><div style="flex:1"><div style="font-weight:600">{{ a.n }}</div><div style="font-size:12px;color:#8a8a85">{{ a.r }}</div></div><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ a.b.bg }};color:{{ a.b.fg }};border:1px solid {{ a.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ a.b.t }}</span></div></sc-for>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Komentár k rozhodnutiu</span><span style="min-height:72px;border:1px solid #cfcfcb;border-radius:10px;padding:10px 12px;color:#a2a29e">Napr. upraviť sklon konštrukcie na 30°…</span></label>
+<div style="display:flex;gap:8px"><button onClick="{{ toastReturn }}" style="flex:1;height:36px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:13px">Vrátiť na úpravu</button><button onClick="{{ openConfirm }}" style="flex:1;height:36px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Schváliť návrh</button></div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:600">Zmluva</div><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:#fff;color:#1d1d1b;border:1px solid #8a8a85"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>Pripravená na podpis</span></div>
+<div style="display:flex;gap:12px;align-items:center;border:1px solid #ececea;background:#fafaf8;border-radius:12px;padding:12px"><span style="width:34px;height:42px;border-radius:6px;border:1.5px solid #8a8a85;font-size:9px;font-weight:600;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:#6e6e6a">PDF</span><div><div style="font-weight:600">Zmluva o dielo ZD-2026-0412</div><div style="font-size:12px;color:#8a8a85">Generovaná zo šablóny v3 · 4 strany</div></div></div>
+<div style="display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:12px"><span style="color:#8a8a85">Hodnota</span><span>11 480 € s DPH</span><span style="color:#8a8a85">Termín diela</span><span>do 15. 12. 2026</span><span style="color:#8a8a85">Podpis</span><span>elektronicky · čaká</span></div>
+<div style="display:flex;gap:8px"><button onClick="{{ toastSign }}" style="flex:1;height:36px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:13px">Odoslať na podpis</button><button onClick="{{ toastPdf }}" style="flex:1;height:36px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Stiahnuť PDF</button></div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;align-items:center;gap:12px"><span style="width:36px;height:36px;border-radius:50%;background:#ebebe8;font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center">JN</span><div style="flex:1"><div style="font-weight:600">Ján Novák</div><div style="font-size:12px;color:#8a8a85">Hlboká 12, 010 01 Žilina</div></div><button onClick="{{ goCustDetail }}" style="border:none;background:none;color:oklch(0.55 0.13 255);cursor:pointer;font-size:12px">Profil →</button></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isInstDetail }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px 18px 14px">
+<div style="font-size:15px;font-weight:600;margin-bottom:16px">Workflow inštalácie</div>
+<div style="display:flex;align-items:flex-start;overflow-x:auto">
+<sc-for list="{{ instSteps }}" as="st" hint-placeholder-count="6"><div style="flex:1;min-width:110px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center"><span style="width:28px;height:28px;border-radius:50%;background:{{ st.cbg }};color:{{ st.cfg }};border:1.5px solid {{ st.cbd }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none">{{ st.n }}</span><span style="flex:1;height:2px;background:{{ st.line }};margin:0 8px;opacity:{{ st.lineOp }}"></span></div><div style="font-size:12px;font-weight:600;color:{{ st.lfg }};padding-right:8px">{{ st.l }}</div><div style="font-size:11px;color:#8a8a85;padding-right:8px">{{ st.sub }}</div></div></sc-for>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+<div style="flex:2 1 480px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+<sc-for list="{{ comps }}" as="c" hint-placeholder-count="3"><div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a85;font-weight:600">{{ c.k }}</span><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ c.b.bg }};color:{{ c.b.fg }};border:1px solid {{ c.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ c.b.t }}</span></div><div style="font-size:24px;font-weight:600">{{ c.v }}</div><div><div style="font-weight:600">{{ c.m }}</div><div style="font-size:12px;color:#8a8a85">{{ c.s }}</div></div><a href="#" style="font-size:12px">Sériové čísla ({{ c.sn }})</a></div></sc-for>
+</div>
+<div style="flex:1 1 280px;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="font-size:15px;font-weight:600;margin-bottom:8px">Realizácia</div>
+<sc-for list="{{ instInfo }}" as="r" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #f0f0ee"><span style="color:#8a8a85">{{ r.k }}</span><span>{{ r.v }}</span></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTickets }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<div style="display:inline-flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px"><sc-for list="{{ tViews }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.go }}" style="height:30px;padding:0 14px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:12px;font-weight:500;cursor:pointer">{{ t.l }}</button></sc-for></div>
+<span style="height:32px;padding:0 12px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">Technik: Všetci ▾</span>
+<span style="height:32px;padding:0 12px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">Priorita: Všetky ▾</span>
+<span style="font-size:12px;color:#8a8a85;margin-left:auto">Kliknite na tiket pre detail</span>
+</div>
+<sc-if value="{{ isKanban }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:4px">
+<sc-for list="{{ kanban }}" as="col" hint-placeholder-count="5"><div style="background:#ebebe8;border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:320px"><div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 6px"><span style="font-weight:600">{{ col.t }}</span><span style="min-width:22px;height:20px;border-radius:999px;background:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center">{{ col.n }}</span></div>
+<sc-for list="{{ col.cards }}" as="k" hint-placeholder-count="2"><div onClick="{{ k.go }}" style="background:#fff;border:1px solid #dcdcd8;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer" style-hover="border-color:#8a8a85"><div style="display:flex;justify-content:space-between;font-size:11px;color:#8a8a85"><span>{{ k.id }}</span><span>SLA {{ k.sla }}</span></div><div style="font-weight:600;line-height:1.35">{{ k.t }}</div><div style="font-size:12px;color:#6e6e6a">{{ k.inst }}</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ k.b.bg }};color:{{ k.b.fg }};border:1px solid {{ k.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ k.b.t }}</span><span style="width:26px;height:26px;border-radius:50%;background:#ebebe8;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ k.tech }}</span></div></div></sc-for>
+</div></sc-for>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ isTicketDetail }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start">
+<div style="flex:2 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:8px">
+<div style="font-size:15px;font-weight:600">Popis problému</div>
+<p style="margin:0;line-height:1.55;color:#45453f;text-wrap:pretty">Od 2. 11. striedač INV-1 opakovane hlási chybu izolácie (Riso pod limitom) v ranných hodinách. Výroba sa obnoví okolo 10:00. Zákazník uvádza, že po daždi je problém výraznejší.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span style="height:26px;padding:0 10px;border-radius:8px;border:1px solid #dcdcd8;display:inline-flex;align-items:center;font-size:12px">alarm_INV1_0211.csv</span><span style="height:26px;padding:0 10px;border-radius:8px;border:1px solid #dcdcd8;display:inline-flex;align-items:center;font-size:12px">foto_striedac.jpg</span></div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><div style="font-size:15px;font-weight:600">Výjazdy</div><button onClick="{{ toastVisit }}" style="border:none;background:none;color:oklch(0.55 0.13 255);cursor:pointer;font-size:12px">+ Naplánovať výjazd</button></div>
+<sc-for list="{{ visits }}" as="v" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f0f0ee"><div><div style="font-weight:600">{{ v.d }}</div><div style="font-size:12px;color:#8a8a85">{{ v.h }}</div></div><div><div>{{ v.t }}</div><div style="font-size:12px;color:#8a8a85">{{ v.s }}</div></div><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ v.b.bg }};color:{{ v.b.fg }};border:1px solid {{ v.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ v.b.t }}</span></div></sc-for>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><div style="font-size:15px;font-weight:600">Servisný protokol PR-0921</div><button onClick="{{ toastPdf }}" style="height:30px;padding:0 12px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:12px">Stiahnuť PDF</button></div>
+<sc-for list="{{ protocol }}" as="r" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid #f0f0ee"><span style="color:#8a8a85">{{ r.k }}</span><span>{{ r.v }}</span></div></sc-for>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:600">Komentáre</div>
+<div style="display:flex;gap:10px"><span style="width:30px;height:30px;border-radius:50%;background:#ebebe8;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">ZŠ</span><div><div><strong>Zuzana Šimková</strong> <span style="font-size:12px;color:#8a8a85">· včera 16:20</span></div><div style="margin-top:2px;color:#45453f">Alarm sa zopakoval dnes 10:42. Prosím skontrolovať aj konektory MC4 na S2.</div></div></div>
+<div style="display:flex;gap:8px"><span style="flex:1;height:38px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px;color:#a2a29e">Napíšte komentár…</span><button style="height:38px;padding:0 14px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;font-size:13px;cursor:pointer">Odoslať</button></div>
+</div>
+</div>
+<div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:600">Detaily</div>
+<sc-for list="{{ tDetails }}" as="r" hint-placeholder-count="4"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#8a8a85">{{ r.k }}</span><span style="height:36px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:0 12px">{{ r.v }}<span style="color:#8a8a85;font-size:10px">▾</span></span></label></sc-for>
+<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:#8a8a85">SLA – vyriešiť do</span><span style="font-weight:600">zostáva 18 h</span></div><div style="height:6px;border-radius:99px;background:#e6e6e3;overflow:hidden"><div style="width:62%;height:100%;background:oklch(0.55 0.13 255)"></div></div></div>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px">
+<div style="font-size:15px;font-weight:600;margin-bottom:6px">Priradený technik</div>
+<sc-for list="{{ techs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid {{ t.bd }};background:{{ t.bg }};cursor:pointer;text-align:left"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid {{ t.rbd }};display:flex;align-items:center;justify-content:center;flex:none"><span style="width:8px;height:8px;border-radius:50%;background:{{ t.dot }}"></span></span><span style="width:30px;height:30px;border-radius:50%;background:#ebebe8;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">{{ t.id }}</span><span style="flex:1"><span style="display:block;font-weight:600;font-size:13px">{{ t.n }}</span><span style="display:block;font-size:12px;color:#8a8a85">{{ t.s }}</span></span></button></sc-for>
+</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;align-items:center;gap:12px"><span style="width:36px;height:36px;border-radius:10px;border:1.5px solid #cfcfcb;flex:none"></span><div style="flex:1"><div style="font-weight:600">FVE-0231 · 9,9 kWp</div><div style="font-size:12px;color:#8a8a85">Hlboká 12, Žilina</div></div><button onClick="{{ goInstDetail }}" style="border:none;background:none;color:oklch(0.55 0.13 255);cursor:pointer;font-size:12px">Detail →</button></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTech }}" hint-placeholder-val="{{ false }}">
+<div style="font-size:12px;color:#6e6e6a">Na mobile sa sidebar mení na spodnú navigáciu. Hlavná akcia je vždy dole na dosah palca (min. 44 px).</div>
+<div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">9a · Moje výjazdy na dnes</span>
+<div style="width:340px;height:700px;border:8px solid #1d1d1b;border-radius:44px;background:#f4f4f2;overflow:hidden;display:flex;flex-direction:column">
+<div style="height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:8px 18px 12px;display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:12px;color:#8a8a85">Streda 4. 11.</div><div style="font-size:22px;font-weight:600">Moje výjazdy</div></div><span style="width:36px;height:36px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">TV</span></div>
+<div style="padding:0 18px 10px"><div style="display:flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px"><span style="flex:1;height:28px;border-radius:999px;background:#1d1d1b;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center">Dnes · 4</span><span style="flex:1;height:28px;font-size:12px;display:flex;align-items:center;justify-content:center;color:#5a5a55">Zajtra · 2</span><span style="flex:1;height:28px;font-size:12px;display:flex;align-items:center;justify-content:center;color:#5a5a55">Týždeň</span></div></div>
+<div style="flex:1;overflow:auto;padding:0 14px;display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ jobs }}" as="j" hint-placeholder-count="4"><div style="background:#fff;border:1.5px solid {{ j.bd }};border-radius:16px;padding:12px;display:flex;gap:12px"><div style="font-weight:600;font-size:14px;width:44px">{{ j.time }}</div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div style="font-weight:600">{{ j.t }}</div><div style="font-size:12px;color:#6e6e6a">{{ j.s }}</div><div style="font-size:12px;color:#8a8a85">{{ j.addr }}</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ j.b.bg }};color:{{ j.b.fg }};border:1px solid {{ j.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ j.b.t }}</span><span style="font-size:12px;color:oklch(0.55 0.13 255)">Navigovať</span></div></div></div></sc-for>
+</div>
+<div style="height:70px;border-top:1px solid #dcdcd8;background:#fff;display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:10px">
+<sc-for list="{{ mobNav }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:{{ m.fg }};font-size:10px;font-weight:600"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid currentColor"></span>{{ m.l }}</div></sc-for>
+</div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">9b · Detail výjazdu</span>
+<div style="width:340px;height:700px;border:8px solid #1d1d1b;border-radius:44px;background:#f4f4f2;overflow:hidden;display:flex;flex-direction:column">
+<div style="height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:6px 14px 10px;display:flex;align-items:center;gap:10px"><span style="width:36px;height:36px;border-radius:50%;border:1px solid #cfcfcb;background:#fff;display:flex;align-items:center;justify-content:center">‹</span><div><div style="font-size:11px;color:#8a8a85">10:30 · TK-1187</div><div style="font-weight:600;font-size:15px">Chyba izolácie striedača</div></div></div>
+<div style="flex:1;overflow:auto;padding:0 14px;display:flex;flex-direction:column;gap:10px">
+<div style="height:130px;border-radius:14px;border:1px dashed #b5b5b0;background:repeating-linear-gradient(135deg,#f4f4f2 0 8px,#ececea 8px 16px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6e6e6a">[ mapa · trasa 14 min ]</div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px"><div style="font-weight:600">Ján Novák</div><div style="font-size:12px;color:#6e6e6a">Hlboká 12, 010 01 Žilina</div><div style="display:flex;gap:8px;margin-top:4px"><span style="flex:1;height:44px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center;justify-content:center;font-size:13px">Zavolať</span><span style="flex:1;height:44px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center;justify-content:center;font-size:13px">Navigovať</span></div></div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;color:#8a8a85;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Zariadenie</div><div>FVE 9,9 kWp · Striedač INV-1 hybrid 10 kW</div><div style="font-size:12px;color:#8a8a85">Posledný alarm: dnes 10:42 · Riso 0,4 MΩ</div></div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px"><div style="font-size:11px;color:#8a8a85;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Kontrolný zoznam</div>
+<sc-for list="{{ checklist }}" as="c" hint-placeholder-count="4"><div style="display:flex;gap:10px;align-items:center"><span style="width:20px;height:20px;border-radius:6px;border:1.5px solid #8a8a85;background:{{ c.bg }};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none">{{ c.m }}</span><span>{{ c.t }}</span></div></sc-for>
+</div>
+</div>
+<div style="padding:10px 14px 18px;background:#fff;border-top:1px solid #dcdcd8;display:flex;gap:8px"><span style="flex:1;height:48px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center;justify-content:center;font-size:13px">Pozastaviť</span><span style="flex:2;height:48px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Vyplniť protokol</span></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">9c · Formulár protokolu</span>
+<div style="width:340px;height:700px;border:8px solid #1d1d1b;border-radius:44px;background:#f4f4f2;overflow:hidden;display:flex;flex-direction:column">
+<div style="height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600"><span>9:41</span><span>●●● ▮</span></div>
+<div style="padding:6px 14px 10px;display:flex;align-items:center;gap:10px"><span style="width:36px;height:36px;border-radius:50%;border:1px solid #cfcfcb;background:#fff;display:flex;align-items:center;justify-content:center">‹</span><div style="flex:1"><div style="font-size:11px;color:#8a8a85">Krok 2 z 3 · TK-1187</div><div style="font-weight:600;font-size:15px">Servisný protokol</div></div></div>
+<div style="padding:0 14px 10px"><div style="height:4px;border-radius:99px;background:#e0e0dc"><div style="width:66%;height:100%;border-radius:99px;background:oklch(0.55 0.13 255)"></div></div></div>
+<div style="flex:1;overflow:auto;padding:0 14px 10px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:8px"><label style="flex:1;display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Príchod</span><span style="height:44px;border:1px solid #cfcfcb;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px">10:34</span></label><label style="flex:1;display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Odchod</span><span style="height:44px;border:1px solid #cfcfcb;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;color:#a2a29e">--:--</span></label></div>
+<label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Vykonané práce *</span><span style="min-height:76px;border:1.5px solid #1d1d1b;border-radius:10px;background:#fff;padding:10px 12px;color:#a2a29e">Popíšte, čo ste urobili…</span><span style="display:flex;gap:6px;align-items:center;font-size:12px;font-weight:600"><span style="width:14px;height:14px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center">!</span>Povinné pole</span></label>
+<label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Merania izolácie (MΩ)</span><span style="display:flex;gap:8px"><span style="flex:1;height:44px;border:1px solid #cfcfcb;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px">S1: 12,5</span><span style="flex:1;height:44px;border:1px solid #cfcfcb;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px">S2: 0,6</span></span></label>
+<label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Použitý materiál</span><span style="height:44px;border:1px solid #cfcfcb;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px">Konektor MC4 · 2 ks<span style="color:oklch(0.55 0.13 255);font-size:12px">+ Pridať</span></span></label>
+<div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Fotodokumentácia</span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><span style="aspect-ratio:1;border-radius:10px;background:repeating-linear-gradient(135deg,#f4f4f2 0 6px,#e6e6e3 6px 12px);border:1px solid #dcdcd8"></span><span style="aspect-ratio:1;border-radius:10px;background:repeating-linear-gradient(135deg,#f4f4f2 0 6px,#e6e6e3 6px 12px);border:1px solid #dcdcd8"></span><span style="aspect-ratio:1;border-radius:10px;border:1.5px dashed #8a8a85;display:flex;align-items:center;justify-content:center;font-size:20px;color:#8a8a85">+</span></div></div>
+<div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;font-weight:600">Podpis zákazníka</span><span style="height:80px;border:1.5px dashed #8a8a85;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;color:#a2a29e">Podpíšte sa prstom</span></div>
+</div>
+<div style="padding:10px 14px 18px;background:#fff;border-top:1px solid #dcdcd8"><span style="height:48px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Uložiť a pokračovať</span></div>
+</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPortal }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">
+<div style="flex:1 1 520px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
+<sc-for list="{{ devices }}" as="d" hint-placeholder-count="2"><div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:600;font-size:15px">{{ d.t }}</div><div style="font-size:12px;color:#8a8a85">{{ d.s }}</div></div><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ d.b.bg }};color:{{ d.b.fg }};border:1px solid {{ d.b.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ d.b.t }}</span></div><div style="font-size:24px;font-weight:600">{{ d.now }}<span style="font-size:12px;color:#8a8a85;font-weight:400"> aktuálny výkon</span></div>
+<sc-for list="{{ d.rows }}" as="r" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid #f0f0ee;font-size:12px"><span style="color:#8a8a85">{{ r.k }}</span><span>{{ r.v }}</span></div></sc-for></div></sc-for>
+</div>
+<div style="flex:1 1 360px;background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div><div style="font-size:15px;font-weight:600">Moja výroba</div><div style="font-size:12px;color:#8a8a85">Posledných 14 dní · kWh</div></div>
+<div style="flex:1;min-height:160px;display:flex;gap:6px;border-bottom:1px solid #e0e0dc">
+<sc-for list="{{ pBars }}" as="d" hint-placeholder-count="14"><div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><div style="width:70%;height:{{ d.h }};background:{{ d.bg }};border-radius:5px 5px 0 0"></div></div></sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isComponents }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px">
+<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-01 · Tabuľka s filtrom a stránkovaním</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;overflow:hidden">
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid #ececea"><span style="flex:0 1 280px;height:34px;border:1px solid #cfcfcb;border-radius:999px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#a2a29e"><span style="width:11px;height:11px;border-radius:50%;border:1.5px solid currentColor"></span>Hľadať…</span><span style="height:34px;padding:0 12px;border-radius:999px;border:1px solid #cfcfcb;display:inline-flex;align-items:center;font-size:12px">Stav: Všetky ▾</span><span style="height:34px;padding:0 12px;border-radius:999px;border:1px dashed #a2a29e;display:inline-flex;align-items:center;font-size:12px;color:#6e6e6a">+ Filter</span><span style="margin-left:auto;font-size:12px;color:#8a8a85">3 vybrané · <a href="#">Hromadná akcia</a></span></div>
+<div style="display:grid;grid-template-columns:28px 2fr 1fr 1fr 1fr;gap:12px;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a8a85;background:#fafaf8"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #a2a29e"></span><span>Názov ↓</span><span>Stav</span><span>Dátum</span><span>Hodnota</span></div>
+<div style="display:grid;grid-template-columns:28px 2fr 1fr 1fr 1fr;gap:12px;padding:12px 16px;border-top:1px solid #f0f0ee;align-items:center"><span style="width:16px;height:16px;border-radius:4px;background:#1d1d1b"></span><span style="font-weight:600">Riadok s výberom</span><span>Aktívny</span><span>4. 11. 2026</span><span>11 480 €</span></div>
+<div style="display:grid;grid-template-columns:28px 2fr 1fr 1fr 1fr;gap:12px;padding:12px 16px;border-top:1px solid #f0f0ee;align-items:center;background:#fafaf8"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #a2a29e"></span><span style="font-weight:600">Riadok pri hoveri</span><span>Koncept</span><span>3. 11. 2026</span><span>8 150 €</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #ececea;font-size:12px;color:#6e6e6a;flex-wrap:wrap;gap:8px"><span>Zobrazené 1–10 z 248</span><div style="display:flex;gap:4px"><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">‹</span><span style="width:30px;height:30px;border-radius:8px;background:#1d1d1b;color:#fff;display:flex;align-items:center;justify-content:center">1</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">2</span><span style="width:30px;height:30px;display:flex;align-items:center;justify-content:center">…</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">25</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">›</span></div></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-02 · Karta KPI (s trendom / s cieľom)</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between"><span style="width:30px;height:30px;border-radius:50%;border:1.5px solid #cfcfcb"></span><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:#ebebe8;height:20px">+8 %</span></div><div style="font-size:26px;font-weight:600">1 284 kWh</div><div><div style="font-weight:600">Výroba dnes</div><div style="font-size:12px;color:#8a8a85">vs. včera</div></div></div>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px"><span style="width:30px;height:30px;border-radius:50%;border:1.5px solid #cfcfcb"></span><div style="font-size:26px;font-weight:600">0,78</div><div><div style="font-weight:600">Performance ratio</div><div style="height:6px;border-radius:99px;background:#e6e6e3;margin-top:8px;overflow:hidden"><div style="width:78%;height:100%;background:oklch(0.55 0.13 255)"></div></div></div></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-03 · Stavové štítky</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ badgeDemo }}" as="x" hint-placeholder-count="5"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:{{ x.bg }};color:{{ x.fg }};border:1px solid {{ x.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ x.t }}</span></sc-for></div>
+<div style="font-size:12px;color:#6e6e6a;line-height:1.6">Čierna výplň = kritické / dokončené · Obrys = vyžaduje akciu · Akcent = aktívne / v procese · Sivá = neutrálne · Prerušovaná = neaktívne</div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-04 · Formulár s validačnými chybami</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+<div style="padding:10px 12px;border-radius:10px;border:1.5px solid #1d1d1b;font-size:12px;font-weight:600">Formulár obsahuje 2 chyby. Opravte ich a odošlite znova.</div>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">IČO</span><span style="height:38px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;padding:0 12px">4512</span><span style="font-size:12px;font-weight:600">! IČO musí mať 8 číslic.</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Telefón</span><span style="height:38px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">+421 905 123 456</span><span style="font-size:12px;color:#8a8a85">V medzinárodnom formáte.</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Distribučka *</span><span style="height:38px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#a2a29e">Vyberte…<span style="font-size:10px">▾</span></span><span style="font-size:12px;font-weight:600">! Vyberte distribučnú spoločnosť.</span></label>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-05 · Dialóg</span>
+<div style="background:#d8d8d4;border-radius:16px;padding:24px;display:flex;justify-content:center">
+<div style="width:100%;max-width:360px;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.12);overflow:hidden"><div style="display:flex;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #ececea"><strong>Názov dialógu</strong><span style="color:#8a8a85">✕</span></div><div style="padding:18px;display:flex;flex-direction:column;gap:10px"><span style="height:12px;width:80%;border-radius:4px;background:#ececea"></span><span style="height:38px;border:1px solid #cfcfcb;border-radius:10px"></span><span style="height:38px;border:1px solid #cfcfcb;border-radius:10px"></span></div><div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;background:#fafaf8;border-top:1px solid #ececea"><span style="height:34px;padding:0 14px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center">Zrušiť</span><span style="height:34px;padding:0 14px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center">Uložiť</span></div></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-06 · Potvrdzovací dialóg</span>
+<div style="background:#d8d8d4;border-radius:16px;padding:24px;display:flex;justify-content:center">
+<div style="width:100%;max-width:340px;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:20px;display:flex;flex-direction:column;gap:10px"><span style="width:36px;height:36px;border-radius:50%;background:#1d1d1b;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center">!</span><strong style="font-size:15px">Zmazať odberné miesto?</strong><span style="color:#6e6e6a;line-height:1.5">EIC 24ZSS4198765432B bude odstránené. Túto akciu nie je možné vrátiť.</span><div style="display:flex;gap:8px;margin-top:6px"><span style="flex:1;height:36px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center;justify-content:center">Zrušiť</span><span style="flex:1;height:36px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center;justify-content:center">Zmazať</span></div></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-07 · Prázdny stav</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:36px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><span style="width:52px;height:52px;border-radius:16px;border:1.5px dashed #8a8a85"></span><strong style="font-size:15px">Zatiaľ žiadne servisné tikety</strong><span style="color:#6e6e6a;max-width:280px;line-height:1.5">Keď zákazník nahlási poruchu alebo monitoring vytvorí alarm, tiket sa zobrazí tu.</span><span style="height:34px;padding:0 14px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center;margin-top:6px">+ Vytvoriť tiket</span></div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-08 · Načítavanie (skeleton)</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:12px;align-items:center"><span style="width:36px;height:36px;border-radius:50%;background:#ececea"></span><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="height:10px;width:55%;border-radius:4px;background:#ececea"></span><span style="height:10px;width:35%;border-radius:4px;background:#f2f2f0"></span></div></div>
+<div style="display:flex;gap:12px;align-items:center"><span style="width:36px;height:36px;border-radius:50%;background:#ececea"></span><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="height:10px;width:70%;border-radius:4px;background:#ececea"></span><span style="height:10px;width:30%;border-radius:4px;background:#f2f2f0"></span></div></div>
+<span style="height:110px;border-radius:12px;background:#f2f2f0"></span>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-09 · Upozornenie (toast)</span>
+<div style="background:#e6e6e3;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+<div style="width:100%;max-width:340px;background:#1d1d1b;color:#fff;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border-radius:50%;background:#fff;color:#1d1d1b;font-size:11px;display:flex;align-items:center;justify-content:center">✓</span><span style="flex:1">Zmluva bola odoslaná na podpis.</span><span style="opacity:.6">✕</span></div>
+<div style="width:100%;max-width:340px;background:#fff;border:1px solid #dcdcd8;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border-radius:50%;background:oklch(0.55 0.13 255);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center">i</span><span style="flex:1">Export CSV sa pripravuje…</span><span style="color:oklch(0.55 0.13 255);font-size:12px">Zrušiť</span></div>
+<div style="width:100%;max-width:340px;background:#fff;border:1.5px solid #1d1d1b;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center">!</span><span style="flex:1">Nepodarilo sa uložiť. Skúste znova.</span><span style="font-size:12px;font-weight:600">Opakovať</span></div>
+</div></div>
+
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6e6e6a">K-10 · Tlačidlá a mobilná navigácia</span>
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:8px;flex-wrap:wrap"><span style="height:36px;padding:0 16px;border-radius:999px;background:#1d1d1b;color:#fff;display:flex;align-items:center;font-weight:600">Hlavná akcia</span><span style="height:36px;padding:0 16px;border-radius:999px;border:1px solid #cfcfcb;display:flex;align-items:center">Sekundárna</span><span style="height:36px;padding:0 16px;border-radius:999px;display:flex;align-items:center;color:oklch(0.55 0.13 255)">Textová</span><span style="height:36px;padding:0 16px;border-radius:999px;background:#ececea;color:#a2a29e;display:flex;align-items:center">Neaktívna</span></div>
+<div style="border:1px solid #dcdcd8;border-radius:14px;display:grid;grid-template-columns:repeat(4,1fr);height:64px">
+<sc-for list="{{ mobNav }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:{{ m.fg }};font-size:10px;font-weight:600"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid currentColor"></span>{{ m.l }}</div></sc-for>
+</div>
+</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasTable }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;overflow:hidden">
+<sc-if value="{{ tbl.hasTitle }}"><div style="padding:16px 16px 0;display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div><div style="font-size:15px;font-weight:600">{{ tbl.title }}</div><div style="font-size:12px;color:#8a8a85">{{ tbl.sub }}</div></div></div></sc-if>
+<sc-if value="{{ tbl.hasToolbar }}">
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid #ececea">
+<span style="flex:0 1 280px;height:34px;border:1px solid #cfcfcb;border-radius:999px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#a2a29e;font-size:12px"><span style="width:11px;height:11px;border-radius:50%;border:1.5px solid currentColor;flex:none"></span>{{ tbl.search }}</span>
+<sc-for list="{{ tbl.filters }}" as="f" hint-placeholder-count="2"><span style="height:34px;padding:0 12px;border-radius:999px;border:1px solid #cfcfcb;display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;flex:none">{{ f }} <span style="font-size:9px;color:#8a8a85">▾</span></span></sc-for>
+<sc-if value="{{ tbl.hasTabs }}"><div style="margin-left:auto;display:inline-flex;gap:2px;padding:3px;background:#e6e6e3;border-radius:999px;max-width:100%;overflow-x:auto;flex:none"><sc-for list="{{ tbl.tabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.go }}" style="height:28px;padding:0 12px;border-radius:999px;border:none;background:{{ t.bg }};color:{{ t.fg }};font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px">{{ t.l }}<sc-if value="{{ t.hasN }}"><span style="font-size:10px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:{{ t.nbg }};color:{{ t.nfg }};display:inline-flex;align-items:center;justify-content:center">{{ t.n }}</span></sc-if></button></sc-for></div></sc-if>
+</div>
+</sc-if>
+<div style="overflow-x:auto">
+<div style="min-width:{{ tbl.minW }}">
+<div style="display:grid;grid-template-columns:{{ tbl.grid }};gap:12px;padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a8a85;background:#fafaf8"><sc-for list="{{ tbl.cols }}" as="col" hint-placeholder-count="6"><span>{{ col }}</span></sc-for></div>
+<sc-for list="{{ tbl.rows }}" as="row" hint-placeholder-count="6">
+<div onClick="{{ row.go }}" style="display:grid;grid-template-columns:{{ tbl.grid }};gap:12px;padding:11px 16px;border-top:1px solid #f0f0ee;align-items:center;cursor:{{ tbl.cursor }}" style-hover="background:#fafaf8">
+<sc-for list="{{ row.cells }}" as="cell">
+<div style="min-width:0;display:flex;align-items:center;gap:10px">
+<sc-if value="{{ cell.hasAv }}"><span style="width:30px;height:30px;border-radius:50%;background:#ebebe8;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">{{ cell.av }}</span></sc-if>
+<sc-if value="{{ cell.plain }}"><div style="min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:{{ cell.fw }}">{{ cell.t }}</div><sc-if value="{{ cell.hasSub }}"><div style="font-size:12px;color:#8a8a85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cell.sub }}</div></sc-if></div></sc-if>
+<sc-if value="{{ cell.badge }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:{{ cell.bg }};color:{{ cell.fg }};border:1px {{ cell.bs }} {{ cell.bd }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span>{{ cell.t }}</span></sc-if>
+<sc-if value="{{ cell.prog }}"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><div style="height:5px;border-radius:99px;background:#e6e6e3;overflow:hidden"><div style="width:{{ cell.pct }};height:100%;background:{{ cell.pbg }}"></div></div><span style="font-size:12px;font-weight:{{ cell.fw }}">{{ cell.t }}</span></div></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{ tbl.hasPager }}"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #ececea;font-size:12px;color:#6e6e6a;flex-wrap:wrap;gap:8px"><span>{{ tbl.total }}</span><div style="display:flex;gap:12px;align-items:center"><span>Na stránku: 10 ▾</span><div style="display:flex;gap:4px"><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">‹</span><span style="width:30px;height:30px;border-radius:8px;background:#1d1d1b;color:#fff;display:flex;align-items:center;justify-content:center">1</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">2</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">3</span><span style="width:30px;height:30px;display:flex;align-items:center;justify-content:center">…</span><span style="width:30px;height:30px;border-radius:8px;border:1px solid #dcdcd8;display:flex;align-items:center;justify-content:center">›</span></div></div></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #dcdcd8;border-radius:16px;padding:18px;overflow-x:auto">
+<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px;margin-bottom:12px"><div><div style="font-size:15px;font-weight:600">Oprávnenia rolí</div><div style="font-size:12px;color:#8a8a85">Určuje, ktoré moduly vidí rola v navigácii</div></div><div style="display:flex;gap:14px;font-size:12px;color:#45453f"><span style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:14px;border-radius:4px;background:#1d1d1b"></span>Plný prístup</span><span style="display:flex;gap:6px;align-items:center"><span style="width:14px;height:14px;border-radius:4px;border:1.5px solid #1d1d1b"></span>Len čítanie</span><span style="display:flex;gap:6px;align-items:center;color:#a2a29e">— Bez prístupu</span></div></div>
+<div style="min-width:720px">
+<div style="display:grid;grid-template-columns:minmax(180px,1.6fr) repeat(6,1fr);gap:8px;padding:8px 0;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a8a85"><span>Modul</span><sc-for list="{{ roleNames }}" as="r" hint-placeholder-count="6"><span style="text-align:center">{{ r }}</span></sc-for></div>
+<sc-for list="{{ matrix }}" as="m" hint-placeholder-count="9"><div style="display:grid;grid-template-columns:minmax(180px,1.6fr) repeat(6,1fr);gap:8px;padding:10px 0;border-top:1px solid #f0f0ee;align-items:center"><span>{{ m.m }}</span><sc-for list="{{ m.cells }}" as="x"><span style="display:flex;justify-content:center"><span style="width:16px;height:16px;border-radius:4px;background:{{ x.bg }};border:1.5px solid {{ x.bd }};display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#b0b0ab">{{ x.t }}</span></span></sc-for></div></sc-for>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ dlgOm }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeDlg }}" style="position:fixed;inset:0;background:rgba(29,29,27,.4);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50">
+<div onClick="{{ stop }}" style="width:560px;max-width:100%;max-height:100%;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:18px 20px;border-bottom:1px solid #ececea"><div><div style="font-size:17px;font-weight:600">Pridať odberné miesto</div><div style="font-size:12px;color:#8a8a85;margin-top:2px">Zákazník Ján Novák · ZK-00412</div></div><button onClick="{{ closeDlg }}" style="width:30px;height:30px;border-radius:50%;border:1px solid #dcdcd8;background:#fff;cursor:pointer">✕</button></div>
+<div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">EIC kód odberného miesta *</span><span style="height:40px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;padding:0 12px;font-family:ui-monospace,Menlo,monospace">24ZSS41987</span><span style="display:flex;gap:6px;align-items:center;font-size:12px;font-weight:600"><span style="width:14px;height:14px;border-radius:50%;background:#1d1d1b;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center">!</span>EIC kód musí mať 16 znakov (máte 10).</span></label>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Ulica a číslo *</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">Terchová 455</span></label>
+<div style="display:flex;gap:12px;flex-wrap:wrap"><label style="flex:1 1 120px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">PSČ *</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">013 06</span></label><label style="flex:2 1 200px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Obec *</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">Terchová</span></label></div>
+<div style="display:flex;gap:12px;flex-wrap:wrap"><label style="flex:1 1 160px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Distribučka *</span><span style="height:40px;border:1.5px solid #1d1d1b;border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#a2a29e">Vyberte…<span style="font-size:10px">▾</span></span><span style="font-size:12px;font-weight:600">! Povinné pole</span></label><label style="flex:1 1 160px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Distribučná sadzba</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:0 12px">DD1<span style="font-size:10px;color:#8a8a85">▾</span></span></label></div>
+<label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600">Hlavný istič</span><span style="height:40px;border:1px solid #cfcfcb;border-radius:10px;display:flex;align-items:center;padding:0 12px">1 × 25 A</span><span style="font-size:12px;color:#8a8a85">Údaj nájdete na faktúre za elektrinu.</span></label>
+<label style="display:flex;align-items:center;gap:8px;color:#45453f"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #8a8a85"></span>Fakturačná adresa je rovnaká ako adresa odberného miesta</label>
+</div>
+<div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;background:#fafaf8;border-top:1px solid #ececea"><button onClick="{{ closeDlg }}" style="height:36px;padding:0 16px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:13px">Zrušiť</button><button onClick="{{ saveOm }}" style="height:36px;padding:0 16px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Uložiť odberné miesto</button></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ dlgConfirm }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeDlg }}" style="position:fixed;inset:0;background:rgba(29,29,27,.4);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50">
+<div onClick="{{ stop }}" style="width:400px;max-width:100%;background:#fff;border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,.2);padding:22px;display:flex;flex-direction:column;gap:10px">
+<span style="width:40px;height:40px;border-radius:50%;background:oklch(0.93 0.035 255);color:oklch(0.55 0.13 255);font-weight:600;display:flex;align-items:center;justify-content:center">✓</span>
+<div style="font-size:17px;font-weight:600">Schváliť návrh FVE?</div>
+<div style="color:#6e6e6a;line-height:1.5">Ponuka CP-2026-0412 (9,9 kWp, 11 480 €) bude označená ako schválená a pripravená na odoslanie zákazníkovi Jánovi Novákovi.</div>
+<div style="display:flex;gap:8px;margin-top:8px"><button onClick="{{ closeDlg }}" style="flex:1;height:38px;border-radius:999px;border:1px solid #cfcfcb;background:#fff;cursor:pointer;font-size:13px">Zrušiť</button><button onClick="{{ doApprove }}" style="flex:1;height:38px;border-radius:999px;border:none;background:#1d1d1b;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Schváliť</button></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;right:24px;bottom:24px;z-index:60;width:360px;max-width:calc(100vw - 48px);background:#1d1d1b;color:#fff;border-radius:14px;padding:13px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25)"><span style="width:18px;height:18px;border-radius:50%;background:#fff;color:#1d1d1b;font-size:11px;display:flex;align-items:center;justify-content:center;flex:none">✓</span><span style="flex:1">{{ toast }}</span><button onClick="{{ closeToast }}" style="border:none;background:none;color:#fff;opacity:.6;cursor:pointer">✕</button></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const A='oklch(0.55 0.13 255)',AS='oklch(0.93 0.035 255)';
+const BV={n:['#ebebe8','#45453f','#ebebe8','solid'],a:[AS,A,AS,'solid'],d:['#1d1d1b','#fff','#1d1d1b','solid'],o:['#fff','#1d1d1b','#8a8a85','solid'],g:['transparent','#7a7a75','#bdbdb8','dashed']};
+const b=(t,v='n')=>({t,badge:true,plain:false,prog:false,hasAv:false,bg:BV[v][0],fg:BV[v][1],bd:BV[v][2],bs:BV[v][3]});
+const p=(pct,t)=>({prog:true,plain:false,badge:false,hasAv:false,pct:Math.min(pct,100)+'%',t,pbg:pct>100?'#1d1d1b':A,fw:pct>100?600:400});
+const c=(x,av)=>{if(typeof x==='object')return x;const [t,sub]=String(x).split('|');return {t,sub:sub||'',hasSub:!!sub,plain:true,badge:false,prog:false,av:av||'',hasAv:!!av,fw:av?600:400};};
+const ini=n=>n.replace(/s\.r\.o\.|a\.s\./,'').trim().split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+const noop=()=>{};
+const NAV=[{g:'Prehľad',items:[['dashboard','Dashboard'],['portal','Môj portál']]},{g:'Obchod',items:[['customers','Zákazníci',248],['offers','Ponuky a návrh FVE',3],['grid','Pripojenie k distribučke',4]]},{g:'Realizácia',items:[['installations','Inštalácie'],['monitoring','Monitoring výroby',5]]},{g:'Servis',items:[['tickets','Servisné tikety',18],['tech','Moje výjazdy',4]]},{g:'Systém',items:[['admin','Používatelia a roly'],['components','Knižnica komponentov']]}];
+const ROLES={Admin:['dashboard','customers','offers','grid','installations','monitoring','tickets','tech','admin','components'],Obchod:['dashboard','customers','offers','grid','components'],Projektant:['dashboard','offers','grid','installations','components'],Technik:['tech','tickets','installations','components'],'Operátor':['dashboard','monitoring','tickets','installations','components'],'Zákazník':['portal','components']};
+const USERS={Admin:'Martin Kováč',Obchod:'Lucia Horváthová',Projektant:'Peter Baláž',Technik:'Tomáš Varga','Operátor':'Zuzana Šimková','Zákazník':'Ján Novák'};
+const PARENT={customerDetail:'customers',offerDetail:'offers',installationDetail:'installations',ticketDetail:'tickets'};
+const TICKETS=[['TK-1187','Striedač hlási chybu izolácie','FVE-0231 · Ján Novák','Vysoká','V riešení','TV','18 h'],['TK-1186','Nízka výroba stringu S2','FVE-0231 · Ján Novák','Stredná','Priradený','TV','2 dni'],['TK-1184','Výmena panelu po krupobití','FVE-0198 · Solar Agro s.r.o.','Vysoká','Čaká na diel','RK','4 dni'],['TK-1183','Aplikácia nezobrazuje dáta','FVE-0244 · Peter Mráz','Nízka','Nový','—','3 dni'],['TK-1181','Pravidelná ročná revízia','FVE-0150 · Obec Lietavská Lúčka','Nízka','Priradený','RK','12 dní'],['TK-1179','Hluk zo striedača','FVE-0172 · Hotel Tatra Resort','Stredná','Vyriešený','TV','—'],['TK-1178','Batéria sa nenabíja nad 80 %','FVE-0244 · Peter Mráz','Stredná','Nový','—','5 dní']];
+const PRIO={'Vysoká':'d','Stredná':'o','Nízka':'g'};
+const TSTAT={'Nový':'o','Priradený':'n','V riešení':'a','Čaká na diel':'o','Vyriešený':'g'};
+const TECHN={TV:'Tomáš Varga',RK:'Róbert Kmeť','—':'Nepriradený'};
+
+class Component extends DCLogic {
+  state={screen:'dashboard',role:'Admin',collapsed:false,cTab:'Prehľad',tView:'Kanban',tabs:{},period:'14 dní',mon:'Mesiac',hiUnder:true,dialog:null,toast:null,notif:false,umenu:false,auth:'Prihlásenie',tech:'TV'};
+  go=(s)=>this.setState({screen:s,notif:false,umenu:false});
+  toastMsg=(t)=>{clearTimeout(this._t);this.setState({toast:t,dialog:null});this._t=setTimeout(()=>this.setState({toast:null}),3200);};
+  componentWillUnmount(){clearTimeout(this._t);}
+  seg(list,active,set){return list.map(x=>{const [l,n]=Array.isArray(x)?x:[x];const on=l===active;return {l,n:n??'',hasN:n!=null,go:()=>set(l),bg:on?'#1d1d1b':'transparent',fg:on?'#fff':'#5a5a55',nbg:on?'rgba(255,255,255,.22)':'#d6d6d2',nfg:on?'#fff':'#45453f'};});}
+  tab(k,list){const set=(l)=>this.setState(s=>({tabs:{...s.tabs,[k]:l}}));const a=this.state.tabs[k]??(Array.isArray(list[0])?list[0][0]:list[0]);return this.seg(list,a,set);}
+  steps(labels,cur){return labels.map(([l,sub],i)=>{const done=i<cur,on=i===cur;return {l,sub,n:done?'✓':String(i+1),cbg:done?'#1d1d1b':on?A:'#fff',cfg:done||on?'#fff':'#8a8a85',cbd:done?'#1d1d1b':on?A:'#cfcfcb',lfg:done||on?'#1d1d1b':'#8a8a85',line:done?'#1d1d1b':'#d6d6d2',lineOp:i<labels.length-1?1:0};});}
+  mk(cols,grid,rows,o={}){return {cols,grid,minW:o.minW||'760px',rows:rows.map(r=>({cells:r.map((x,i)=>c(x,i===0&&o.av?ini(String(x).split('|')[0]):'')),go:o.go||noop})),cursor:o.go?'pointer':'default',hasTitle:!!o.title,title:o.title||'',sub:o.sub||'',hasToolbar:!!o.search,search:o.search||'',filters:o.filters||[],hasTabs:!!o.tabs,tabs:o.tabs||[],hasPager:!!o.total,total:o.total||''};}
+  table(s){
+    const g=this.go;
+    if(s==='customers')return this.mk(['Zákazník','Typ','Mesto','Odb. miesta','Stav','Obchodník','Posledná aktivita'],'minmax(200px,2.2fr) .6fr 1.2fr .9fr 1fr 1.3fr 1.1fr',[
+      ['Ján Novák|ZK-00412','FO','Žilina','1',b('Aktívny','a'),'Lucia Horváthová','pred 2 h'],['Solar Agro s.r.o.|ZK-00398','PO','Nitra','3',b('Aktívny','a'),'Lucia Horváthová','včera'],['Mária Kollárová|ZK-00431','FO','Banská Bystrica','1',b('Potenciálny','g'),'Marek Dubovský','2. 11. 2026'],['Hotel Tatra Resort a.s.|ZK-00377','PO','Poprad','2',b('Rokovanie','n'),'Marek Dubovský','30. 10. 2026'],['Peter Mráz|ZK-00425','FO','Trnava','1',b('Aktívny','a'),'Lucia Horváthová','29. 10. 2026'],['Obec Lietavská Lúčka|ZK-00350','PO','Lietavská Lúčka','4',b('Aktívny','a'),'Marek Dubovský','27. 10. 2026'],['Eva Szabóová|ZK-00302','FO','Komárno','1',b('Neaktívny','g'),'Lucia Horváthová','14. 9. 2026'],['Kovovýroba Hudec s.r.o.|ZK-00436','PO','Prešov','2',b('Potenciálny','g'),'Marek Dubovský','3. 11. 2026']],
+      {av:true,go:()=>g('customerDetail'),search:'Meno, IČO, e-mail, EIC…',filters:['Typ: Všetci','Obchodník: Všetci','Mesto'],tabs:this.tab('cust',[['Všetci',248],['Aktívni',181],['Potenciálni',52],['Neaktívni',15]]),total:'Zobrazené 1–8 z 248'});
+    if(s==='customerDetail'){const t=this.state.cTab;
+      if(t==='Odberné miesta')return this.mk(['EIC kód','Adresa','Distribučka','Sadzba','Hlavný istič','Stav'],'1.4fr 1.8fr .8fr .7fr .9fr 1fr',[['24ZSS4123456789A','Hlboká 12, 010 01 Žilina','SSD','DD2','3 × 25 A',b('Aktívne','a')],['24ZSS4198765432B','Terchová 455, 013 06 Terchová','SSD','DD1','1 × 25 A',b('V príprave','g')]],{title:'Odberné miesta',sub:'2 odberné miesta'});
+      if(t==='Ponuky')return this.mk(['Ponuka','Objekt','Výkon','Cena s DPH','Stav'],'1fr 1.6fr .8fr 1fr 1.2fr',[['CP-2026-0412|28. 10. 2026','Rodinný dom, Žilina','9,9 kWp','11 480 €',b('Na schválenie','o')],['CP-2026-0360|2. 9. 2026','Chata, Terchová','4,5 kWp','6 900 €',b('Zamietnutá','g')]],{title:'Ponuky',go:()=>g('offerDetail')});
+      if(t==='Zmluvy')return this.mk(['Číslo','Typ','Podpísaná','Hodnota','Stav'],'1fr 1.4fr 1fr 1fr 1.3fr',[['ZD-2026-0412','Zmluva o dielo','—','11 480 €',b('Pripravená na podpis','o')],['SZ-2026-0088','Servisná zmluva','—','149 € / rok',b('Koncept','g')]],{title:'Zmluvy'});
+      if(t==='Inštalácie')return this.mk(['Inštalácia','Výkon','Fáza','Montáž','Technik'],'1fr .8fr 1fr 1fr 1.2fr',[['FVE-0231','9,9 kWp',b('Revízia','a'),'5. 11. 2026','Tomáš Varga']],{title:'Inštalácie',go:()=>g('installationDetail')});
+      return null;}
+    if(s==='offers')return this.mk(['Ponuka','Zákazník / objekt','Výkon','Cena s DPH','Stav','Platná do','Obchodník'],'1.1fr 1.9fr .8fr 1fr 1.3fr 1fr 1.3fr',[
+      ['CP-2026-0412|28. 10. 2026','Ján Novák|Rodinný dom, Žilina','9,9 kWp','11 480 €',b('Na schválenie','o'),'27. 11. 2026','Lucia Horváthová'],['CP-2026-0409|25. 10. 2026','Hotel Tatra Resort a.s.|Strecha hotela, Poprad','86,4 kWp','74 900 €',b('Čaká na odpoveď','a'),'24. 11. 2026','Marek Dubovský'],['CP-2026-0407|22. 10. 2026','Mária Kollárová|Rodinný dom, B. Bystrica','6,3 kWp','8 150 €',b('Odoslaná','n'),'21. 11. 2026','Marek Dubovský'],['CP-2026-0401|15. 10. 2026','Solar Agro s.r.o.|Hala 2, Nitra','149,6 kWp','118 300 €',b('Prijatá','d'),'—','Lucia Horváthová'],['CP-2026-0398|10. 10. 2026','Peter Mráz|Rodinný dom, Trnava','7,2 kWp','9 020 €',b('Prijatá','d'),'—','Lucia Horváthová'],['CP-2026-0395|8. 10. 2026','Kovovýroba Hudec s.r.o.|Výrobná hala, Prešov','99,0 kWp','—',b('Koncept','g'),'—','Marek Dubovský'],['CP-2026-0388|1. 10. 2026','Eva Szabóová|Rodinný dom, Komárno','5,4 kWp','7 300 €',b('Zamietnutá','g'),'—','Lucia Horváthová']],
+      {go:()=>g('offerDetail'),search:'Číslo ponuky, zákazník…',filters:['Obchodník','Výkon'],tabs:this.tab('off',[['Všetky',48],['Koncept',6],['Na schválenie',3],['Odoslané',12],['Prijaté',21]]),total:'Zobrazené 1–7 z 48'});
+    if(s==='grid')return this.mk(['Žiadosť','Odberné miesto','Distribučka','Typ','Stav','Podaná','Lehota'],'1.1fr 1.6fr .8fr 1.2fr 1.2fr .9fr 1.3fr',[
+      ['ZP-0158|Ján Novák','24ZZS4123456789A|Žilina','SSD','Pripojenie zdroja',b('V posudzovaní','a'),'20. 10. 2026',p(60,'zostáva 12 dní')],['ZP-0156|Hotel Tatra Resort a.s.','24ZVS1000245871C|Poprad','VSD','Pripojenie zdroja',b('Doplniť podklady','o'),'8. 10. 2026',p(90,'zostáva 3 dni')],['ZP-0153|Solar Agro s.r.o.','24ZZS7012345000X|Nitra','ZSD','Zvýšenie výkonu',b('Schválená','d'),'12. 9. 2026',p(100,'vybavené za 21 dní')],['ZP-0151|Peter Mráz','24ZZS7019876543D|Trnava','ZSD','Pripojenie zdroja',b('V posudzovaní','a'),'1. 10. 2026',p(115,'po lehote 4 dni')],['ZP-0149|Obec Lietavská Lúčka','24ZSS4001239876E|Lietavská Lúčka','SSD','Zvýšenie výkonu',b('Podaná','n'),'30. 10. 2026',p(15,'zostáva 26 dní')],['ZP-0144|Eva Szabóová','24ZZS7055512345F|Komárno','ZSD','Pripojenie zdroja',b('Zamietnutá','g'),'2. 8. 2026',p(100,'uzavreté')]],
+      {search:'Číslo žiadosti, EIC…',filters:['Distribučka: Všetky','Typ'],tabs:this.tab('grid',[['Otvorené',14],['Blíži sa lehota',3],['Po lehote',1],['Uzavreté',38]]),total:'Zobrazené 1–6 z 52',minW:'900px'});
+    if(s==='installations')return this.mk(['Inštalácia','Zákazník','Lokalita','Výkon','Fáza','Montáž','Zodpovedný'],'.9fr 1.6fr 1.1fr .8fr 1.1fr 1fr 1.2fr',[
+      ['FVE-0231','Ján Novák','Žilina','9,9 kWp',b('Revízia','a'),'5. 11. 2026','Tomáš Varga'],['FVE-0249','Ivana Ďurišová','Varín','8,1 kWp',b('Montáž','n'),'4. 11. 2026','Róbert Kmeť'],['FVE-0251','Martin Šulek','Žilina','6,3 kWp',b('Naplánovaná','g'),'12. 11. 2026','Tomáš Varga'],['FVE-0244','Peter Mráz','Trnava','7,2 kWp',b('Čaká na DS','o'),'28. 10. 2026','Juraj Polák'],['FVE-0198','Solar Agro s.r.o.','Nitra','149,6 kWp',b('V prevádzke','d'),'2. 6. 2026','Róbert Kmeť'],['FVE-0172','Hotel Tatra Resort a.s.','Poprad','86,4 kWp',b('V prevádzke','d'),'14. 4. 2026','Tomáš Varga']],
+      {go:()=>g('installationDetail'),search:'ID, zákazník, adresa…',filters:['Technik','Mesiac montáže'],tabs:this.tab('inst',[['Všetky',62],['V realizácii',9],['Čaká na DS',4],['V prevádzke',49]]),total:'Zobrazené 1–6 z 62'});
+    if(s==='installationDetail')return this.mk(['String','Striedač / MPPT','Panely','Voc','Isc','Stav'],'.6fr 1.2fr 1.2fr .7fr .7fr 1fr',[['S1','INV-1 / MPPT 1','11 × 450 Wp','545 V','13,9 A',b('V norme','a')],['S2','INV-1 / MPPT 2','11 × 450 Wp','412 V','13,7 A',b('Odchýlka −24 %','o')]],{title:'Stringy',sub:'Namerané pri revízii 4. 11. 2026'});
+    if(s==='monitoring')return this.mk(['Čas','Inštalácia','Zariadenie','Alarm','Závažnosť','Stav'],'.9fr 1.2fr 1fr 2fr .9fr 1fr',[
+      ['4. 11. 10:42','FVE-0231|Ján Novák','Striedač INV-1','Chyba izolácie (Riso pod limitom)',b('Kritický','d'),b('Otvorený','o')],['4. 11. 09:15','FVE-0231|Ján Novák','String S2','Výkon stringu pod priemerom −38 %',b('Varovanie','o'),b('Tiket TK-1186','a')],['3. 11. 14:03','FVE-0231|Ján Novák','Smart meter','Výpadok komunikácie 25 min',b('Info','n'),b('Vyriešený','g')],['28. 10. 12:30','FVE-0231|Ján Novák','Striedač INV-1','Obmedzenie výkonu – prepätie v sieti',b('Varovanie','o'),b('Vyriešený','g')]],
+      {title:'Alarmy',sub:'Vybraná inštalácia · október–november 2026',search:'Hľadať v alarmoch…',filters:['Závažnosť','Zariadenie'],total:'Zobrazené 1–4 z 4',minW:'860px'});
+    if(s==='tickets'&&this.state.tView==='Zoznam')return this.mk(['Tiket','Predmet','Inštalácia','Priorita','Stav','Technik','SLA'],'.8fr 1.8fr 1.6fr .9fr 1fr 1.1fr .7fr',TICKETS.map(t=>[t[0],t[1],t[2],b(t[3],PRIO[t[3]]),b(t[4],TSTAT[t[4]]),TECHN[t[5]],t[6]]),{go:()=>g('ticketDetail'),search:'Číslo tiketu, predmet…',filters:['Kategória'],tabs:this.tab('tk',[['Otvorené',18],['Moje',6],['Po SLA',2],['Uzavreté',140]]),total:'Zobrazené 1–7 z 18',minW:'900px'});
+    if(s==='portal')return this.mk(['Tiket','Predmet','Stav','Aktualizované'],'.8fr 2fr 1fr 1fr',[['TK-1187','Striedač hlási chybu izolácie',b('V riešení','a'),'dnes 10:50'],['TK-1102','Otázka k vyúčtovaniu prebytkov',b('Vyriešený','g'),'12. 9. 2026']],{title:'Moje tikety',sub:'Technik je na ceste · príchod cca 10:30',minW:'520px'});
+    if(s==='admin')return this.mk(['Používateľ','Rola','Stav','Posledné prihlásenie','2FA'],'2fr 1fr 1fr 1.2fr .8fr',[
+      ['Martin Kováč|martin.kovac@solarops.sk','Admin',b('Aktívny','a'),'dnes 08:02','Zapnuté'],['Lucia Horváthová|lucia.horvathova@solarops.sk','Obchod',b('Aktívny','a'),'dnes 07:48','Zapnuté'],['Peter Baláž|peter.balaz@solarops.sk','Projektant',b('Aktívny','a'),'včera 17:10','Zapnuté'],['Tomáš Varga|tomas.varga@solarops.sk','Technik',b('Aktívny','a'),'dnes 06:55','Vypnuté'],['Zuzana Šimková|zuzana.simkova@solarops.sk','Operátor',b('Aktívny','a'),'dnes 08:15','Zapnuté'],['Ján Novák|jan.novak@gmail.com','Zákazník',b('Pozvaný','o'),'—','—'],['Juraj Polák|juraj.polak@solarops.sk','Technik',b('Deaktivovaný','g'),'3. 9. 2026','Vypnuté']],
+      {av:true,search:'Meno alebo e-mail…',filters:['Rola: Všetky'],tabs:this.tab('usr',[['Všetci',24],['Aktívni',21],['Pozvaní',2],['Deaktivovaní',1]]),total:'Zobrazené 1–7 z 24'});
+    return null;
+  }
+  head(s){
+    const T=this.toastMsg,g=this.go;
+    const H={
+      dashboard:['Dashboard','Prehľad za dnes · streda 4. novembra 2026','Exportovať',()=>T('Export prehľadu sa pripravuje…'),'+ Nová ponuka',()=>g('offers')],
+      customers:['Zákazníci','248 zákazníkov · 312 odberných miest','Import CSV',()=>T('Import CSV – vyberte súbor'),'+ Nový zákazník',()=>T('Formulár nového zákazníka (kostra)')],
+      customerDetail:['Ján Novák','ZK-00412 · Fyzická osoba · Hlboká 12, Žilina','Upraviť',()=>T('Úprava zákazníka'),'+ Odberné miesto',()=>this.setState({dialog:'om'}),'Zákazníci',b('Aktívny','a')],
+      offers:['Ponuky a návrh FVE','48 ponúk · 3 čakajú na interné schválenie','Šablóny',()=>T('Šablóny ponúk'),'+ Nová ponuka',()=>g('offerDetail')],
+      offerDetail:['Ponuka CP-2026-0412','Ján Novák · Rodinný dom, Žilina · vytvorená 28. 10. 2026','Duplikovať',()=>T('Ponuka bola duplikovaná ako CP-2026-0413.'),'Odoslať zákazníkovi',()=>T('Najprv je potrebné interné schválenie.'),'Ponuky a návrh FVE',b('Na schválenie','o')],
+      grid:['Pripojenie k distribučke','Žiadosti o pripojenie zdroja do distribučnej sústavy','Lehoty DS',()=>T('Prehľad zákonných lehôt DS'),'+ Nová žiadosť',()=>T('Formulár žiadosti (kostra)')],
+      installations:['Inštalácie','62 inštalácií · 9 v realizácii','Kalendár montáží',()=>T('Kalendár montáží'),'+ Nová inštalácia',()=>T('Formulár inštalácie (kostra)')],
+      installationDetail:['FVE-0231 · Ján Novák','Hlboká 12, Žilina · 9,9 kWp · montáž 5. 11. 2026','Dokumenty',()=>T('Dokumenty inštalácie'),'Posunúť do ďalšej fázy',()=>T('Inštalácia presunutá do fázy „Pripojenie DS“.'),'Inštalácie',b('Revízia','a')],
+      monitoring:['Monitoring výroby','Skutočná vs. očakávaná výroba a alarmy','Nastaviť alarmy',()=>T('Pravidlá alarmov'),'Export CSV',()=>T('Export CSV sa pripravuje… (október 2026, FVE-0231)')],
+      tickets:['Servisné tikety','18 otvorených · 2 po SLA','Plán výjazdov',()=>g('tech'),'+ Nový tiket',()=>T('Formulár tiketu (kostra)')],
+      ticketDetail:['TK-1187 · Striedač hlási chybu izolácie','FVE-0231 · Ján Novák, Žilina · nahlásené 2. 11. 2026 08:14','Zmeniť stav',()=>T('Stav zmenený na „Čaká na diel“.'),'Naplánovať výjazd',()=>T('Výjazd naplánovaný na 5. 11. 08:00.'),'Servisné tikety',b('V riešení','a')],
+      tech:['Moje výjazdy','Mobilný pohľad technika · streda 4. 11. 2026',null,null,null,null],
+      portal:['Dobrý deň, Ján','Váš zákaznícky portál · 2 zariadenia','Dokumenty',()=>T('Zmluvy a faktúry'),'Nahlásiť poruchu',()=>T('Formulár nahlásenia poruchy (kostra)')],
+      admin:['Používatelia a roly','24 používateľov · 6 rolí','Audit log',()=>T('Audit log'),'+ Pozvať používateľa',()=>T('Pozvánka odoslaná (kostra).')],
+      components:['Knižnica komponentov','Znovupoužiteľné prvky kostry · K-01 až K-10',null,null,null,null]};
+    const h=H[s]||H.dashboard;
+    return {t:h[0],s:h[1],a2:h[2]||'',hasA2:!!h[2],onA2:h[3]||noop,a1:h[4]||'',hasA1:!!h[4],onA1:h[5]||noop,crumb:h[6]||'',hasCrumb:!!h[6],crumbGo:()=>g(PARENT[s]),hasBadge:!!h[7],badge:h[7]||b('')};
+  }
+  renderVals(){
+    const S=this.state,s=S.screen,g=this.go,T=this.toastMsg;
+    const allowed=ROLES[S.role];const navKey=PARENT[s]||s;
+    const navGroups=NAV.map(gr=>({g:gr.g,items:gr.items.filter(i=>allowed.includes(i[0])).map(([k,l,n])=>{const on=k===navKey;return {l:S.role==='Zákazník'&&k==='portal'?'Moje zariadenia a výroba':l,n:n??'',hasN:n!=null,go:()=>g(k),bg:on?A:'transparent',fg:on?'#fff':'#3a3a36',nbg:on?'rgba(255,255,255,.25)':'#e0e0dc',nfg:on?'#fff':'#45453f'};})})).filter(gr=>gr.items.length);
+    const name=USERS[S.role];
+    const tbl=this.table(s);
+    const KP={
+      dashboard:[['1 284 kWh','Výroba dnes','62 inštalácií · stav k 11:00','+8 % vs. včera','monitoring'],['5','Aktívne alarmy','1 kritický · 3 varovania · 1 info','1 nový','monitoring'],['18','Otvorené tikety','2 po termíne SLA','','tickets'],['7','Ponuky čakajú na odpoveď','hodnota 214 600 € s DPH','','offers']],
+      grid:[['14','Otvorené žiadosti','z toho 5 v posudzovaní',''],['3','Blíži sa lehota','do 7 dní',''],['1','Po lehote','eskalovať na distribučku',''],['23 dní','Priemerná doba vybavenia','posledných 90 dní','−4 dni']],
+      monitoring:[['1 046 kWh','Skutočná výroba','október 2026',''],['1 190 kWh','Očakávaná výroba','model podľa počasia',''],['−12,1 %','Odchýlka','3 obdobia podvýroby',''],['0,78','Performance ratio','cieľ ≥ 0,82','']],
+      portal:[['18,4 kWh','Výroba dnes','oba objekty',''],['312 kWh','Tento mesiac','plán 340 kWh',''],['1 140 €','Úspora v roku 2026','odhad podľa ceny elektriny',''],['1','Otvorený tiket','technik príde dnes 10:30','']]};
+    const kp=KP[s];
+    const kpis=(kp||[]).map(([v,l,sub,d,to])=>({v,l,s:sub,d,hasD:!!d,go:to?()=>g(to):noop,cursor:to?'pointer':'default'}));
+    const dv=[1210,1340,980,1460,1520,610,880,1590,1670,1290,1380,1510,940,1284];
+    const days=['22.','23.','24.','25.','26.','27.','28.','29.','30.','31.','1.','2.','3.','4.'];
+    const bars=dv.map((v,i)=>({h:(v/2000*100)+'%',l:i%2?'':days[i],bg:i===13?A:'#cfcfcb'}));
+    const pBars=[14,16,11,18,19,6,9,20,21,15,17,19,10,18.4].map((v,i)=>({h:(v/22*100)+'%',bg:i===13?A:'#cfcfcb'}));
+    const exp=[38,40,41,37,39,36,35,38,40,36,34,33,35,36,32,31,33,30,29,31,30,28,29,27,26,28,27,25,24,23,22];
+    const under=new Set([6,7,8,20,26,27]);
+    const fac=[.97,1.02,.95,.99,1.03,.92,.6,.55,.68,.94,.98,1.01,.9,.96,1.04,.93,.97,1.0,.92,.95,.59,.96,1.02,.94,.9,.97,.7,.74,.93,1.0,.95];
+    const monDays=exp.map((e,i)=>{const u=under.has(i)&&S.hiUnder;return {exp:(e/60*100)+'%',act:(e*fac[i]/60*100)+'%',actBg:u?A:'#b5b5b0',colBg:u?'repeating-linear-gradient(45deg,'+AS+' 0 3px,transparent 3px 6px)':'transparent',l:i%5===0?String(i+1)+'.':''};});
+    const kanban=['Nový','Priradený','V riešení','Čaká na diel','Vyriešený'].map(st=>{const cards=TICKETS.filter(t=>t[4]===st).map(t=>({id:t[0],t:t[1],inst:t[2],b:b(t[3],PRIO[t[3]]),tech:t[5],sla:t[6],go:()=>g('ticketDetail')}));return {t:st,n:cards.length,cards};});
+    const tm=[{id:'TV',n:'Tomáš Varga',s:'Žilina · dnes 3/5 výjazdov'},{id:'RK',n:'Róbert Kmeť',s:'Martin · dnes 4/5 výjazdov'},{id:'JP',n:'Juraj Polák',s:'Ružomberok · dnes 1/5 výjazdov'}];
+    const lv=[[2,1,1,0,1,0],[2,2,1,1,1,0],[2,2,2,0,0,1],[2,1,2,0,0,0],[2,1,2,1,1,1],[2,0,1,1,2,1],[2,0,0,2,2,1],[2,0,0,2,1,0],[2,0,0,0,0,0]];
+    const mods=['Dashboard','Zákazníci','Ponuky a návrh FVE','Pripojenie k distribučke','Inštalácie','Monitoring výroby','Servisné tikety','Výjazdy a protokoly','Používatelia a roly'];
+    return {
+      roles:Object.keys(ROLES).map(r=>({l:r,go:()=>this.setState({role:r,screen:ROLES[r].includes(PARENT[s]||s)?s:ROLES[r][0]}),bg:r===S.role?'#fff':'transparent',fg:r===S.role?'#1d1d1b':'#cfcfcb'})),
+      goLogin:()=>this.setState({screen:'login',umenu:false}),goComponents:()=>g('components'),goMonitoring:()=>g('monitoring'),goOfferDetail:()=>g('offerDetail'),goCustDetail:()=>g('customerDetail'),goInstDetail:()=>g('installationDetail'),
+      isLogin:s==='login',isApp:s!=='login',
+      authTabs:this.seg(['Prihlásenie','Registrácia'],S.auth,(l)=>this.setState({auth:l})),isAuthLogin:S.auth==='Prihlásenie',isAuthReg:S.auth==='Registrácia',
+      authTitle:S.auth==='Prihlásenie'?'Vitajte späť':'Vytvorte si účet',authSub:S.auth==='Prihlásenie'?'Prihláste sa do systému SolarOps.':'Registrácia do zákazníckeho portálu.',
+      doLogin:()=>this.setState({screen:ROLES[S.role][0]}),
+      lifecycle:[['Obchod','Zákazníci, odberné miesta, ponuky'],['Návrh FVE','Projekt, rozpočet, schválenie, zmluva'],['Pripojenie','Žiadosti a lehoty distribučky'],['Inštalácia','Montáž, komponenty, revízia'],['Prevádzka','Monitoring, alarmy, servis']].map(([t,sub],i)=>({n:i+1,t,s:sub})),
+      expanded:!S.collapsed,sideW:S.collapsed?'68px':'248px',sideIcon:S.collapsed?'›':'‹',navJustify:S.collapsed?'center':'flex-start',toggleSide:()=>this.setState({collapsed:!S.collapsed}),
+      navGroups,user:{name,role:S.role,ini:ini(name)},
+      notifOpen:S.notif,userOpen:S.umenu,toggleNotif:()=>this.setState({notif:!S.notif,umenu:false}),toggleUser:()=>this.setState({umenu:!S.umenu,notif:false}),
+      notifs:[{t:'Kritický alarm: FVE-0231',s:'Chyba izolácie striedača · pred 12 min',dot:'#1d1d1b'},{t:'Ponuka CP-2026-0412 čaká na schválenie',s:'Lucia Horváthová · pred 2 h',dot:A},{t:'Žiadosť ZP-0151 je po lehote',s:'Západoslovenská distribučná · dnes',dot:'#a2a29e'}],
+      head:this.head(s),
+      isDashboard:s==='dashboard',isMonitoring:s==='monitoring',isCustDetail:s==='customerDetail',isCOverview:S.cTab==='Prehľad',isOfferDetail:s==='offerDetail',isInstDetail:s==='installationDetail',isTickets:s==='tickets',isKanban:S.tView==='Kanban',isTicketDetail:s==='ticketDetail',isTech:s==='tech',isPortal:s==='portal',isAdmin:s==='admin',isComponents:s==='components',
+      hasKpis:!!kp,kpis,hasTable:!!tbl,tbl:tbl||this.mk([],'1fr',[]),
+      periods:this.seg(['14 dní','30 dní','12 mesiacov'],S.period,(l)=>this.setState({period:l})),bars,pBars,
+      alarms:[{t:'Chyba izolácie striedača',s:'FVE-0231 · Ján Novák · 10:42',b:b('Kritický','d')},{t:'Výkon stringu S2 pod priemerom',s:'FVE-0231 · Ján Novák · 09:15',b:b('Varovanie','o')},{t:'Výpadok komunikácie dataloggera',s:'FVE-0198 · Solar Agro · 08:50',b:b('Varovanie','o')},{t:'Odpojenie od siete – prepätie',s:'FVE-0172 · Hotel Tatra · 07:31',b:b('Varovanie','o')},{t:'Aktualizácia firmvéru dokončená',s:'FVE-0150 · Lietavská Lúčka · 06:00',b:b('Info','n')}],
+      monPeriods:this.seg(['Deň','Týždeň','Mesiac','Rok'],S.mon,(l)=>this.setState({mon:l})),monDays,toggleUnder:()=>this.setState({hiUnder:!S.hiUnder}),underTrack:S.hiUnder?A:'#cfcfcb',underKnob:S.hiUnder?'16px':'2px',
+      underList:['7.–9. 10. · −39 %','21. 10. · −41 %','27.–28. 10. · −28 %'],
+      cTabs:this.seg(['Prehľad',['Odberné miesta',2],['Ponuky',2],['Zmluvy',2],['Inštalácie',1]],S.cTab,(l)=>this.setState({cTab:l})),
+      contact:[['Typ','Fyzická osoba'],['E-mail','jan.novak@gmail.com'],['Telefón','+421 905 123 456'],['Fakturačná adresa','Hlboká 12, 010 01 Žilina'],['Obchodník','Lucia Horváthová'],['Zdroj','Odporúčanie'],['Súhlas GDPR','Udelený 12. 10. 2026']].map(([k,v])=>({k,v})),
+      cSummary:[['1','Odberné miesta','Odberné miesta'],['2','Ponuky','Ponuky'],['2','Zmluvy','Zmluvy'],['1','Inštalácie','Inštalácie']].map(([v,l,t])=>({v,l,go:()=>this.setState({cTab:t})})),
+      activity:[{t:'Ponuka CP-2026-0412 odoslaná na interné schválenie',s:'Lucia Horváthová · dnes 09:12'},{t:'Obhliadka strechy dokončená, nahraných 14 fotiek',s:'Peter Baláž · 30. 10. 2026'},{t:'Telefonát – záujem o batériu 10 kWh',s:'Lucia Horváthová · 27. 10. 2026'},{t:'Zákazník vytvorený z webového formulára',s:'Systém · 12. 10. 2026'}],
+      offSteps:this.steps([['Koncept','28. 10.'],['Interné schválenie','čaká od 4. 11.'],['Odoslaná zákazníkovi',''],['Prijatá',''],['Zmluva','']],1),
+      design:[['Inštalovaný výkon','9,9 kWp'],['Panely','22 × 450 Wp'],['Striedač','Hybrid 10 kW, 3f'],['Batéria','10,2 kWh'],['Orientácia / sklon','J–JZ · 35°'],['Odhad ročnej výroby','10 450 kWh']].map(([k,v])=>({k,v})),
+      budget:[['Fotovoltický panel 450 Wp','22 ks','2 640 €'],['Hybridný striedač 10 kW, 3f','1 ks','1 690 €'],['Batériové úložisko 10,2 kWh','1 ks','2 900 €'],['Konštrukcia, kabeláž, ochrany','1 súb.','780 €'],['Montáž, revízia, uvedenie do prevádzky','1 súb.','1 323 €']].map(([a,q,pp])=>({a,q,p:pp})),
+      approvers:[{ini:'PB',n:'Peter Baláž',r:'Projektant · technický návrh',b:b('Schválené','d')},{ini:'MK',n:'Martin Kováč',r:'Vedúci obchodu · cena a marža',b:b('Čaká','o')}],
+      openConfirm:()=>this.setState({dialog:'confirm'}),doApprove:()=>T('Návrh FVE bol schválený.'),toastReturn:()=>T('Ponuka vrátená projektantovi na úpravu.'),toastPdf:()=>T('PDF sa generuje – sťahovanie začne o chvíľu.'),toastSign:()=>T('Zmluva bola odoslaná na elektronický podpis.'),toastVisit:()=>T('Výjazd naplánovaný na 5. 11. 08:00.'),
+      instSteps:this.steps([['Naplánovaná','15. 10.'],['Montáž','4. 11.'],['Revízia','prebieha'],['Pripojenie DS',''],['Uvedenie do prevádzky',''],['Odovzdaná','']],2),
+      comps:[{k:'Panely',v:'22 ks',m:'Monokryštalický panel 450 Wp',s:'2 stringy × 11 ks · 9,9 kWp',sn:22,b:b('Nainštalované','d')},{k:'Striedače',v:'1 ks',m:'Hybridný striedač 10 kW, 3f',s:'INV-1 · firmvér 3.2.1',sn:1,b:b('Nainštalovaný','d')},{k:'Batéria',v:'10,2 kWh',m:'LFP úložisko, 2 moduly',s:'čaká na pripojenie BMS',sn:2,b:b('Čaká','o')}],
+      instInfo:[['Adresa','Hlboká 12, 010 01 Žilina'],['Montážny tím','Tomáš Varga, Juraj Polák'],['Montáž','4. – 5. 11. 2026'],['Revízny technik','Ing. Pavol Hrnčiar'],['Žiadosť DS','ZP-0158 · v posudzovaní']].map(([k,v])=>({k,v})),
+      tViews:this.seg(['Kanban','Zoznam'],S.tView,(l)=>this.setState({tView:l})),kanban,
+      visits:[{d:'3. 11. 2026',h:'09:00 – 11:30',t:'Diagnostika striedača a meranie izolácie',s:'Tomáš Varga · protokol PR-0921',b:b('Dokončený','d')},{d:'5. 11. 2026',h:'08:00 – 10:00',t:'Výmena konektorov MC4 na S2',s:'Tomáš Varga',b:b('Naplánovaný','n')}],
+      protocol:[['Technik','Tomáš Varga'],['Čas na mieste','09:04 – 11:26'],['Vykonané práce','Meranie Riso po stringoch, vizuálna kontrola kabeláže'],['Zistenie','Poškodená izolácia konektora na S2'],['Materiál','—'],['Podpis zákazníka','Ján Novák · 3. 11. 2026 11:24']].map(([k,v])=>({k,v})),
+      tDetails:[['Stav','V riešení'],['Priorita','Vysoká'],['Kategória','Striedač / izolácia'],['Zdroj','Alarm z monitoringu']].map(([k,v])=>({k,v})),
+      techs:tm.map(t=>{const on=t.id===S.tech;return {...t,go:()=>{this.setState({tech:t.id});T('Tiket priradený: '+t.n);},bd:on?A:'#ececea',bg:on?AS:'#fff',rbd:on?A:'#a2a29e',dot:on?A:'transparent'};}),
+      jobs:[{time:'08:00',t:'Ročná revízia FVE',s:'FVE-0150 · Obec Lietavská Lúčka',addr:'Lietavská Lúčka 88',b:b('Hotovo','g'),bd:'#dcdcd8'},{time:'10:30',t:'Chyba izolácie striedača',s:'TK-1187 · Ján Novák',addr:'Hlboká 12, Žilina',b:b('Na ceste','a'),bd:A},{time:'13:00',t:'Montáž optimalizérov',s:'FVE-0251 · Martin Šulek',addr:'Rosinská 22, Žilina',b:b('Naplánovaný','n'),bd:'#dcdcd8'},{time:'15:30',t:'Odovzdanie FVE zákazníkovi',s:'FVE-0249 · Ivana Ďurišová',addr:'Varín 310',b:b('Naplánovaný','n'),bd:'#dcdcd8'}],
+      checklist:[['Odpojiť DC stranu',true],['Zmerať izoláciu S1, S2',true],['Skontrolovať konektory MC4',false],['Fotodokumentácia',false]].map(([t,on])=>({t,m:on?'✓':'',bg:on?'#1d1d1b':'#fff'})),
+      mobNav:[['Dnes',true],['Tikety',false],['Mapa',false],['Profil',false]].map(([l,on])=>({l,fg:on?A:'#8a8a85'})),
+      devices:[{t:'Rodinný dom, Žilina',s:'FVE 9,9 kWp · batéria 10,2 kWh',now:'4,2 kW',b:b('Upozornenie','o'),rows:[['Striedač','alarm izolácie · rieši sa'],['Batéria','76 %'],['Posledná komunikácia','pred 5 min']].map(([k,v])=>({k,v}))},{t:'Chata, Terchová',s:'FVE 4,5 kWp',now:'1,9 kW',b:b('V prevádzke','a'),rows:[['Striedač','online'],['Dnes vyrobené','6,1 kWh'],['Posledná komunikácia','pred 2 min']].map(([k,v])=>({k,v}))}],
+      roleNames:Object.keys(ROLES),
+      matrix:mods.map((m,i)=>({m,cells:lv[i].map(x=>x===2?{bg:'#1d1d1b',bd:'#1d1d1b',t:''}:x===1?{bg:'#fff',bd:'#1d1d1b',t:''}:{bg:'transparent',bd:'transparent',t:'—'})})),
+      badgeDemo:[b('Aktívny','a'),b('V riešení','a'),b('Na schválenie','o'),b('Kritický','d'),b('Prijatá','d'),b('Info','n'),b('Odoslaná','n'),b('Koncept','g'),b('Neaktívny','g')],
+      dlgOm:S.dialog==='om',dlgConfirm:S.dialog==='confirm',closeDlg:()=>this.setState({dialog:null}),stop:(e)=>e.stopPropagation(),saveOm:()=>T('Odberné miesto bolo pridané.'),
+      hasToast:!!S.toast,toast:S.toast||'',closeToast:()=>this.setState({toast:null})
+    };
+  }
+}
+</script>
+</body>
+</html>

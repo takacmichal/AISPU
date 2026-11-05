@@ -14,6 +14,15 @@ const handler = (extra?: (path: string, method: string) => Response | undefined)
 }
 
 describe('TicketCreatePage', () => {
+  it('prefills installation, title and description from the URL (underproduction in monitoring)', async () => {
+    stubFetch(handler())
+    renderRoute(<TicketCreatePage />, '/tickets/new?installationId=i1&title=Podv%C3%BDroba%204.%2011.&description=Pod%2085%20%25', '/tickets/new', ['Operator'])
+    await screen.findByRole('option', { name: 'FVE Nitra' })
+    expect(screen.getByLabelText('Inštalácia')).toHaveValue('i1')
+    expect(screen.getByLabelText('Názov')).toHaveValue('Podvýroba 4. 11.')
+    expect(screen.getByLabelText('Popis poruchy')).toHaveValue('Pod 85 %')
+  })
+
   it('validates required fields on the client and does not post', async () => {
     const calls = stubFetch(handler())
     render()

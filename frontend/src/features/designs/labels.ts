@@ -31,6 +31,7 @@ export const PROFILE_LABELS: Record<string, string> = {
 
 export const TEXT = {
   listTitle: 'Návrhy FVE',
+  listSubtitle: 'Obhliadky, parametre strechy, konfigurácie a verzie návrhov',
   listEmpty: 'Zatiaľ nie sú žiadne návrhy.',
   listEmptyFiltered: 'Žiadny návrh nezodpovedá filtru.',
   listError: 'Zoznam návrhov sa nepodarilo načítať.',

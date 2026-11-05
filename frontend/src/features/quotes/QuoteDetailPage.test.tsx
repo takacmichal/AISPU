@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { QUOTE_ID, customersPage, json, makeQuote, mockApi, problem, renderQuotes } from './testUtils'
+import { CUSTOMER_ID, QUOTE_ID, customersPage, json, makeQuote, mockApi, problem, renderQuotes } from './testUtils'
 
 const history = json([
   { fromStatus: null, toStatus: 'Draft', changedBy: 'u', changedAt: '2026-11-03T10:00:00Z', note: null },
@@ -63,7 +63,7 @@ describe('QuoteDetailPage', () => {
     expect(await screen.findByText('Ponuka bola odoslaná.')).toBeInTheDocument()
     const post = fetchMock.mock.calls.find(([u]) => String(u).endsWith('/send'))!
     expect(JSON.parse(String(post[1]?.body))).toMatchObject({ validityDays: 14 })
-    await waitFor(() => expect(document.querySelector('.quote-meta .badge')).toHaveTextContent('Odoslaná'))
+    await waitFor(() => expect(document.querySelector('.page-header .badge')).toHaveTextContent('Odoslaná'))
   })
 
   it('validates the validity days before sending', async () => {
@@ -160,5 +160,51 @@ describe('QuoteDetailPage', () => {
     renderQuotes(path, ['Designer'])
     await screen.findByText('PV-400 – Panel 400 W')
     expect(screen.queryByRole('button', { name: 'Odoslať ponuku' })).not.toBeInTheDocument()
+  })
+})
+
+describe('QuoteDetailPage side cards', () => {
+  beforeEach(() => localStorage.clear())
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('shows the progress, the customer contact and the signed contract', async () => {
+    mockApi({
+      [`GET /api/quotes/${QUOTE_ID}`]: json(makeQuote({ status: 'Accepted', allowedTransitions: [] })),
+      [`GET /api/quotes/${QUOTE_ID}/history`]: history,
+      'GET /api/customers': customersPage,
+      [`GET /api/customers/${CUSTOMER_ID}`]: json({
+        id: CUSTOMER_ID,
+        displayName: 'Ján Novák',
+        email: 'jan@test.sk',
+        phone: null,
+        address: { street: 'Hlavná 1', city: 'Nitra', postalCode: '949 01', country: 'SK' },
+      }),
+      'GET /api/contracts': json([{ id: 'k1', number: 'ZML-2026-001', status: 'Signed', signedOn: '2026-11-05', grossTotal: 1230, currency: 'EUR', createdAt: '2026-11-04T10:00:00Z' }]),
+    })
+    renderQuotes(path)
+
+    const progress = await screen.findByRole('list', { name: 'Priebeh ponuky' })
+    expect(within(progress).getByText('Prijatá zákazníkom')).toBeInTheDocument()
+    expect(await within(progress).findByText('Zmluva podpísaná')).toBeInTheDocument()
+
+    const customer = screen.getByRole('article', { name: 'Zákazník' })
+    expect(await within(customer).findByRole('link', { name: 'jan@test.sk' })).toHaveAttribute('href', 'mailto:jan@test.sk')
+    const contract = screen.getByRole('article', { name: 'Zmluva' })
+    expect(await within(contract).findByRole('link', { name: 'ZML-2026-001' })).toHaveAttribute('href', '/contracts/k1')
+    expect(screen.queryByRole('link', { name: 'Pripraviť zmluvu' })).not.toBeInTheDocument()
+  })
+
+  it('hides the contract card for Designer', async () => {
+    mockApi({
+      [`GET /api/quotes/${QUOTE_ID}`]: json(makeQuote({ status: 'Sent', allowedTransitions: [] })),
+      [`GET /api/quotes/${QUOTE_ID}/history`]: history,
+      'GET /api/customers': problem(403, 'Forbidden'),
+      [`GET /api/customers/${CUSTOMER_ID}`]: problem(403, 'Forbidden'),
+    })
+    renderQuotes(path, ['Designer'])
+
+    expect(await screen.findByRole('list', { name: 'Priebeh ponuky' })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Zmluva' })).not.toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Zákazník' })).toHaveTextContent('Neznámy zákazník')
   })
 })

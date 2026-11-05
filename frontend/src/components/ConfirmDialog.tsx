@@ -30,8 +30,8 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   return (
-    <Dialog title={title} onClose={onCancel}>
-      <p>{message}</p>
+    <Dialog title={title} onClose={onCancel} icon={danger ? '!' : undefined}>
+      <p className="dialog__message">{message}</p>
       {error && (
         <p role="alert" className="form-error">
           {error}

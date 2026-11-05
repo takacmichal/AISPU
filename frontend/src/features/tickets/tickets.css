@@ -1,25 +1,3 @@
-.tickets-filters {
-  align-items: flex-end;
-  margin-bottom: var(--spacing-16);
-}
-
-.tickets-filters label {
-  display: grid;
-  gap: var(--spacing-4);
-  min-width: 11rem;
-}
-
-.view-switch {
-  display: inline-flex;
-  gap: var(--spacing-4);
-  margin-left: auto;
-}
-
-.view-switch .btn[aria-pressed='true'] {
-  background: var(--surface-tint);
-  color: var(--color-paper);
-}
-
 .kanban {
   display: grid;
   grid-auto-flow: column;
@@ -35,15 +13,26 @@
   gap: var(--spacing-8);
   padding: var(--spacing-12);
   border-radius: var(--radius-cards);
-  background: var(--color-carbon);
-  box-shadow: var(--shadow-inset-border);
+  background: var(--surface-tint);
 }
 
 .kanban__column h3 {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin: 0;
   font-size: var(--text-body-sm);
+}
+
+.kanban__count {
+  min-width: 1.5rem;
+  padding: 0 var(--spacing-8);
+  border-radius: var(--radius-pills);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+  text-align: center;
 }
 
 .kanban__cards {
@@ -58,50 +47,47 @@
   display: grid;
   gap: var(--spacing-8);
   padding: var(--spacing-12);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-buttons);
-  background: var(--surface-subtle);
-  box-shadow: var(--shadow-inset-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.kanban__card--high {
+  border-left: 3px solid var(--color-danger);
 }
 
 .kanban__card-title {
-  font-weight: 510;
+  font-weight: 600;
+}
+
+.kanban__card-meta,
+.kanban__card-time {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.kanban__card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  align-items: center;
+}
+
+.kanban__card-time {
+  margin-left: auto;
+}
+
+.kanban__moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
 }
 
 .kanban__empty {
   margin: 0;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
-}
-
-.ticket-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-12);
-  align-items: center;
-  margin-bottom: var(--spacing-16);
-}
-
-.ticket-header h2 {
-  margin: 0;
-}
-
-.ticket-section {
-  margin-bottom: var(--spacing-24);
-}
-
-.ticket-meta {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--spacing-4) var(--spacing-16);
-  margin: 0 0 var(--spacing-16);
-}
-
-.ticket-meta dt {
-  color: var(--color-fog);
-}
-
-.ticket-meta dd {
-  margin: 0;
 }
 
 .ticket-description {
@@ -118,11 +104,11 @@
 
 .timeline__item {
   padding-left: var(--spacing-12);
-  border-left: 2px solid var(--color-graphite);
+  border-left: 2px solid var(--color-border);
 }
 
 .timeline__item--comment {
-  border-left-color: var(--color-smoke);
+  border-left-color: var(--color-border-strong);
 }
 
 .timeline__head {
@@ -130,7 +116,7 @@
   flex-wrap: wrap;
   gap: var(--spacing-8);
   align-items: center;
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-caption);
 }
 
@@ -166,6 +152,169 @@
 .slot-note {
   padding: var(--spacing-12);
   border-radius: var(--radius-buttons);
-  border: 1px dashed var(--color-smoke);
-  color: var(--color-fog);
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Ticket detail (wireframe "Detail tiketu") ---------- */
+.ticket-note {
+  margin: 0 0 var(--spacing-12);
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.ticket-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+.ticket-detail__main,
+.ticket-detail__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  min-width: 0;
+}
+
+.ticket-card {
+  padding: var(--spacing-20);
+}
+
+.ticket-card__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--text-body);
+}
+
+.ticket-card__subtitle {
+  margin: var(--spacing-16) 0 var(--spacing-8);
+  font-size: var(--text-body-sm);
+}
+
+.ticket-card__lead {
+  margin: 0 0 var(--spacing-12);
+  font-weight: 600;
+}
+
+.ticket-card__muted {
+  display: block;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.visit-list {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.visit-list__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  align-items: center;
+  padding: var(--spacing-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-buttons);
+}
+
+.visit-list__time {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.visit-plan {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.visit-plan__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--spacing-12);
+}
+
+.technician-picker {
+  display: grid;
+  gap: var(--spacing-8);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.technician-option {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  gap: var(--spacing-12);
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-buttons);
+  cursor: pointer;
+}
+
+.technician-option--checked {
+  border-color: var(--color-primary);
+  background: var(--color-info-bg);
+}
+
+.technician-option input {
+  width: auto;
+  accent-color: var(--color-primary);
+}
+
+.technician-option__name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-comment-form {
+  margin-top: var(--spacing-16);
+}
+
+@media (max-width: 960px) {
+  .ticket-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phones: controls at least 44 px and the main action of the ticket fixed at the bottom. */
+@media (max-width: 760px) {
+  .kanban .btn--sm,
+  .ticket-detail .btn--sm {
+    min-height: var(--control-height);
+  }
+
+  .ticket-page {
+    padding-bottom: 5.5rem;
+  }
+
+  .ticket-page > .page-header .page-header__actions {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 5;
+    padding: var(--spacing-12) var(--spacing-16) calc(var(--spacing-12) + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+  }
+
+  .ticket-page > .page-header .page-header__actions .btn {
+    flex: 1;
+    min-height: 48px;
+  }
 }

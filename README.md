@@ -15,6 +15,22 @@ Backlog: [Issues](../../issues) a [GitHub Project](https://github.com/users/taka
 | Databáza | PostgreSQL 16 | `docker-compose.yml` |
 | Dokumentácia | ADR, BPMN | `docs/` |
 
+## Snímky obrazoviek
+
+Ukážkové dáta, dizajn podľa `docs/artefact-page-html/` (pravidlá v [`frontend/DESIGN.md`](frontend/DESIGN.md)).
+
+| Verejná landing page | Detail inštalácie s workflow |
+|---|---|
+| ![Landing page](docs/screenshots/landing.png) | ![Detail inštalácie](docs/screenshots/installation.png) |
+| **Monitoring výroby s obdobiami podvýroby** | **Servisné tikety (Kanban)** |
+| ![Monitoring výroby](docs/screenshots/monitoring.png) | ![Kanban tiketov](docs/screenshots/tickets.png) |
+| **Detail tiketu: výjazdy, protokol, technik** | **Používatelia a roly** |
+| ![Detail tiketu](docs/screenshots/ticket.png) | ![Používatelia a roly](docs/screenshots/users.png) |
+
+Mobilný pohľad technika (Moje výjazdy):
+
+<img src="docs/screenshots/my-visits.png" alt="Detail výjazdu na mobile" width="300">
+
 ## Lokálne spustenie
 
 Potrebné: .NET SDK 10, Node 22 + pnpm, [uv](https://docs.astral.sh/uv/), Docker.

@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import type { components } from '../../api/generated/schema'
 import { DataTable, type Column } from '../../components/DataTable'
+import { PageHeader } from '../../components/PageHeader'
+import { FilterSelect, Toolbar } from '../../components/Toolbar'
 import { useLoad } from '../../components/useLoad'
 import { formatCurrency, formatDate } from '../../lib/format'
 import './contracts.css'
@@ -69,22 +71,15 @@ export default function ContractListPage() {
 
   return (
     <section>
-      <div className="toolbar">
-        <h2>{T.listTitle}</h2>
-      </div>
-      <div className="contract-filters">
-        <div className="form-field">
-          <label htmlFor="contract-status">{T.statusFilter}</label>
-          <select id="contract-status" value={status ?? ''} onChange={(e) => update({ status: e.target.value, page: null })}>
-            <option value="">{T.statusAll}</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {CONTRACT_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <PageHeader title={T.listTitle} subtitle={T.listSubtitle} />
+      <Toolbar>
+        <FilterSelect
+          label={T.statusFilter}
+          value={status ?? ''}
+          onChange={(value) => update({ status: value, page: null })}
+          options={[{ value: '', label: T.statusAll }, ...STATUSES.map((s) => ({ value: s, label: CONTRACT_STATUS_LABELS[s] }))]}
+        />
+      </Toolbar>
       <DataTable
         columns={columns}
         rows={rows}

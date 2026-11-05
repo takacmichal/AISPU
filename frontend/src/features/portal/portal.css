@@ -1,4 +1,4 @@
-/* Customer portal (Moje elektrárne). Uses tokens from index.css; no lime: the portal has no primary action yet. */
+/* Customer portal (Moje elektrárne). Uses tokens from index.css. */
 .plant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -15,11 +15,11 @@
   gap: var(--spacing-16);
   height: 100%;
   padding: var(--spacing-20);
-  transition: background-color 120ms ease;
+  transition: box-shadow 120ms ease;
 }
 
 .plant-card:hover {
-  background: var(--color-obsidian);
+  box-shadow: var(--shadow-md);
 }
 
 .plant-card__header,
@@ -41,7 +41,7 @@
 }
 
 .plant-card__link {
-  color: var(--color-paper);
+  color: var(--color-text);
   text-decoration: none;
 }
 
@@ -69,23 +69,23 @@
 }
 
 .plant-facts dt {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
 .plant-facts dd {
   margin: var(--spacing-4) 0 0;
-  color: var(--color-mist);
+  color: var(--color-text-body);
 }
 
 .plant-card__next {
   margin-top: auto;
   padding-top: var(--spacing-12);
-  border-top: 1px solid var(--color-graphite);
+  border-top: 1px solid var(--color-border);
 }
 
 .plant-card__next-label {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
@@ -135,6 +135,131 @@
 }
 
 .plant-timeline time {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Portal home on /app ---------- */
+.portal-home .kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.portal-home__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  gap: var(--spacing-16);
+  align-items: start;
+}
+
+.portal-home__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--text-body);
+}
+
+.portal-home__plants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--spacing-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-plant .plant-card__header {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.portal-plant__meta,
+.portal-plant__note {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.portal-plant__power {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-heading-sm);
+  font-weight: 300;
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+}
+
+.portal-plant__power span {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  letter-spacing: 0;
+}
+
+.portal-plant .stepper {
+  position: relative;
+}
+
+.portal-tickets {
+  padding: var(--spacing-20);
+}
+
+.portal-tickets__header {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.portal-tickets__header a {
+  font-size: var(--text-caption);
+}
+
+.portal-tickets__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-tickets__list li {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.portal-tickets__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.portal-tickets__text a {
+  overflow: hidden;
+  color: var(--color-text);
+  font-weight: 500;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-tickets__text a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.portal-tickets__text time,
+.portal-tickets__empty {
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+}
+
+.portal-tickets .empty-state {
+  padding: var(--spacing-24) var(--spacing-12);
+  border: 0;
+}
+
+@media (max-width: 960px) {
+  .portal-home__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

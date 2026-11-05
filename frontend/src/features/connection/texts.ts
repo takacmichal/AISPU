@@ -13,13 +13,6 @@ export const STATE_LABELS: Record<string, string> = {
 /** Steps of the happy path, in order (see STEP_STATES in model.ts). */
 export const STEP_LABELS = ['Príprava žiadosti', 'Posúdenie distribučkou', 'Zmluva o pripojení', 'Podpis zákazníka', 'Odoslanie zmluvy', 'Uzavreté'] as const
 
-export const STEP_STATUS_TEXT = {
-  done: 'dokončené',
-  current: 'aktuálny krok',
-  upcoming: 'čaká',
-  blocked: 'zastavené',
-} as const
-
 export const TYPE_LABELS: Record<string, string> = {
   SmallSource: 'Malý zdroj (do 10,8 kW)',
   LargeSource: 'Väčší zdroj (nad 10,8 kW)',
@@ -73,6 +66,41 @@ export const CONNECTION_TEXTS = {
   historyEmpty: 'Zatiaľ nie sú žiadne záznamy.',
   actions: 'Ďalší krok',
   installation: 'Inštalácia',
+  allRequests: 'Všetky žiadosti',
+  list: {
+    title: 'Pripojenie k distribučke',
+    subtitle: 'Žiadosti o pripojenie zdrojov a lehoty distribučných spoločností',
+    kpiRegion: 'Stav žiadostí',
+    open: 'Otvorené žiadosti',
+    openDetail: 'Ešte neuzavreté ani nezamietnuté',
+    warning: 'Blíži sa lehota',
+    warningDetail: (days: number) => `Návrh zmluvy do ${days} dní`,
+    overdue: 'Po lehote',
+    overdueDetail: 'Distribučka mešká s návrhom zmluvy',
+    search: 'Hľadať podľa EIC alebo inštalácie',
+    searchPlaceholder: 'Hľadať EIC alebo inštaláciu…',
+    stateFilter: 'Stav',
+    allStates: 'Všetky',
+    deadlineFilter: 'Lehota',
+    deadlineAll: 'Všetky',
+    deadlineWarning: 'Blíži sa',
+    deadlineOverdue: 'Po lehote',
+    colInstallation: 'Inštalácia',
+    colEic: 'EIC',
+    colType: 'Typ zdroja',
+    colState: 'Stav',
+    colDeadline: 'Lehota distribučky',
+    colUpdated: 'Zmenená',
+    deadlineLabel: (eic: string) => `Lehota distribučky pre ${eic}`,
+    left: (days: number) => (days === 0 ? 'uplynie dnes' : `zostáva ${daysText(days)}`),
+    late: (days: number) => `po lehote ${daysText(days)}`,
+    noDeadline: '–',
+    loading: 'Načítavam žiadosti…',
+    error: 'Žiadosti o pripojenie sa nepodarilo načítať.',
+    empty: 'Zatiaľ nie sú žiadne žiadosti o pripojenie.',
+    emptyFiltered: 'Filtru nevyhovuje žiadna žiadosť.',
+    unknownInstallation: 'Inštalácia',
+  },
 } as const
 
 export const TIMELINE_LABELS = {

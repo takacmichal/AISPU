@@ -1,0 +1,116 @@
+/* Customers: list name cell and the detail overview (contact, tiles, next step, activity). */
+.customer-name {
+  display: inline-flex;
+  gap: var(--spacing-12);
+  align-items: center;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.customer-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+.customer-overview__card {
+  padding: var(--spacing-20);
+}
+
+.customer-overview__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--text-body);
+}
+
+.customer-overview__middle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.customer-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+}
+
+.customer-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-subtle);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.customer-tile:hover {
+  border-color: var(--color-border-strong);
+  background: var(--surface-hover);
+}
+
+.customer-tile__value {
+  font-size: var(--text-subheading);
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.customer-tile__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+}
+
+.customer-next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  align-items: flex-start;
+}
+
+.customer-next__eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.customer-next__title {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.customer-next__detail {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+@media (max-width: 1100px) {
+  .customer-overview {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .customer-overview > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .customer-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.linked-tab__all {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--text-caption);
+  text-align: right;
+}

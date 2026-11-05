@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>SolarOps – fotovoltika od návrhu po servis</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fdfdf7}
+a{color:#0072c0}a:hover{color:#005a99}
+.so-root *{box-sizing:border-box}
+.so-root :focus-visible{outline:2px solid #0096f7;outline-offset:3px;border-radius:12px}
+.so-skip{position:absolute;left:16px;top:-60px;background:#000;color:#fff;padding:10px 16px;border-radius:12px;z-index:10}
+.so-skip:focus{top:12px;color:#fff}
+.so-navlinks{display:flex}
+.so-burger{display:none}
+.so-faq summary{list-style:none;cursor:pointer}
+.so-faq summary::-webkit-details-marker{display:none}
+.so-faq details[open] .so-plus{transform:rotate(45deg)}
+.so-range{width:100%;accent-color:#0072c0}
+@media (max-width:860px){
+.so-navlinks{display:none}
+.so-navcta{display:none !important}
+.so-burger{display:inline-flex}
+.so-steps{grid-template-columns:minmax(0,1fr) !important;row-gap:28px !important}
+.so-steps .so-stepline{display:none}
+.so-hidesm{display:none !important}
+}
+</style>
+</helmet>
+<div class="so-root" style="background: #fdfdf7; color: #000000; font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, sans-serif; font-weight: 400; font-feature-settings: 'lnum', 'tnum'; position: relative">
+<a class="so-skip" href="#obsah">Preskočiť na obsah</a>
+
+<!-- Horná lišta -->
+<header style="position: sticky; top: 0; z-index: 5; background: rgba(253,253,247,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.06)">
+<div style="max-width: 1280px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+<a href="#obsah" style="display: flex; align-items: center; gap: 10px; color: #000000; text-decoration: none" aria-label="SolarOps – domov">
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="16" cy="9" r="4" stroke="#0096f7"></circle><path d="M16 2v1.5M9.5 4.5l1 1M22.5 4.5l-1 1M7 9h1.5M23.5 9H25" stroke="#0096f7"></path><path d="M6 28l3-12h14l3 12z"></path><path d="M7.5 22h17M12.5 16l-1.2 12M19.5 16l1.2 12"></path></svg>
+<span style="font-size: 20px; letter-spacing: -0.6px; font-weight: 500">SolarOps</span>
+</a>
+<nav class="so-navlinks" aria-label="Hlavná navigácia" style="gap: 6px; align-items: center">
+<a href="#sluzby" style="color: #000000; text-decoration: none; font-size: 15px; padding: 10px 14px; border-radius: 24px">Služby</a>
+<a href="#ako" style="color: #000000; text-decoration: none; font-size: 15px; padding: 10px 14px; border-radius: 24px">Ako to funguje</a>
+<a href="#monitoring" style="color: #000000; text-decoration: none; font-size: 15px; padding: 10px 14px; border-radius: 24px">Monitoring</a>
+<a href="#kontakt" style="color: #000000; text-decoration: none; font-size: 15px; padding: 10px 14px; border-radius: 24px">Kontakt</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 8px">
+<a class="so-navcta" href="#login" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; background: #e7e3e1; color: #000000; text-decoration: none; font-size: 15px">Prihlásiť sa</a>
+<a class="so-navcta" href="#kontakt" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; background: #0072c0; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 500">Nezáväzný dopyt</a>
+<button class="so-burger" type="button" aria-label="Otvoriť menu" aria-expanded="{{menuOpenStr}}" onClick="{{toggleMenu}}" style="width: 44px; height: 44px; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: rgba(0,0,0,0.04); cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16"></path></svg>
+</button>
+</div>
+</div>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+<nav aria-label="Mobilná navigácia" style="padding: 8px 24px 24px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid rgba(0,0,0,0.06)">
+<a href="#sluzby" style="color: #000000; text-decoration: none; font-size: 18px; padding: 12px 0">Služby</a>
+<a href="#ako" style="color: #000000; text-decoration: none; font-size: 18px; padding: 12px 0">Ako to funguje</a>
+<a href="#monitoring" style="color: #000000; text-decoration: none; font-size: 18px; padding: 12px 0">Monitoring</a>
+<a href="#kontakt" style="color: #000000; text-decoration: none; font-size: 18px; padding: 12px 0">Kontakt</a>
+<div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap">
+<a href="#login" style="flex: 1 1 140px; display: inline-flex; justify-content: center; align-items: center; min-height: 48px; border-radius: 12px; background: #e7e3e1; color: #000000; text-decoration: none">Prihlásiť sa</a>
+<a href="#kontakt" style="flex: 1 1 140px; display: inline-flex; justify-content: center; align-items: center; min-height: 48px; border-radius: 12px; background: #0072c0; color: #ffffff; text-decoration: none; font-weight: 500">Nezáväzný dopyt</a>
+</div>
+</nav>
+</sc-if>
+</header>
+
+
+
+<!-- Pätička -->
+<main id="obsah">
+
+<!-- Hero -->
+<section style="max-width: 1280px; margin: 0 auto; padding: 96px 24px 0">
+<p style="margin: 0 0 28px; font-size: 14px; letter-spacing: -0.2px; color: #666666; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+<span style="display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #0096f7"></span>Predaj · Návrh · Pripojenie · Montáž · Servis
+</p>
+<h1 style="margin: 0; font-weight: 300; font-size: clamp(48px, 7.2vw, 104px); line-height: 0.92; letter-spacing: -0.047em; max-width: 1180px">Fotovoltika <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; vertical-align: 0.06em; width: 1.5em; height: 0.78em; border-radius: 18px; background: #f5f2de; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px"><svg width="70%" height="70%" viewBox="0 0 120 60" fill="none" stroke-linejoin="round"><path d="M14 50L40 14h66L82 50z" fill="#0b2a44" stroke="#0b2a44" stroke-width="2"></path><path d="M30 27.5h68M22 39h68M57 14L45 50M82 14L67 50" stroke="#0096f7" stroke-width="2"></path><path d="M10 54h80" stroke="#375033" stroke-width="3" stroke-linecap="round"></path></svg></span> od návrhu po servis. Všetko na jednom mieste <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; vertical-align: 0.06em; width: 0.78em; height: 0.78em; border-radius: 18px; background: #0096f7"><svg width="56%" height="56%" viewBox="0 0 40 40" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="20" r="7"></circle><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"></path></svg></span></h1>
+<div style="display: flex; flex-wrap: wrap; gap: 32px 64px; align-items: flex-end; justify-content: space-between; margin-top: 48px">
+<p style="margin: 0; flex: 1 1 420px; max-width: 620px; font-size: 23px; line-height: 1.3; letter-spacing: -0.46px; color: #000000">Navrhneme elektráreň na mieru vašej streche, vybavíme pripojenie u distribučky, namontujeme ju s revíziou a potom jej výrobu sledujeme 24/7.</p>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<a href="#kontakt" style="display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 22px; border-radius: 12px; background: #0072c0; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 500; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px">Chcem cenovú ponuku<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"></path></svg></a>
+<a href="#login" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; border-radius: 12px; background: #e7e3e1; color: #000000; text-decoration: none; font-size: 16px">Mám už elektráreň – prihlásiť</a>
+</div>
+</div>
+
+<!-- Náhľad dashboardu v rámiku -->
+<figure style="margin: 80px 0 0; padding: 10px; background: #141414; border-radius: 24px; box-shadow: rgba(0,0,0,0.08) 0px 2px 10px 0px, rgba(0,0,0,0.2) 0px 2px 4px 0px">
+<div style="background: #fdfdf7; border-radius: 16px; overflow: hidden; display: flex; min-height: 480px">
+<div class="so-hidesm" style="width: 200px; flex: 0 0 200px; padding: 22px 18px; border-right: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 6px" aria-hidden="true">
+<div style="font-size: 14px; font-weight: 500; margin-bottom: 14px">SolarOps</div>
+<div style="font-size: 13px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,0.05)">Prehľad</div>
+<div style="font-size: 13px; padding: 8px 10px; color: #666666">Moje elektrárne</div>
+<div style="font-size: 13px; padding: 8px 10px; color: #666666">Monitoring výroby</div>
+<div style="font-size: 13px; padding: 8px 10px; color: #666666">Servisné tikety</div>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; padding: 28px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+<div>
+<div style="font-size: 13px; color: #666666">FVE 9,6 kWp · Prešov</div>
+<div style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px; line-height: 1.14; margin-top: 4px">Moja elektráreň</div>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: 24px; background: #e4ecdf; color: #2c4229"><span style="width: 7px; height: 7px; border-radius: 4px; background: #375033"></span>V prevádzke</span>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<div style="flex: 1 1 150px; padding: 16px; border-radius: 12px; background: #f5f2de"><div style="font-size: 12px; color: #555555">Výroba dnes</div><div style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px; margin-top: 6px">31,4 <span style="font-size: 15px; color: #555555">kWh</span></div></div>
+<div style="flex: 1 1 150px; padding: 16px; border-radius: 12px; background: #f5f2de"><div style="font-size: 12px; color: #555555">Tento mesiac</div><div style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px; margin-top: 6px">512 <span style="font-size: 15px; color: #555555">kWh</span></div></div>
+<div style="flex: 1 1 150px; padding: 16px; border-radius: 12px; background: #f5f2de"><div style="font-size: 12px; color: #555555">Výkon teraz</div><div style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px; margin-top: 6px">4,2 <span style="font-size: 15px; color: #555555">kW</span></div></div>
+</div>
+<svg viewBox="0 0 800 260" width="100%" role="img" aria-label="Graf výroby počas dňa: skutočná výroba tesne sleduje predikciu, spolu 31,4 kWh oproti predikcii 34,0 kWh">
+<path d="M40 230H790M40 170H790M40 110H790M40 50H790" stroke="rgba(0,0,0,0.07)" stroke-width="1"></path>
+<path d="M40.0 230.0 L53.4 226.9 L66.8 221.9 L80.2 215.5 L93.6 208.4 L107.0 201.8 L120.4 194.0 L133.8 183.1 L147.1 176.3 L160.5 167.6 L173.9 154.8 L187.3 148.4 L200.7 137.1 L214.1 130.6 L227.5 120.7 L240.9 116.3 L254.3 104.2 L267.7 94.4 L281.1 90.5 L294.5 81.6 L307.9 76.2 L321.2 77.5 L334.6 64.9 L348.0 62.7 L361.4 62.7 L374.8 63.3 L388.2 51.2 L401.6 54.9 L415.0 51.5 L428.4 49.9 L441.8 53.1 L455.2 52.5 L468.6 61.6 L482.0 60.2 L495.4 100.8 L508.8 100.2 L522.1 105.2 L535.5 116.6 L548.9 121.4 L562.3 126.4 L575.7 127.1 L589.1 137.2 L602.5 142.6 L615.9 131.8 L629.3 139.2 L642.7 148.9 L656.1 158.1 L669.5 166.0 L682.9 175.1 L696.2 182.9 L709.6 192.2 L723.0 200.0 L736.4 208.0 L749.8 215.1 L763.2 221.7 L776.6 227.0 L790.0 230.0 L790.0 230 L40.0 230 Z" fill="#0096f7" fill-opacity="0.16"></path>
+<path d="M40.0 230.0 L53.4 226.9 L66.8 221.9 L80.2 215.5 L93.6 208.4 L107.0 201.8 L120.4 194.0 L133.8 183.1 L147.1 176.3 L160.5 167.6 L173.9 154.8 L187.3 148.4 L200.7 137.1 L214.1 130.6 L227.5 120.7 L240.9 116.3 L254.3 104.2 L267.7 94.4 L281.1 90.5 L294.5 81.6 L307.9 76.2 L321.2 77.5 L334.6 64.9 L348.0 62.7 L361.4 62.7 L374.8 63.3 L388.2 51.2 L401.6 54.9 L415.0 51.5 L428.4 49.9 L441.8 53.1 L455.2 52.5 L468.6 61.6 L482.0 60.2 L495.4 100.8 L508.8 100.2 L522.1 105.2 L535.5 116.6 L548.9 121.4 L562.3 126.4 L575.7 127.1 L589.1 137.2 L602.5 142.6 L615.9 131.8 L629.3 139.2 L642.7 148.9 L656.1 158.1 L669.5 166.0 L682.9 175.1 L696.2 182.9 L709.6 192.2 L723.0 200.0 L736.4 208.0 L749.8 215.1 L763.2 221.7 L776.6 227.0 L790.0 230.0" fill="none" stroke="#0096f7" stroke-width="2.5" stroke-linejoin="round"></path>
+<path d="M40.0 230 L53.4 226.7 L66.8 221.3 L80.2 214.8 L93.6 207.3 L107.0 199.2 L120.4 190.6 L133.8 181.5 L147.1 172.2 L160.5 162.7 L173.9 153.1 L187.3 143.5 L200.7 134.0 L214.1 124.6 L227.5 115.5 L240.9 106.7 L254.3 98.2 L267.7 90.2 L281.1 82.6 L294.5 75.7 L307.9 69.3 L321.2 63.5 L334.6 58.4 L348.0 54.1 L361.4 50.5 L374.8 47.7 L388.2 45.6 L401.6 44.4 L415.0 44.0 L428.4 44.4 L441.8 45.6 L455.2 47.7 L468.6 50.5 L482.0 54.1 L495.4 58.4 L508.8 63.5 L522.1 69.3 L535.5 75.7 L548.9 82.6 L562.3 90.2 L575.7 98.2 L589.1 106.7 L602.5 115.5 L615.9 124.6 L629.3 134.0 L642.7 143.5 L656.1 153.1 L669.5 162.7 L682.9 172.2 L696.2 181.5 L709.6 190.6 L723.0 199.2 L736.4 207.3 L749.8 214.8 L763.2 221.3 L776.6 226.7 L790.0 230" fill="none" stroke="#000000" stroke-width="1.5" stroke-dasharray="5 5"></path>
+<g font-size="12" fill="#666666" font-family="Plus Jakarta Sans, system-ui, sans-serif"><text x="40" y="252">6:00</text><text x="240" y="252">10:00</text><text x="455" y="252">14:00</text><text x="668" y="252">18:00</text></g>
+</svg>
+</div>
+</div>
+</figure>
+</section>
+
+<!-- Čísla -->
+<section aria-labelledby="cisla-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0">
+<h2 id="cisla-h" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">SolarOps v číslach</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 40px 32px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 40px">
+<div style="flex: 1 1 220px"><div style="font-size: clamp(48px, 5vw, 64px); font-weight: 300; line-height: 0.96; letter-spacing: -0.041em">120+</div><div style="margin-top: 14px; font-size: 16px; color: #666666; line-height: 1.49">inštalovaných elektrární</div></div>
+<div style="flex: 1 1 220px"><div style="font-size: clamp(48px, 5vw, 64px); font-weight: 300; line-height: 0.96; letter-spacing: -0.041em">1,4 MWp</div><div style="margin-top: 14px; font-size: 16px; color: #666666; line-height: 1.49">celkového inštalovaného výkonu</div></div>
+<div style="flex: 1 1 220px"><div style="font-size: clamp(48px, 5vw, 64px); font-weight: 300; line-height: 0.96; letter-spacing: -0.041em">≤ 2 h</div><div style="margin-top: 14px; font-size: 16px; color: #666666; line-height: 1.49">do zachytenia poruchy</div></div>
+<div style="flex: 1 1 220px"><div style="font-size: clamp(48px, 5vw, 64px); font-weight: 300; line-height: 0.96; letter-spacing: -0.041em">10 dní</div><div style="margin-top: 14px; font-size: 16px; color: #666666; line-height: 1.49">pracovných na vybavenie pripojenia malého zdroja</div></div>
+</div>
+<p style="margin: 24px 0 0; font-size: 12px; color: #666666; letter-spacing: -0.2px">Ilustratívne údaje.</p>
+</section>
+
+<!-- Služby -->
+<section id="sluzby" aria-labelledby="sluzby-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 48px">
+<h2 id="sluzby-h" style="margin: 0; font-weight: 300; font-size: clamp(40px, 4.6vw, 60px); line-height: 0.96; letter-spacing: -0.041em; max-width: 720px">Jedna firma. Celá cesta vašej elektrárne.</h2>
+<p style="margin: 0; max-width: 380px; font-size: 18px; line-height: 1.33; color: #666666">Od prvej obhliadky až po servis po rokoch prevádzky – bez prehadzovania medzi dodávateľmi.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<article style="flex: 1 1 320px; background: #f5f2de; border-radius: 18px; padding: 36px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px; display: flex; flex-direction: column; gap: 20px">
+<div style="width: 52px; height: 52px; border-radius: 12px; background: #fdfdf7; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#0072c0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 22l4-14h12l4 14z"></path><path d="M5 15h16M11 8l-1.5 14M15 8l1.5 14"></path><path d="M16 3l2 2 4-4" transform="translate(0 1)"></path></svg></div>
+<h3 style="margin: 0; font-weight: 300; font-size: 30px; line-height: 1.14; letter-spacing: -0.9px">Predaj a návrh</h3>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.49">
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Obhliadka strechy a odberného miesta</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Návrh konfigurácie a odhad ročnej výroby</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Cenová ponuka z overeného katalógu</li>
+</ul>
+</article>
+<article style="flex: 1 1 320px; background: #f5f2de; border-radius: 18px; padding: 36px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px; display: flex; flex-direction: column; gap: 20px">
+<div style="width: 52px; height: 52px; border-radius: 12px; background: #fdfdf7; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#0072c0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5a5 5 0 0 0-6.4 6.4L3 17v4h4l6.1-6.1a5 5 0 0 0 6.4-6.4l-3 3-3.5-.5-.5-3.5z"></path></svg></div>
+<h3 style="margin: 0; font-weight: 300; font-size: 30px; line-height: 1.14; letter-spacing: -0.9px">Inštalácia</h3>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.49">
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Komponenty evidované so sériovými číslami</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Montáž s checklistom a revízia</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Preberací protokol v PDF</li>
+</ul>
+</article>
+<article style="flex: 1 1 320px; background: #f5f2de; border-radius: 18px; padding: 36px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px; display: flex; flex-direction: column; gap: 20px">
+<div style="width: 52px; height: 52px; border-radius: 12px; background: #fdfdf7; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#0072c0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h20"></path><path d="M3 16l5-5 4 3 6-7 5 4"></path><circle cx="18" cy="7" r="1.2"></circle></svg></div>
+<h3 style="margin: 0; font-weight: 300; font-size: 30px; line-height: 1.14; letter-spacing: -0.9px">Servis a monitoring</h3>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.49">
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Výroba meraná každých 5 minút</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Automatické upozornenie na podvýrobu</li>
+<li style="padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.08)">Výjazd technika podľa priority tiketu</li>
+</ul>
+</article>
+</div>
+</section>
+
+<!-- Ako to funguje -->
+<section id="ako" aria-labelledby="ako-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0">
+<h2 id="ako-h" style="margin: 0 0 16px; font-weight: 300; font-size: clamp(40px, 4.6vw, 60px); line-height: 0.96; letter-spacing: -0.041em">Ako to funguje</h2>
+<p style="margin: 0 0 56px; font-size: 18px; line-height: 1.33; color: #666666; max-width: 560px">Sedem krokov, pri každom viete, kto ho práve rieši. Rovnaký priebeh potom uvidíte aj vo svojom portáli.</p>
+<ol class="so-steps" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 16px">
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">01</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Dopyt</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Zákazník a odberné miesto s EIC kódom.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Obchod</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">02</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Ponuka</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Panely, striedače a práca z katalógu, s DPH.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Obchod</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">03</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Návrh FVE</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Obhliadka, parametre strechy, konfigurácia a odhad výroby.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Projektant</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">04</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Zmluva</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Zmluva v PDF, podpis a zálohová platba.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Obchod</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">05</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Pripojenie</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Žiadosť u distribučky – malý zdroj ≤ 10,8 kW alebo väčší, s lehotami.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Distribučka</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #000000; color: #ffffff; font-size: 13px; display: flex; align-items: center; justify-content: center">06</span><span class="so-stepline" style="flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.15)"></span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Inštalácia</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Komponenty, montáž, revízia, uvedenie do prevádzky, odovzdanie.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Technik</span>
+</li>
+<li style="position: relative; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 18px; background: #0096f7; color: #000000; font-size: 13px; display: flex; align-items: center; justify-content: center">07</span></div>
+<h3 style="margin: 4px 0 0; font-size: 18px; font-weight: 500; letter-spacing: -0.3px">Prevádzka a servis</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666">Monitoring výroby, detekcia podvýroby, tikety a výjazdy.</p>
+<span style="align-self: flex-start; font-size: 12px; padding: 4px 10px; border-radius: 24px; background: rgba(0,0,0,0.05)">Technik · Operátor</span>
+</li>
+</ol>
+</section>
+
+<!-- Monitoring (tmavý pás) -->
+<section id="monitoring" aria-labelledby="mon-h" style="margin-top: 120px; background: #000000; color: #ffffff">
+<div style="max-width: 1280px; margin: 0 auto; padding: 120px 24px">
+<p style="margin: 0 0 24px; font-size: 14px; color: #ff6a33; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #ff4000"></span>Inteligentná detekcia</p>
+<div style="display: flex; flex-wrap: wrap; gap: 32px 64px; justify-content: space-between; align-items: flex-end">
+<h2 id="mon-h" style="margin: 0; flex: 1 1 520px; font-weight: 300; font-size: clamp(40px, 5.6vw, 80px); line-height: 0.94; letter-spacing: -0.045em; max-width: 820px">Poruchu nájdeme skôr, ako si ju všimnete.</h2>
+<p style="margin: 0; flex: 1 1 320px; max-width: 420px; font-size: 18px; line-height: 1.45; color: #c8c8c8">Predikciu výroby počítame z predpovede počasia. Keď výroba klesne pod 85 % očakávanej aspoň na 2 hodiny, systém sám založí servisný tiket.</p>
+</div>
+<div style="margin-top: 64px; display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+<figure style="margin: 0; flex: 999 1 560px; min-width: 0; background: #111111; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 28px">
+<figcaption style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 18px">
+<span style="font-size: 16px">Výroba dnes · RD Novák, Košice</span>
+<span style="display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: #c8c8c8">
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 16px; height: 3px; border-radius: 2px; background: #0096f7"></span>Skutočná</span>
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 16px; height: 0; border-top: 2px dashed #ffffff"></span>Predikovaná</span>
+<span style="display: inline-flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255,64,0,0.45)"></span>Podvýroba</span>
+</span>
+</figcaption>
+<svg viewBox="0 0 800 260" width="100%" role="img" aria-label="Graf výroby: od 11:00 do 14:00 je skutočná výroba približne na 68 % predikcie, úsek je označený ako podvýroba">
+<rect x="307.9" y="14" width="160.7" height="216" rx="6" fill="#ff4000" fill-opacity="0.18"></rect>
+<path d="M307.9 14V230M468.6 14V230" stroke="#ff4000" stroke-opacity="0.7" stroke-width="1" stroke-dasharray="3 4"></path>
+<path d="M40 230H790M40 170H790M40 110H790M40 50H790" stroke="rgba(255,255,255,0.08)" stroke-width="1"></path>
+<path d="M40.0 230.0 L53.4 226.7 L66.8 221.4 L80.2 214.7 L93.6 207.2 L107.0 200.3 L120.4 192.1 L133.8 180.6 L147.1 173.5 L160.5 164.3 L173.9 150.8 L187.3 144.1 L200.7 132.2 L214.1 125.3 L227.5 115.0 L240.9 110.3 L254.3 97.6 L267.7 87.3 L281.1 83.1 L294.5 100.4 L307.9 119.9 L321.2 120.8 L334.6 111.8 L348.0 110.2 L361.4 110.2 L374.8 110.7 L388.2 102.1 L401.6 104.7 L415.0 102.2 L428.4 101.1 L441.8 103.4 L455.2 103.0 L468.6 109.4 L482.0 82.2 L495.4 60.0 L508.8 59.3 L522.1 65.8 L535.5 80.8 L548.9 87.1 L562.3 93.7 L575.7 94.6 L589.1 107.8 L602.5 115.1 L615.9 126.6 L629.3 134.4 L642.7 144.6 L656.1 154.3 L669.5 162.6 L682.9 172.2 L696.2 180.4 L709.6 190.3 L723.0 198.4 L736.4 206.9 L749.8 214.3 L763.2 221.3 L776.6 226.8 L790.0 230.0 L790.0 230 L40.0 230 Z" fill="#0096f7" fill-opacity="0.28"></path>
+<path d="M40.0 230.0 L53.4 226.7 L66.8 221.4 L80.2 214.7 L93.6 207.2 L107.0 200.3 L120.4 192.1 L133.8 180.6 L147.1 173.5 L160.5 164.3 L173.9 150.8 L187.3 144.1 L200.7 132.2 L214.1 125.3 L227.5 115.0 L240.9 110.3 L254.3 97.6 L267.7 87.3 L281.1 83.1 L294.5 100.4 L307.9 119.9 L321.2 120.8 L334.6 111.8 L348.0 110.2 L361.4 110.2 L374.8 110.7 L388.2 102.1 L401.6 104.7 L415.0 102.2 L428.4 101.1 L441.8 103.4 L455.2 103.0 L468.6 109.4 L482.0 82.2 L495.4 60.0 L508.8 59.3 L522.1 65.8 L535.5 80.8 L548.9 87.1 L562.3 93.7 L575.7 94.6 L589.1 107.8 L602.5 115.1 L615.9 126.6 L629.3 134.4 L642.7 144.6 L656.1 154.3 L669.5 162.6 L682.9 172.2 L696.2 180.4 L709.6 190.3 L723.0 198.4 L736.4 206.9 L749.8 214.3 L763.2 221.3 L776.6 226.8 L790.0 230.0" fill="none" stroke="#0096f7" stroke-width="2.5" stroke-linejoin="round"></path>
+<path d="M40.0 230 L53.4 226.7 L66.8 221.3 L80.2 214.8 L93.6 207.3 L107.0 199.2 L120.4 190.6 L133.8 181.5 L147.1 172.2 L160.5 162.7 L173.9 153.1 L187.3 143.5 L200.7 134.0 L214.1 124.6 L227.5 115.5 L240.9 106.7 L254.3 98.2 L267.7 90.2 L281.1 82.6 L294.5 75.7 L307.9 69.3 L321.2 63.5 L334.6 58.4 L348.0 54.1 L361.4 50.5 L374.8 47.7 L388.2 45.6 L401.6 44.4 L415.0 44.0 L428.4 44.4 L441.8 45.6 L455.2 47.7 L468.6 50.5 L482.0 54.1 L495.4 58.4 L508.8 63.5 L522.1 69.3 L535.5 75.7 L548.9 82.6 L562.3 90.2 L575.7 98.2 L589.1 106.7 L602.5 115.5 L615.9 124.6 L629.3 134.0 L642.7 143.5 L656.1 153.1 L669.5 162.7 L682.9 172.2 L696.2 181.5 L709.6 190.6 L723.0 199.2 L736.4 207.3 L749.8 214.8 L763.2 221.3 L776.6 226.7 L790.0 230" fill="none" stroke="#ffffff" stroke-opacity="0.75" stroke-width="1.5" stroke-dasharray="5 5"></path>
+<g font-family="Plus Jakarta Sans, system-ui, sans-serif"><text x="316" y="34" font-size="12" fill="#ff8a5c">Podvýroba · 11:00 – 14:00 · 68 %</text></g>
+<g font-size="12" fill="#a8a8a8" font-family="Plus Jakarta Sans, system-ui, sans-serif"><text x="40" y="252">6:00</text><text x="240" y="252">10:00</text><text x="455" y="252">14:00</text><text x="668" y="252">18:00</text><text x="0" y="54">6 kW</text><text x="0" y="174">2 kW</text></g>
+</svg>
+</figure>
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px">
+<p style="margin: 0; font-size: 14px; color: #a8a8a8">Takto vyzerá automaticky založený tiket</p>
+<article style="background: #fdfdf7; color: #000000; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 16px; box-shadow: rgba(0,0,0,0.2) 0px 2px 4px 0px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px"><span style="font-size: 13px; color: #666666">Tiket #318 · pred 3 h</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 24px; background: #ffe4d9; color: #a32900">Nový</span></div>
+<h3 style="margin: 0; font-weight: 300; font-size: 30px; line-height: 1.14; letter-spacing: -0.9px">Pokles výkonu</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.49; color: #444444">RD Novák, Košice · výroba 3 h pod 85 % predikcie (68 %).</p>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: 24px; background: #e1f0fc; color: #00548c"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#00548c" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M7 1.5v2M7 10.5v2M1.5 7h2M10.5 7h2"></path><circle cx="7" cy="7" r="2.5"></circle></svg>Automatická detekcia</span>
+<span style="font-size: 13px; padding: 6px 12px; border-radius: 24px; background: #ffe4d9; color: #a32900">Vysoká priorita</span>
+</div>
+<div style="border-top: 1px solid rgba(0,0,0,0.08); padding-top: 14px; display: flex; justify-content: space-between; font-size: 14px; color: #666666"><span>Ďalší krok</span><span style="color: #000000">Diagnostika na diaľku</span></div>
+</article>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Zákaznícky portál -->
+<section aria-labelledby="portal-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0">
+<div style="display: flex; flex-wrap: wrap; gap: 48px 64px; align-items: center">
+<div style="flex: 1 1 380px; max-width: 500px">
+<h2 id="portal-h" style="margin: 0; font-weight: 300; font-size: clamp(40px, 4.6vw, 60px); line-height: 0.96; letter-spacing: -0.041em">Vaša elektráreň vo vrecku.</h2>
+<p style="margin: 24px 0 32px; font-size: 18px; line-height: 1.4; color: #666666">V zákazníckom portáli vidíte, v akom kroku je montáž, či ste pripojení k sieti, koľko ste dnes vyrobili – a poruchu nahlásite jedným klikom.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; font-size: 16px">
+<li style="display: flex; gap: 12px; align-items: center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0072c0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Stav montáže krok po kroku</li>
+<li style="display: flex; gap: 12px; align-items: center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0072c0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Výroba dnes, za mesiac aj za rok</li>
+<li style="display: flex; gap: 12px; align-items: center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0072c0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>Zmluva a preberací protokol v PDF</li>
+</ul>
+</div>
+<div style="flex: 999 1 520px; min-width: 0; background: #f5f2de; border-radius: 18px; padding: 36px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px">
+<div style="background: #fdfdf7; border-radius: 12px; padding: 28px; box-shadow: rgba(0,0,0,0.08) 0px 2px 10px 0px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap">
+<div><div style="font-size: 13px; color: #666666">Moje elektrárne</div><div style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px; line-height: 1.14; margin-top: 4px">FVE 9,6 kWp · Prešov</div><div style="font-size: 13px; color: #666666; margin-top: 6px">EIC 24ZVS0000XXXXXXX</div></div>
+<a href="#kontakt" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 12px; background: #0072c0; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500">Nahlásiť poruchu</a>
+</div>
+<div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px"><span>Stav montáže</span><span style="color: #666666">Krok 6 zo 7</span></div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px" aria-hidden="true">
+<span style="height: 6px; border-radius: 3px; background: #000000"></span><span style="height: 6px; border-radius: 3px; background: #000000"></span><span style="height: 6px; border-radius: 3px; background: #000000"></span><span style="height: 6px; border-radius: 3px; background: #000000"></span><span style="height: 6px; border-radius: 3px; background: #000000"></span><span style="height: 6px; border-radius: 3px; background: #0096f7"></span><span style="height: 6px; border-radius: 3px; background: #d3d3d3"></span>
+</div>
+<div style="font-size: 14px; margin-top: 10px">Inštalácia · <span style="color: #00548c">Revízia vyhovela</span></div>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<div style="flex: 1 1 160px; padding: 16px; border-radius: 12px; background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.06)"><div style="font-size: 12px; color: #666666">Pripojenie k sieti</div><div style="font-size: 16px; margin-top: 6px">Schválené distribučkou</div></div>
+<div style="flex: 1 1 160px; padding: 16px; border-radius: 12px; background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.06)"><div style="font-size: 12px; color: #666666">Ďalší krok</div><div style="font-size: 16px; margin-top: 6px">Uvedenie do prevádzky</div></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Kalkulačka -->
+<section aria-labelledby="kalk-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0">
+<div style="background: #f5f2de; border-radius: 18px; padding: clamp(24px, 4vw, 54px); display: flex; flex-wrap: wrap; gap: 40px 64px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px">
+<div style="flex: 1 1 380px; display: flex; flex-direction: column; gap: 28px">
+<div>
+<h2 id="kalk-h" style="margin: 0; font-weight: 300; font-size: clamp(36px, 3.6vw, 48px); line-height: 1; letter-spacing: -0.027em">Koľko vyrobí vaša strecha?</h2>
+<p style="margin: 14px 0 0; font-size: 16px; color: #555555; line-height: 1.49">Orientačný výpočet za pár sekúnd.</p>
+</div>
+<div>
+<label for="kalk-kwp" style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px"><span>Výkon elektrárne</span><strong style="font-weight: 500">{{kwpLabel}} kWp</strong></label>
+<input id="kalk-kwp" class="so-range" type="range" min="3" max="20" step="0.2" value="{{kwp}}" onChange="{{onKwp}}">
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend style="font-size: 14px; margin-bottom: 10px; padding: 0">Orientácia strechy</legend>
+<div style="display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: rgba(0,0,0,0.05)">
+<button type="button" aria-pressed="{{southStr}}" onClick="{{pickSouth}}" style="{{southStyle}}">Juh</button>
+<button type="button" aria-pressed="{{ewStr}}" onClick="{{pickEW}}" style="{{ewStyle}}">Východ – západ</button>
+</div>
+</fieldset>
+<div>
+<label for="kalk-kraj" style="display: block; font-size: 14px; margin-bottom: 10px">Lokalita</label>
+<select id="kalk-kraj" value="{{region}}" onChange="{{onRegion}}" style="width: 100%; min-height: 52px; padding: 0 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.12); background: #fdfdf7; font: inherit; font-size: 16px; color: #000000">
+<sc-for list="{{regions}}" as="r" hint-placeholder-count="8"><option value="{{r.id}}">{{r.name}}</option></sc-for>
+</select>
+</div>
+</div>
+<div style="flex: 1 1 340px; background: #fdfdf7; border-radius: 12px; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px" aria-live="polite">
+<div>
+<div style="font-size: 14px; color: #666666">Odhad ročnej výroby</div>
+<div style="font-size: clamp(56px, 6vw, 88px); font-weight: 300; line-height: 0.9; letter-spacing: -0.047em; margin-top: 14px">{{yearly}}<span style="font-size: 24px; letter-spacing: -0.4px; color: #555555"> kWh</span></div>
+</div>
+<div style="border-top: 1px solid rgba(0,0,0,0.08); padding-top: 20px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+<span style="font-size: 16px">Orientačná úspora</span><span style="font-size: 30px; font-weight: 300; letter-spacing: -0.9px">≈ {{saving}} € / rok</span>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #666666">Približný výpočet z priemerného ročného koeficientu pre kraj; počíta s 60 % vlastnou spotrebou a cenou 0,20 €/kWh. Presný odhad dostanete po obhliadke.</p>
+<a href="#kontakt" style="display: inline-flex; justify-content: center; align-items: center; min-height: 52px; border-radius: 12px; background: #0072c0; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 500">Chcem presnú ponuku</a>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section aria-labelledby="faq-h" class="so-faq" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px 0; display: flex; flex-wrap: wrap; gap: 40px 64px">
+<h2 id="faq-h" style="margin: 0; flex: 1 1 320px; font-weight: 300; font-size: clamp(40px, 4.6vw, 60px); line-height: 0.96; letter-spacing: -0.041em">Časté otázky</h2>
+<div style="flex: 999 1 560px; min-width: 0; border-top: 1px solid rgba(0,0,0,0.12)">
+<details style="border-bottom: 1px solid rgba(0,0,0,0.12)">
+<summary style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 26px 0; font-size: 23px; letter-spacing: -0.46px; line-height: 1.25">Ako dlho trvá pripojenie?<svg class="so-plus" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 22px; transition: transform .2s"><path d="M11 4v14M4 11h14"></path></svg></summary>
+<p style="margin: 0 0 26px; max-width: 640px; font-size: 16px; line-height: 1.6; color: #444444">Pri malom zdroji je postup zjednodušený a žiadosť vybavíme spravidla do niekoľkých pracovných dní. Pri väčšom zdroji určuje lehoty distribučná spoločnosť. Každý krok a jeho termín uvidíte v portáli.</p>
+</details>
+<details style="border-bottom: 1px solid rgba(0,0,0,0.12)">
+<summary style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 26px 0; font-size: 23px; letter-spacing: -0.46px; line-height: 1.25">Čo je malý zdroj?<svg class="so-plus" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 22px; transition: transform .2s"><path d="M11 4v14M4 11h14"></path></svg></summary>
+<p style="margin: 0 0 26px; max-width: 640px; font-size: 16px; line-height: 1.6; color: #444444">Elektráreň s výkonom do 10,8 kW pripojená k existujúcemu odbernému miestu. Má jednoduchší proces pripojenia ako väčšie zdroje.</p>
+</details>
+<details style="border-bottom: 1px solid rgba(0,0,0,0.12)">
+<summary style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 26px 0; font-size: 23px; letter-spacing: -0.46px; line-height: 1.25">Čo ak elektráreň vyrába menej?<svg class="so-plus" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 22px; transition: transform .2s"><path d="M11 4v14M4 11h14"></path></svg></summary>
+<p style="margin: 0 0 26px; max-width: 640px; font-size: 16px; line-height: 1.6; color: #444444">Výrobu porovnávame s predikciou z predpovede počasia. Ak klesne pod 85 % aspoň na 2 hodiny, systém sám založí servisný tiket a technik začne diagnostikou na diaľku.</p>
+</details>
+<details style="border-bottom: 1px solid rgba(0,0,0,0.12)">
+<summary style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 26px 0; font-size: 23px; letter-spacing: -0.46px; line-height: 1.25">Ako vidím svoju výrobu?<svg class="so-plus" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 22px; transition: transform .2s"><path d="M11 4v14M4 11h14"></path></svg></summary>
+<p style="margin: 0 0 26px; max-width: 640px; font-size: 16px; line-height: 1.6; color: #444444">Po prihlásení do zákazníckeho portálu. Údaje sa obnovujú každých 5 minút a vidíte skutočnú aj predikovanú výrobu.</p>
+</details>
+<details style="border-bottom: 1px solid rgba(0,0,0,0.12)">
+<summary style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 26px 0; font-size: 23px; letter-spacing: -0.46px; line-height: 1.25">Kto robí revíziu?<svg class="so-plus" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 22px; transition: transform .2s"><path d="M11 4v14M4 11h14"></path></svg></summary>
+<p style="margin: 0 0 26px; max-width: 640px; font-size: 16px; line-height: 1.6; color: #444444">Revízny technik pred uvedením do prevádzky. Revíznu správu aj preberací protokol nájdete v portáli v PDF.</p>
+</details>
+</div>
+</section>
+
+<!-- Kontakt -->
+<section id="kontakt" aria-labelledby="kontakt-h" style="max-width: 1280px; margin: 0 auto; padding: 120px 24px">
+<div style="display: flex; flex-wrap: wrap; gap: 48px 64px">
+<div style="flex: 1 1 340px; max-width: 460px">
+<h2 id="kontakt-h" style="margin: 0; font-weight: 300; font-size: clamp(40px, 4.6vw, 60px); line-height: 0.96; letter-spacing: -0.041em">Nezáväzný dopyt</h2>
+<p style="margin: 24px 0 0; font-size: 18px; line-height: 1.4; color: #666666">Ozveme sa do jedného pracovného dňa a dohodneme obhliadku.</p>
+<p style="margin: 32px 0 0; font-size: 16px">Radšej hneď vlastný účet? <a href="#register">Vytvoriť účet</a></p>
+</div>
+<div style="flex: 999 1 560px; min-width: 0">
+<sc-if value="{{isSent}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="background: #f5f2de; border-radius: 18px; padding: 54px 36px; display: flex; flex-direction: column; gap: 18px; align-items: flex-start; box-shadow: rgba(0,0,0,0.12) 0px 0.5px 2px 0px">
+<span style="width: 56px; height: 56px; border-radius: 28px; background: #0072c0; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 13.5l5 5 9-11"></path></svg></span>
+<h3 style="margin: 0; font-weight: 300; font-size: 36px; letter-spacing: -0.5px; line-height: 1.1">Ďakujeme, dopyt sme prijali.</h3>
+<p style="margin: 0; font-size: 18px; line-height: 1.4; color: #555555">Potvrdenie sme poslali na váš e-mail. Obchodník vás bude kontaktovať do jedného pracovného dňa.</p>
+<button type="button" onClick="{{resetForm}}" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 24px; background: rgba(0,0,0,0.05); font: inherit; font-size: 15px; cursor: pointer">Poslať ďalší dopyt</button>
+</div>
+</sc-if>
+<sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+<form onSubmit="{{submit}}" novalidate="novalidate" style="display: flex; flex-direction: column; gap: 20px">
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 12px; background: #ffe9e0; color: #8f2400; font-size: 15px; line-height: 1.45"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#8f2400" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 20px; margin-top: 1px"><circle cx="10" cy="10" r="8"></circle><path d="M10 6v5M10 14h.01"></path></svg><span>Formulár sa nepodarilo odoslať. Skontrolujte, prosím, označené polia.</span></div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px"><label for="f-meno" style="font-size: 14px">Meno a priezvisko <span aria-hidden="true" style="color: #b83200">*</span></label><input id="f-meno" type="text" required="required" autocomplete="name" defaultValue="{{nameVal}}" style="min-height: 52px; padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); font: inherit; font-size: 16px"></div>
+<div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px"><label for="f-email" style="font-size: 14px">E-mail <span aria-hidden="true" style="color: #b83200">*</span></label><input id="f-email" type="email" required="required" autocomplete="email" defaultValue="{{emailVal}}" aria-invalid="{{isErrorStr}}" aria-describedby="f-email-err" style="{{emailStyle}}">
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}"><span id="f-email-err" style="font-size: 13px; color: #b83200">Zadajte platný e-mail, napr. jana@domena.sk</span></sc-if></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px"><label for="f-tel" style="font-size: 14px">Telefón</label><input id="f-tel" type="tel" autocomplete="tel" placeholder="+421" style="min-height: 52px; padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); font: inherit; font-size: 16px"></div>
+<div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px"><label for="f-spotreba" style="font-size: 14px">Približná ročná spotreba (kWh)</label><input id="f-spotreba" type="text" inputmode="numeric" placeholder="napr. 4 500" style="min-height: 52px; padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); font: inherit; font-size: 16px"></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><label for="f-adresa" style="font-size: 14px">Adresa odberného miesta <span aria-hidden="true" style="color: #b83200">*</span></label><input id="f-adresa" type="text" required="required" autocomplete="street-address" style="min-height: 52px; padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); font: inherit; font-size: 16px"></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><label for="f-sprava" style="font-size: 14px">Správa</label><textarea id="f-sprava" rows="4" placeholder="Typ strechy, termín, otázky…" style="padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03); font: inherit; font-size: 16px; resize: vertical"></textarea></div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+<span style="font-size: 13px; color: #666666">* povinné polia</span>
+<button type="submit" style="min-height: 52px; padding: 0 28px; border: 0; border-radius: 12px; background: #0072c0; color: #ffffff; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer">Odoslať dopyt</button>
+</div>
+</form>
+</sc-if>
+</div>
+</div>
+</section>
+</main><footer style="background: #000000; color: #ffffff">
+<div style="max-width: 1280px; margin: 0 auto; padding: 72px 24px 40px; display: flex; flex-direction: column; gap: 56px">
+<div style="display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between">
+<div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 10px"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="16" cy="9" r="4" stroke="#0096f7"></circle><path d="M16 2v1.5M9.5 4.5l1 1M22.5 4.5l-1 1M7 9h1.5M23.5 9H25" stroke="#0096f7"></path><path d="M6 28l3-12h14l3 12z"></path><path d="M7.5 22h17M12.5 16l-1.2 12M19.5 16l1.2 12"></path></svg><span style="font-size: 20px; font-weight: 500; letter-spacing: -0.6px">SolarOps</span></div>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #b5b5b5; max-width: 320px">Fotovoltika od návrhu po servis. Všetko na jednom mieste.</p>
+</div>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 10px; font-size: 15px">
+<span style="font-size: 13px; color: #a8a8a8">Kontakt</span>
+<span>[telefón]</span><span>[e-mail]</span><span>[adresa firmy]</span>
+</div>
+<nav aria-label="Odkazy v pätičke" style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 10px; font-size: 15px">
+<span style="font-size: 13px; color: #a8a8a8">Účet</span>
+<a href="#login" style="color: #ffffff">Prihlásenie</a>
+<a href="#register" style="color: #ffffff">Registrácia</a>
+</nav>
+</div>
+<div style="border-top: 1px solid rgba(255,255,255,0.14); padding-top: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 13px; color: #a8a8a8">
+<span>© 2026 SolarOps</span><span>Školský projekt AISPU</span>
+</div>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"formState":{"editor":"enum","options":["prázdny","chyba","odoslaný"],"default":"prázdny","section":"Stavy"},"$preview":{"width":1440,"height":7400}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kwp: 9.6, orient: 'S', region: 'PO', menuOpen: false, sentOverride: null };
+  }
+  fmt(n) {
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
+  renderVals() {
+    var s = this.state;
+    var regions = [
+      { id: 'BA', name: 'Bratislavský kraj', k: 1100 },
+      { id: 'TT', name: 'Trnavský kraj', k: 1110 },
+      { id: 'NR', name: 'Nitriansky kraj', k: 1130 },
+      { id: 'TN', name: 'Trenčiansky kraj', k: 1050 },
+      { id: 'ZA', name: 'Žilinský kraj', k: 1000 },
+      { id: 'BB', name: 'Banskobystrický kraj', k: 1070 },
+      { id: 'PO', name: 'Prešovský kraj', k: 1030 },
+      { id: 'KE', name: 'Košický kraj', k: 1080 }
+    ];
+    var reg = regions.find(function (r) { return r.id === s.region; }) || regions[6];
+    var factor = s.orient === 'S' ? 1 : 0.86;
+    var yearly = s.kwp * reg.k * factor;
+    var saving = yearly * 0.6 * 0.2;
+    var on = 'flex: 1 1 0; min-height: 44px; border: 0; border-radius: 10px; background: #000000; color: #ffffff; font: inherit; font-size: 15px; cursor: pointer';
+    var off = 'flex: 1 1 0; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: #000000; font: inherit; font-size: 15px; cursor: pointer';
+    var fs = this.props.formState ?? 'prázdny';
+    var sent = s.sentOverride !== null ? s.sentOverride : fs === 'odoslaný';
+    var err = !sent && fs === 'chyba';
+    var self = this;
+    return {
+      menuOpen: s.menuOpen,
+      menuOpenStr: s.menuOpen ? 'true' : 'false',
+      toggleMenu: function () { self.setState({ menuOpen: !s.menuOpen }); },
+      kwp: s.kwp,
+      kwpLabel: s.kwp.toFixed(1).replace('.', ','),
+      onKwp: function (e) { self.setState({ kwp: parseFloat(e.target.value) }); },
+      southStr: s.orient === 'S' ? 'true' : 'false',
+      ewStr: s.orient === 'EW' ? 'true' : 'false',
+      southStyle: s.orient === 'S' ? on : off,
+      ewStyle: s.orient === 'EW' ? on : off,
+      pickSouth: function () { self.setState({ orient: 'S' }); },
+      pickEW: function () { self.setState({ orient: 'EW' }); },
+      region: s.region,
+      regions: regions,
+      onRegion: function (e) { self.setState({ region: e.target.value }); },
+      yearly: this.fmt(yearly),
+      saving: this.fmt(saving),
+      isSent: sent,
+      notSent: !sent,
+      isError: err,
+      isErrorStr: err ? 'true' : 'false',
+      nameVal: err ? 'Jana Kováčová' : '',
+      emailVal: err ? 'jana.kovacova@' : '',
+      emailStyle: 'min-height: 52px; padding: 15px; border-radius: 12px; font: inherit; font-size: 16px; ' + (err ? 'border: 1.5px solid #b83200; background: #fff6f2' : 'border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.03)'),
+      submit: function (e) { e.preventDefault(); self.setState({ sentOverride: true }); },
+      resetForm: function () { self.setState({ sentOverride: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

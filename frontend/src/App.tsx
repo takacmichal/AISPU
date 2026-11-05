@@ -1,6 +1,8 @@
-import { Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { useAuth } from './auth/AuthContext'
 import { RequireAuth } from './auth/RequireAuth'
-import { NAVIGATION } from './auth/navigation'
+import { HOME_PATH, NAVIGATION } from './auth/navigation'
 import { AppShell } from './layout/AppShell'
 import CustomerFormPage from './features/customers/CustomerFormPage'
 import CustomerDetailPage from './features/customers/CustomerDetailPage'
@@ -14,6 +16,7 @@ import DesignDetailPage from './features/designs/DesignDetailPage'
 import ContractListPage from './features/contracts/ContractListPage'
 import ContractDetailPage from './features/contracts/ContractDetailPage'
 import ConnectionRequestPage from './features/connection/ConnectionRequestPage'
+import ConnectionRequestListPage from './features/connection/ConnectionRequestListPage'
 import { ConnectionStepper } from './features/connection/ConnectionStepper'
 import InstallationListPage from './features/installations/InstallationListPage'
 import InstallationDetailPage from './features/installations/InstallationDetailPage'
@@ -23,13 +26,31 @@ import TicketListPage from './features/tickets/TicketListPage'
 import TicketDetailPage from './features/tickets/TicketDetailPage'
 import TicketCreatePage from './features/tickets/TicketCreatePage'
 import MonitoringPage from './features/monitoring/MonitoringPage'
+import MyVisitsPage from './features/visits/MyVisitsPage'
 import RegisterPage from './features/auth/RegisterPage'
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
 
-const WIRED = ['/', '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring']
+// The public landing page is a separate chunk: signed-in users never download it.
+const LandingPage = lazy(() => import('./features/landing/LandingPage'))
+
+/** "/" is the landing page for visitors; signed-in users go straight to the app. */
+function PublicHome() {
+  const { session } = useAuth()
+  if (session) return <Navigate to={HOME_PATH} replace />
+  return (
+    <Suspense fallback={null}>
+      <LandingPage />
+    </Suspense>
+  )
+}
+
+// Dev-only component overview; import.meta.env.DEV is false in production builds, so the chunk is dropped there.
+const UiShowcase = import.meta.env.DEV ? lazy(() => import('./dev/UiShowcase')) : null
+
+const WIRED = [HOME_PATH, '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring', '/connection-requests', '/my-visits']
 
 export default function App() {
   return (
@@ -38,9 +59,10 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/" element={<PublicHome />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<Dashboard />} />
+          <Route path={HOME_PATH} element={<Dashboard />} />
           {NAVIGATION.filter((item) => !WIRED.includes(item.path)).map((item) => (
             <Route key={item.path} path={item.path} element={<SectionPage path={item.path} />} />
           ))}
@@ -56,6 +78,7 @@ export default function App() {
           <Route path="/designs/:id" element={<DesignDetailPage />} />
           <Route path="/contracts" element={<ContractListPage />} />
           <Route path="/contracts/:id" element={<ContractDetailPage />} />
+          <Route path="/connection-requests" element={<ConnectionRequestListPage />} />
           <Route path="/connection-requests/:id" element={<ConnectionRequestPage />} />
           <Route path="/installations" element={<InstallationListPage />} />
           <Route
@@ -68,6 +91,17 @@ export default function App() {
           <Route path="/tickets/new" element={<TicketCreatePage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
+          <Route path="/my-visits" element={<MyVisitsPage />} />
+          {UiShowcase && (
+            <Route
+              path="/dev/ui"
+              element={
+                <Suspense fallback={null}>
+                  <UiShowcase />
+                </Suspense>
+              }
+            />
+          )}
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

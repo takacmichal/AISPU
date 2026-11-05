@@ -1,7 +1,11 @@
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
+import { useAuth } from '../../auth/AuthContext'
+import { canAccess, findItem } from '../../auth/navigation'
 import { EmptyState } from '../../components/EmptyState'
+import { PageHeader } from '../../components/PageHeader'
 import { Skeleton } from '../../components/Skeleton'
+import { FilterSelect } from '../../components/Toolbar'
 import { useLoad } from '../../components/useLoad'
 import { AnomalySection } from './AnomalySection'
 import './monitoring.css'
@@ -9,9 +13,16 @@ import { periodFromParams, periodToParams } from './periods'
 import { ProductionPanel } from './ProductionPanel'
 import { T } from './texts'
 
-/** `/monitoring`: production of one installation; installation and period are kept in the URL. */
+/**
+ * `/monitoring` (wireframe "Monitoring výroby"): filter band, KPIs, actual vs. expected production and
+ * underproduction periods of one installation. Installation, period and the highlight switch are kept in the URL.
+ */
 export default function MonitoringPage() {
   const [params, setParams] = useSearchParams()
+  const { roles } = useAuth()
+  const ticketRoute = findItem('/tickets/new')
+  const canCreateTicket = ticketRoute ? canAccess(ticketRoute, roles) : false
+
   const { data, loading, error, reload } = useLoad(async (signal) => {
     const { data, response } = await api.GET('/api/installations', { signal })
     if (!data) throw new Error(`HTTP ${response.status}`)
@@ -19,48 +30,51 @@ export default function MonitoringPage() {
   }, 'installations')
 
   const list = data ?? []
-  const selected = list.find((i) => i.id === params.get('installation'))?.id ?? list[0]?.id ?? ''
+  const selected = list.find((i) => i.id === params.get('installation')) ?? list[0]
+
+  function update(changes: Record<string, string | null>) {
+    const next = new URLSearchParams(params)
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null) next.delete(key)
+      else next.set(key, value)
+    }
+    setParams(next, { replace: true })
+  }
 
   return (
     <section>
-      <header className="page-header">
-        <h2 className="page-header__title">{T.title}</h2>
-        <p className="page-header__subtitle">{T.subtitle}</p>
-      </header>
+      <PageHeader title={T.title} subtitle={T.subtitle} />
       {loading && <Skeleton lines={2} />}
       {error && (
         <div className="kpi__error" role="alert">
           <p>{T.installationsError}</p>
-          <button type="button" className="btn btn--sm" onClick={reload}>{T.retry}</button>
+          <button type="button" className="btn btn--sm" onClick={reload}>
+            {T.retry}
+          </button>
         </div>
       )}
       {data && list.length === 0 && <EmptyState title={T.noInstallations} />}
-      {list.length > 0 && (
+      {selected && (
         <>
-          <div className="btn-row">
-            <label>
-              {T.installation}
-              <select
-                value={selected}
-                onChange={(e) => {
-                  const next = new URLSearchParams(params)
-                  next.set('installation', e.target.value)
-                  setParams(next)
-                }}
-              >
-                {list.map((i) => (
-                  <option key={i.id} value={i.id}>{i.name}</option>
-                ))}
-              </select>
-            </label>
-          </div>
           <ProductionPanel
-            key={selected}
-            installationId={selected}
+            key={selected.id}
+            installationId={selected.id}
+            installationName={selected.name}
             period={periodFromParams(params)}
-            onPeriodChange={(p) => setParams(periodToParams(params, p))}
+            onPeriodChange={(p) => setParams(periodToParams(params, p), { replace: true })}
+            highlight={params.get('under') !== '0'}
+            onHighlightChange={(on) => update({ under: on ? null : '0' })}
+            canCreateTicket={canCreateTicket}
+            picker={
+              <FilterSelect
+                label={T.installation}
+                value={selected.id}
+                onChange={(id) => update({ installation: id })}
+                options={list.map((i) => ({ value: i.id, label: i.name }))}
+              />
+            }
           />
-          <AnomalySection installationId={selected} />
+          <AnomalySection installationId={selected.id} />
         </>
       )}
     </section>

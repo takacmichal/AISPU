@@ -20,7 +20,7 @@
 }
 
 .design-metrics dt {
-  color: var(--color-fog);
+  color: var(--color-text-muted);
   font-size: var(--text-label);
 }
 
@@ -39,5 +39,5 @@
 }
 
 .design-compare .is-diff {
-  color: var(--color-signal-teal);
+  color: var(--color-info);
 }

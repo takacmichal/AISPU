@@ -7,7 +7,29 @@ export const AUTH_TEXTS = {
   backToLogin: 'Späť na prihlásenie',
   passwordRules: 'Heslo musí mať aspoň 10 znakov, veľké aj malé písmeno, číslicu a aspoň 4 rôzne znaky.',
 
+  layout: {
+    homeLabel: 'SolarOps – úvodná stránka',
+    brandSubtitle: 'Informačný systém FVE',
+    tabsLabel: 'Prihlásenie alebo registrácia',
+    loginTab: 'Prihlásenie',
+    registerTab: 'Registrácia',
+    lifecycleEyebrow: 'Celý životný cyklus FVE',
+    lifecycleTitle: 'Od prvej ponuky až po servis elektrárne v jednom systéme.',
+    lifecycle: [
+      { title: 'Obchod', text: 'Zákazníci, odberné miesta, ponuky' },
+      { title: 'Návrh FVE', text: 'Projekt, rozpočet, schválenie, zmluva' },
+      { title: 'Pripojenie', text: 'Žiadosti a lehoty distribučky' },
+      { title: 'Inštalácia', text: 'Montáž, komponenty, revízia' },
+      { title: 'Prevádzka', text: 'Monitoring, alarmy, servis' },
+    ],
+  },
+
   login: {
+    title: 'Prihlásenie',
+    intro: 'Vitajte späť. Prihláste sa do systému SolarOps.',
+    submit: 'Prihlásiť sa',
+    submitting: 'Prihlasujem…',
+    failed: 'Prihlásenie zlyhalo.',
     registerPrompt: 'Nemáte účet?',
     registerLink: 'Zaregistrujte sa',
     forgotLink: 'Zabudnuté heslo?',
