@@ -61,6 +61,7 @@ const alarm = (over: Record<string, unknown> = {}) => ({
   reasonCode: 'sustained_underproduction',
   reason: 'Výroba je trvalo nižšia ako predikcia.',
   updatedAt: '2026-06-21T15:00:00Z',
+  ticketId: null,
   ...over,
 })
 let alarms: ReturnType<typeof alarm>[] = []
@@ -262,6 +263,25 @@ describe('monitoring navigation', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
+    it('links an alarm to its ticket instead of offering a new one', async () => {
+      alarms = [alarm({ ticketId: 't9' })]
+      stubFetch(handler())
+      render(['Operator'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).getByRole('link', { name: 'Otvoriť servisný tiket' })).toHaveAttribute('href', '/tickets/t9')
+      expect(within(dialog).queryByRole('link', { name: 'Vytvoriť servisný tiket' })).not.toBeInTheDocument()
+    })
+
+    it('hides the ticket of an alarm from a role that cannot open tickets', async () => {
+      alarms = [alarm({ ticketId: 't9' })]
+      stubFetch(handler())
+      render(['Designer'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).queryByRole('link', { name: 'Otvoriť servisný tiket' })).not.toBeInTheDocument()
+    })
+
     it('hides the ticket link from a role that cannot create tickets', async () => {
       alarms = [alarm()]
       stubFetch(handler())
@@ -283,14 +303,14 @@ describe('monitoring navigation', () => {
         handler((call) => {
           if (call.method === 'POST' && call.path === '/api/installations/i1/analysis') {
             alarms = [alarm()]
-            return json({ installationId: 'i1', modelVersion: 'm1', predictedHours: 48, alarms: 1, ongoingAlarms: 1, analyzedAt: '2026-06-21T15:00:00Z' })
+            return json({ installationId: 'i1', modelVersion: 'm1', predictedHours: 48, alarms: 1, ongoingAlarms: 1, ticketsCreated: 1, ticketsSupplemented: 0, analyzedAt: '2026-06-21T15:00:00Z' })
           }
         }),
       )
       render(['Operator'])
       const list = await section()
       await userEvent.click(await list.findByRole('button', { name: 'Spustiť analýzu' }))
-      expect(await screen.findByText('Analýza dokončená: predikcia na 48 h, nájdené alarmy: 1.')).toBeInTheDocument()
+      expect(await screen.findByText('Analýza dokončená: predikcia na 48 h, nájdené alarmy: 1, nové tikety: 1.')).toBeInTheDocument()
       expect(await (await section()).findByText('40 %')).toBeInTheDocument()
       expect(calls.filter((c) => c.path === '/api/installations/i1/analysis')).toHaveLength(1)
     })

@@ -81,7 +81,7 @@ function AlarmChart({ alarm }: { alarm: Alarm }) {
   )
 }
 
-function AlarmDetail({ alarm, canCreateTicket, onClose }: { alarm: Alarm; canCreateTicket: boolean; onClose: () => void }) {
+function AlarmDetail({ alarm, canOpenTicket, canCreateTicket, onClose }: { alarm: Alarm; canOpenTicket: boolean; canCreateTicket: boolean; onClose: () => void }) {
   return (
     <Dialog title={T.alarms.detail.title} onClose={onClose}>
       <div className="alarm-detail">
@@ -103,11 +103,17 @@ function AlarmDetail({ alarm, canCreateTicket, onClose }: { alarm: Alarm; canCre
           <button type="button" className="btn" onClick={onClose}>
             {T.alarms.detail.close}
           </button>
-          {canCreateTicket && (
-            <Link className="btn btn--primary" to={alarmTicketHref(alarm)}>
-              {T.alarms.detail.createTicket}
-            </Link>
-          )}
+          {alarm.ticketId
+            ? canOpenTicket && (
+                <Link className="btn btn--primary" to={`/tickets/${alarm.ticketId}`}>
+                  {T.alarms.detail.openTicket}
+                </Link>
+              )
+            : canCreateTicket && (
+                <Link className="btn btn--primary" to={alarmTicketHref(alarm)}>
+                  {T.alarms.detail.createTicket}
+                </Link>
+              )}
         </div>
       </div>
     </Dialog>
@@ -122,12 +128,14 @@ interface Props {
   /** Admin and Operator may run the analysis (policy ProductionAnalyze). */
   canAnalyze: boolean
   canCreateTicket: boolean
+  /** The role can open the ticket of an alarm. */
+  canOpenTicket: boolean
   /** New predictions were stored, so the production chart should load again. */
   onAnalyzed: () => void
 }
 
 /** Underproduction alarms of one installation (#251, #252); refreshed every minute (ADR #222). Filters stay in the URL. */
-export function AlarmsSection({ installationId, severity, state, onFilterChange, canAnalyze, canCreateTicket, onAnalyzed }: Props) {
+export function AlarmsSection({ installationId, severity, state, onFilterChange, canAnalyze, canCreateTicket, canOpenTicket, onAnalyzed }: Props) {
   const toast = useToast()
   const [page, setPage] = useState(1)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -154,7 +162,7 @@ export function AlarmsSection({ installationId, severity, state, onFilterChange,
     setAnalyzing(true)
     try {
       const result = await runAnalysis(installationId)
-      toast.success(T.alarms.analyzed(Number(result.predictedHours), Number(result.alarms)))
+      toast.success(T.alarms.analyzed(Number(result.predictedHours), Number(result.alarms), Number(result.ticketsCreated)))
       reload()
       onAnalyzed()
     } catch (e) {
@@ -224,7 +232,7 @@ export function AlarmsSection({ installationId, severity, state, onFilterChange,
           onRowClick={(a) => setOpenId(a.id)}
         />
       )}
-      {opened && <AlarmDetail alarm={opened} canCreateTicket={canCreateTicket} onClose={() => setOpenId(null)} />}
+      {opened && <AlarmDetail alarm={opened} canOpenTicket={canOpenTicket} canCreateTicket={canCreateTicket} onClose={() => setOpenId(null)} />}
     </section>
   )
 }

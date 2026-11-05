@@ -8,6 +8,8 @@ namespace SolarOps.Api.Features.MlIntegration;
 /// <param name="PredictedHours">Number of hours predicted and stored in this run.</param>
 /// <param name="Alarms">Number of alarms the detection reported in this run.</param>
 /// <param name="OngoingAlarms">How many of them are still ongoing.</param>
+/// <param name="TicketsCreated">Service tickets created from alarms in this run (#33).</param>
+/// <param name="TicketsSupplemented">Alarms recorded on an already open ticket of the installation instead of a duplicate.</param>
 /// <param name="AnalyzedAt">Time of the run, UTC.</param>
 public sealed record MlAnalysisResponse(
     Guid InstallationId,
@@ -15,6 +17,8 @@ public sealed record MlAnalysisResponse(
     int PredictedHours,
     int Alarms,
     int OngoingAlarms,
+    int TicketsCreated,
+    int TicketsSupplemented,
     DateTimeOffset AnalyzedAt);
 
 /// <summary>Underproduction alarms of an installation, newest first, at most 100.</summary>
@@ -30,7 +34,7 @@ public sealed record UnderproductionAlarmListResponse(IReadOnlyList<Underproduct
 /// <param name="LastUnderproductionAt">End of the last underproducing hour.</param>
 /// <param name="Ongoing">True until production recovers.</param>
 /// <param name="Severity">Severity by the ratio and duration.</param>
-/// <param name="TicketPriority">Recommended priority of a service ticket.</param>
+/// <param name="TicketPriority">Priority of the service ticket: by the detection, raised by a large loss.</param>
 /// <param name="MedianRatio">Median of actual / expected power in the event.</param>
 /// <param name="MinRatio">Lowest actual / expected power in the event.</param>
 /// <param name="UnderproducingHours">Hours below the threshold.</param>
@@ -42,6 +46,7 @@ public sealed record UnderproductionAlarmListResponse(IReadOnlyList<Underproduct
 /// <param name="ReasonCode">Machine-readable reason.</param>
 /// <param name="Reason">Reason for people.</param>
 /// <param name="UpdatedAt">Last time an analysis reported this alarm.</param>
+/// <param name="TicketId">Service ticket handling the alarm; null when it has none (an ended event gets none).</param>
 public sealed record UnderproductionAlarmResponse(
     Guid Id,
     Guid InstallationId,
@@ -63,7 +68,8 @@ public sealed record UnderproductionAlarmResponse(
     double EstimatedLostKwh,
     string ReasonCode,
     string Reason,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    Guid? TicketId)
 {
     public static UnderproductionAlarmResponse From(UnderproductionAlarm a, string installationName) => new(
         a.Id,
@@ -86,5 +92,6 @@ public sealed record UnderproductionAlarmResponse(
         a.EstimatedLostKwh,
         a.ReasonCode,
         a.Reason,
-        a.UpdatedAt);
+        a.UpdatedAt,
+        a.TicketId);
 }

@@ -4,7 +4,7 @@
 @token = paste-access-token
 @installationId = 00000000-0000-0000-0000-000000000000
 
-### Predict from the stored forecast and run the detection (Admin, Operator)
+### Predict from the stored forecast, run the detection and create tickets from ongoing alarms (Admin, Operator)
 POST {{baseUrl}}/api/installations/{{installationId}}/analysis
 Authorization: Bearer {{token}}
 

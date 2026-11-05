@@ -29,6 +29,21 @@ public sealed class MlOptions
     [Range(2, 2208)]
     public int DetectionLookbackHours { get; set; } = 72;
 
+    /// <summary>Runs the analysis of monitored installations on a schedule. It also needs <see cref="BaseUrl"/>.</summary>
+    public bool AnalysisEnabled { get; set; } = true;
+
+    /// <summary>How often the scheduled analysis runs; the detection works with finished hours, so more often gains little.</summary>
+    [Range(1, 1440)]
+    public int AnalysisIntervalMinutes { get; set; } = 60;
+
+    /// <summary>Estimated loss of an alarm from which its ticket has at least Medium priority (#117).</summary>
+    [Range(0, 1_000_000)]
+    public double TicketMediumLostKwh { get; set; } = 10;
+
+    /// <summary>Estimated loss of an alarm from which its ticket has High priority (#117).</summary>
+    [Range(0, 1_000_000)]
+    public double TicketHighLostKwh { get; set; } = 50;
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(BaseUrl);
 
     /// <summary>Empty (not configured) or an absolute http/https address.</summary>

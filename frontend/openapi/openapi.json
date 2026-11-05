@@ -4685,7 +4685,7 @@
           "ML analysis"
         ],
         "summary": "Run the ML prediction and underproduction detection",
-        "description": "Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. 503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.",
+        "description": "Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. An ongoing alarm creates a service ticket with origin AnomalyDetected, or an internal comment on an open ticket of the installation. 503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.",
         "operationId": "RunInstallationAnalysis",
         "parameters": [
           {
@@ -10360,6 +10360,8 @@
           "predictedHours",
           "alarms",
           "ongoingAlarms",
+          "ticketsCreated",
+          "ticketsSupplemented",
           "analyzedAt"
         ],
         "type": "object",
@@ -10401,6 +10403,24 @@
               "string"
             ],
             "description": "How many of them are still ongoing.",
+            "format": "int32"
+          },
+          "ticketsCreated": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Service tickets created from alarms in this run (#33).",
+            "format": "int32"
+          },
+          "ticketsSupplemented": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Alarms recorded on an already open ticket of the installation instead of a duplicate.",
             "format": "int32"
           },
           "analyzedAt": {
@@ -12874,7 +12894,8 @@
           "estimatedLostKwh",
           "reasonCode",
           "reason",
-          "updatedAt"
+          "updatedAt",
+          "ticketId"
         ],
         "type": "object",
         "properties": {
@@ -12924,7 +12945,7 @@
             "$ref": "#/components/schemas/UnderproductionSeverity"
           },
           "ticketPriority": {
-            "description": "Recommended priority of a service ticket.",
+            "description": "Priority of the service ticket: by the detection, raised by a large loss.",
             "$ref": "#/components/schemas/ServiceTicketPriority"
           },
           "medianRatio": {
@@ -13011,6 +13032,14 @@
             "type": "string",
             "description": "Last time an analysis reported this alarm.",
             "format": "date-time"
+          },
+          "ticketId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Service ticket handling the alarm; null when it has none (an ended event gets none).",
+            "format": "uuid"
           }
         },
         "description": "Underproduction event (ADR #194). Hours are labelled by their end, as the detection reports them."
