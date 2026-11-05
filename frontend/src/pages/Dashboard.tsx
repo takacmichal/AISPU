@@ -5,6 +5,7 @@ import { EmptyState } from '../components/EmptyState'
 import { KpiCard } from '../components/KpiCard'
 import { PageHeader } from '../components/PageHeader'
 import { Skeleton } from '../components/Skeleton'
+import { UpdatedIndicator } from '../components/UpdatedIndicator'
 import { useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
 import { ProductionBarsCard } from '../features/dashboard/ProductionBarsCard'
 import { RecentAlarmsCard } from '../features/dashboard/RecentAlarmsCard'
@@ -34,6 +35,12 @@ function trendOf(today: number, yesterday: number) {
 function DateLine() {
   const text = new Intl.DateTimeFormat('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
   return <>{T.subtitle(text)}</>
+}
+
+/** Oldest of the loads that finished, so the indicator never claims more than every card has. */
+function latestUpdate(times: (Date | null)[]): Date | null {
+  const done = times.filter((t): t is Date => t !== null)
+  return done.length === 0 ? null : new Date(Math.min(...done.map((t) => t.getTime())))
 }
 
 function Mock({ on }: { on: boolean }) {
@@ -98,6 +105,15 @@ export default function Dashboard() {
             )}
           </>
         }
+      />
+      <UpdatedIndicator
+        updatedAt={latestUpdate([production.updatedAt, tickets.updatedAt, quotes.updatedAt])}
+        refreshError={production.refreshError || tickets.refreshError || quotes.refreshError}
+        onRetry={() => {
+          production.refresh()
+          tickets.refresh()
+          quotes.refresh()
+        }}
       />
 
       <div className="kpi-grid" role="group" aria-label={T.kpiRegion}>
