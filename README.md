@@ -77,6 +77,10 @@ Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier
 | `pnpm api:fetch` zlyhá s chybou spojenia | API musí bežať na `http://localhost:5080`, alebo nastav `OPENAPI_URL`. |
 | `uv run pytest` v `ml/` padá na `lightgbm` / `libomp.dylib` (macOS) | Nainštaloval sa voliteľný balík zo skupiny `experiment` (`uv run --group experiment ...`), ktorý potrebuje `brew install libomp`. Obnov prostredie príkazom `uv sync`; testy s lightgbm sa potom preskočia. |
 
+## Dokumentácia API (OpenAPI a Scalar)
+
+V Development sú špecifikácia (`/openapi/v1.json`) a Scalar UI (`/scalar/v1`) zapnuté vždy. Mimo Development sú predvolene vypnuté (404). Zapneš ich cez `OpenApi__Enabled=true` (napr. v Azure Container Apps). Rozhodnutie: po zapnutí sú **anonymné**, lebo špecifikácia neobsahuje tajomstvá, frontend (`pnpm api:fetch`) ju sťahuje bez tokenu a Scalar UI v prehliadači nevie poslať bearer token. Ak ju nechceš verejne, nechaj ju vypnutú.
+
 ## CORS a validácia vstupov
 
 Prehliadač môže volať API len z originov uvedených v `Cors:AllowedOrigins`. `appsettings.json` má prázdny zoznam, `appsettings.Development.json` povoľuje `http://localhost:5173`. V Azure ho nastav cez environment, napr. `Cors__AllowedOrigins__0=https://<swa>.azurestaticapps.net` a `Cors__AllowedOrigins__1=https://app.example.com`.

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
-using Scalar.AspNetCore;
 using SolarOps.Api.Infrastructure.CurrentUser;
+using SolarOps.Api.Infrastructure.Documentation;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Persistence;
@@ -35,10 +35,10 @@ app.UseSecurityHardening();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+app.MapApiDocumentation();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi().AllowAnonymous();
-    app.MapScalarApiReference().AllowAnonymous();
     await app.Services.MigrateDatabaseAsync();
 }
 
