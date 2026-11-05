@@ -14,8 +14,6 @@ export const MOCK_TODAY = {
   asOf: '11:00',
 }
 
-/** No notifications backend yet: the bell shows a sample count. */
-export const MOCK_NOTIFICATIONS = 3
 export const MOCK_ALARM_SUMMARY = { critical: 1, warning: 3, info: 1, fresh: 1 }
 export const MOCK_TICKET_SUMMARY = { open: 18, overSla: 2 }
 export const MOCK_QUOTE_SUMMARY = { waiting: 7, valueGross: 214_600 }

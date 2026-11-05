@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { HOME_PATH, ROLE_LABELS, breadcrumbs, menuGroups, menuItems, primaryRole } from '../auth/navigation'
 import { MESSAGES } from '../lib/messages'
-import { BellIcon, BrandGlyph, CollapseIcon, HelpIcon, MenuIcon, NavIcon, SearchIcon } from './NavIcon'
-import { MOCK_NOTIFICATIONS } from '../features/dashboard/mock'
+import { BrandGlyph, CollapseIcon, HelpIcon, MenuIcon, NavIcon, SearchIcon } from './NavIcon'
+import { NotificationBell } from './NotificationBell'
 import { SideProductionCard } from './SideProductionCard'
 import { useNavCounts } from './useShellData'
 import { canAccess, findItem } from '../auth/navigation'
@@ -162,10 +162,7 @@ export function AppShell() {
           >
             <HelpIcon />
           </a>
-          <Link to="/tickets" className="topbar__round" aria-label={T.notifications} title={T.notifications}>
-            <BellIcon />
-            <span className="topbar__badge">{MOCK_NOTIFICATIONS}</span>
-          </Link>
+          <NotificationBell />
           <UserMenu name={email} role={roleLabel} onSignOut={signOut} />
         </header>
         <main id="main-content" ref={mainRef} tabIndex={-1} className="shell__main">

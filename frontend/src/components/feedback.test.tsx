@@ -60,6 +60,25 @@ describe('Dialog', () => {
     await userEvent.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('closes on a backdrop click only when dismissOnBackdrop is set', async () => {
+    const onClose = vi.fn()
+    const { rerender } = render(
+      <Dialog title="Test" onClose={onClose}>
+        <button>Prvé</button>
+      </Dialog>,
+    )
+    await userEvent.click(screen.getByRole('dialog').parentElement as HTMLElement)
+    expect(onClose).not.toHaveBeenCalled()
+
+    rerender(
+      <Dialog title="Test" onClose={onClose} dismissOnBackdrop>
+        <button>Prvé</button>
+      </Dialog>,
+    )
+    await userEvent.click(screen.getByRole('dialog').parentElement as HTMLElement)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('ConfirmDialog', () => {

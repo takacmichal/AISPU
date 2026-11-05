@@ -60,6 +60,7 @@ function stubApi(state: Api) {
       if (path === '/api/quotes/q1/history') return json([])
       if (path === '/api/quotes') return json([{ id: 'q1', customerId: 'c1', status: 'Sent', validUntil: null, currency: 'EUR', grossTotal: 1200, createdAt: '2026-02-01T00:00:00Z' }])
       if (path === '/api/contracts') return json([])
+      if (path === '/api/notifications') return json({ items: [] })
       return json([])
     }),
   )

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import App from '../../App'
 import { AuthProvider } from '../../auth/AuthContext'
 import { saveSession } from '../../auth/session'
@@ -11,6 +11,9 @@ import { isValidIco } from './customerForm'
 const session = { email: 'a@test.sk', roles: ['Sales'], accessToken: 't', refreshToken: 'r' }
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+
+/** Calls made by the form; the notification bell polls /api/notifications on every page and is not part of the form. */
+const formCalls = (fetchMock: Mock) => fetchMock.mock.calls.filter(([url]) => !String(url).includes('/api/notifications'))
 
 function renderAt(path: string) {
   saveSession(session)
@@ -69,7 +72,7 @@ describe('CustomerFormPage', () => {
     expect(screen.getByText(/IČO musí mať 8 číslic/)).toBeInTheDocument()
     expect(screen.getByText('DIČ musí mať 10 číslic.')).toBeInTheDocument()
     expect(screen.getByText('E-mail nemá platný tvar.')).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(formCalls(fetchMock)).toHaveLength(0)
   })
 
   it('checks the IČO check digit like the server', () => {
@@ -95,7 +98,7 @@ describe('CustomerFormPage', () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/customers/new-id'))
     expect(await screen.findByText('Zákazník bol uložený.')).toBeInTheDocument()
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = formCalls(fetchMock)[0]
     expect(String(url)).toContain('/api/customers')
     expect(init.method).toBe('POST')
     expect(JSON.parse(init.body)).toMatchObject({ type: 'Person', firstName: 'Ján', email: 'jan@test.sk', address: { postalCode: '811 01' } })

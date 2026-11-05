@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import { RequireAuth } from './auth/RequireAuth'
 import { HOME_PATH, NAVIGATION } from './auth/navigation'
+import { HomeRoute } from './auth/HomeRoute'
 import { AppShell } from './layout/AppShell'
 import CustomerFormPage from './features/customers/CustomerFormPage'
 import CustomerDetailPage from './features/customers/CustomerDetailPage'
@@ -30,7 +31,6 @@ import MyVisitsPage from './features/visits/MyVisitsPage'
 import RegisterPage from './features/auth/RegisterPage'
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/ResetPasswordPage'
-import Dashboard from './pages/Dashboard'
 import { ForbiddenPage, LoginPage, NotFoundPage, SectionPage } from './pages/pages'
 
 // The public landing page is a separate chunk: signed-in users never download it.
@@ -62,7 +62,7 @@ export default function App() {
       <Route path="/" element={<PublicHome />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route path={HOME_PATH} element={<Dashboard />} />
+          <Route path={HOME_PATH} element={<HomeRoute />} />
           {NAVIGATION.filter((item) => !WIRED.includes(item.path)).map((item) => (
             <Route key={item.path} path={item.path} element={<SectionPage path={item.path} />} />
           ))}
