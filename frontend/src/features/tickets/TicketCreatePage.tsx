@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { FieldErrors } from '../../api/problem'
 import { useAuth } from '../../auth/AuthContext'
 import { Skeleton } from '../../components/Skeleton'
@@ -13,19 +13,29 @@ import { emptyTicketValues, toTicketRequest, validateTicket, type TicketFormValu
 import './tickets.css'
 import { MAX_ATTACHMENTS, TICKET_PRIORITIES, createTicket, listInstallationOptions, type TicketPriority } from './ticketsApi'
 
-/** `/tickets/new`: fault report (customer) or manual ticket (staff, with optional priority). */
+/**
+ * `/tickets/new`: fault report (customer) or manual ticket (staff, with optional priority).
+ * `?installationId=&title=&description=` prefill the form (e.g. from an underproduction period in monitoring).
+ */
 export default function TicketCreatePage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { roles } = useAuth()
+  const [params] = useSearchParams()
   const staff = roles.some((r) => r !== 'Customer')
-  const [values, setValues] = useState<TicketFormValues>(emptyTicketValues)
+  const [initial] = useState<TicketFormValues>(() => ({
+    ...emptyTicketValues,
+    installationId: params.get('installationId') ?? '',
+    title: params.get('title') ?? '',
+    description: params.get('description') ?? '',
+  }))
+  const [values, setValues] = useState<TicketFormValues>(initial)
   const [clientErrors, setClientErrors] = useState<FieldErrors>({})
   const saved = useRef(false)
 
   const installations = useLoad(listInstallationOptions, 'installations')
 
-  const dirty = JSON.stringify({ ...values, files: values.files.length }) !== JSON.stringify({ ...emptyTicketValues, files: 0 })
+  const dirty = JSON.stringify({ ...values, files: values.files.length }) !== JSON.stringify({ ...initial, files: 0 })
   useUnsavedChanges(useCallback(() => dirty && !saved.current, [dirty]))
 
   const save = useCallback(async () => {

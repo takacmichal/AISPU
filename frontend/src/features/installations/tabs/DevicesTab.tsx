@@ -16,10 +16,17 @@ import { T } from '../messages'
 type Device = components['schemas']['DeviceResponse']
 type DialogState = { kind: 'replace'; device: Device } | { kind: 'history'; device: Device } | null
 
-export default function DevicesTab({ installationId, canField }: { installationId: string; canField: boolean }) {
+interface DevicesTabProps {
+  installationId: string
+  canField: boolean
+  /** Type filter preset by the component cards of the overview ("Sériové čísla"). */
+  initialType?: string
+}
+
+export default function DevicesTab({ installationId, canField, initialType = '' }: DevicesTabProps) {
   const toast = useToast()
   const [includeReplaced, setIncludeReplaced] = useState(false)
-  const [type, setType] = useState('')
+  const [type, setType] = useState(initialType === 'Panel' || initialType === 'Inverter' ? initialType : '')
   const [dialog, setDialog] = useState<DialogState>(null)
 
   const { data, loading, error, reload } = useLoad(async (signal) => {

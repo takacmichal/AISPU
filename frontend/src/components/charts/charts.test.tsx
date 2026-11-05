@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ProductionAreaChart } from './ProductionAreaChart'
 import { niceMax, underRanges, type SeriesPoint } from './chartGeometry'
@@ -44,5 +45,31 @@ describe('ProductionAreaChart', () => {
     expect(screen.getByText('Podvýroba')).toBeInTheDocument()
     rerender(<ProductionAreaChart title="Výroba" unit="kW" points={points.map((x) => ({ ...x, actual: x.predicted }))} />)
     expect(screen.queryByText('Podvýroba')).not.toBeInTheDocument()
+  })
+
+  it('hides the highlight and its legend when showUnder is off', () => {
+    render(<ProductionAreaChart title="Výroba" unit="kW" points={points} showUnder={false} />)
+    expect(screen.queryByText('Podvýroba')).not.toBeInTheDocument()
+  })
+
+  it('moves a cursor with the keyboard and announces the point in interactive mode', async () => {
+    render(
+      <ProductionAreaChart
+        title="Výroba"
+        unit="kW"
+        points={points}
+        table={false}
+        interactive={{ label: 'Graf výroby', describe: (i) => [points[i].label, `Skutočná: ${points[i].actual}`] }}
+      />,
+    )
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const plot = screen.getByRole('group', { name: 'Graf výroby' })
+    plot.focus()
+    await userEvent.keyboard('{End}')
+    expect(screen.getAllByText('18:00').length).toBeGreaterThan(1)
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(screen.getByText('14:00. Skutočná: 3.2')).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByText('14:00. Skutočná: 3.2')).not.toBeInTheDocument()
   })
 })

@@ -54,7 +54,7 @@ Spoločné komponenty sú v `src/components/`, ukážka všetkých na `/dev/ui` 
 | `ActivityTimeline` | Aktivita zákazníka, história tiketu | Poradie určuje volajúci |
 | `FormErrorSummary` | Súhrn chýb nad formulárom | Chyby pri poliach ostávajú (`FormField`) |
 | `ConfirmDialog` | Potvrdenie; s `danger` má ikonu „!“ a červené tlačidlo | Zrušiť je prvé, dostane focus |
-| `charts/ProductionAreaChart` | Skutočná vs. predikovaná výroba s pásmom podvýroby, `variant="dark"` pre landing page | Vlastné SVG za stabilným API (ADR #224, bod 5); `summary` a skrytá tabuľka ako textová alternatíva |
+| `charts/ProductionAreaChart` | Skutočná vs. predikovaná výroba s pásmom podvýroby, `variant="dark"` pre landing page | Vlastné SVG za stabilným API (ADR #224, bod 5); `summary` a skrytá tabuľka ako textová alternatíva. `interactive` pridá kurzor ovládaný šípkami a myšou s tooltipom (monitoring), `showUnder` vypína zvýraznenie podvýroby |
 
 Tóny badge: `badge--success`, `--info`, `--warning`, `--error`, `--attention` (vyžaduje akciu, obrys), `--muted` (neaktívne, prerušovaný obrys); bez tónu = neutrálny. Tlačidlo počas ukladania dostane `aria-busy="true"` (zobrazí sa spinner).
 

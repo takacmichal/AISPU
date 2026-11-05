@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import InstallationListPage from './InstallationListPage'
@@ -38,13 +38,42 @@ describe('InstallationListPage', () => {
     expect(await screen.findByText('Zoznam inštalácií sa nepodarilo načítať.')).toBeInTheDocument()
   })
 
-  it('sends the state filter to the API and keeps it in the URL', async () => {
-    const calls = stubFetch(({ path }) => (path === '/api/installations' ? json([installation()]) : undefined))
+  it('filters by state and search on the client and keeps both in the URL', async () => {
+    stubFetch(({ path }) =>
+      path === '/api/installations' ? json([installation(), installation({ id: 'i2', name: 'FVE Trnava', state: 'Mounting' })]) : undefined,
+    )
     const { router } = render()
     await screen.findByText('FVE Nitra')
     await userEvent.selectOptions(screen.getByLabelText('Stav'), 'Mounting')
-    await waitFor(() => expect(calls.some((c) => c.path === '/api/installations' && c.search.includes('state=Mounting'))).toBe(true))
+    expect(screen.queryByText('FVE Nitra')).not.toBeInTheDocument()
+    expect(screen.getByText('FVE Trnava')).toBeInTheDocument()
     expect(router.state.location.search).toContain('state=Mounting')
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Hľadať inštaláciu' }), 'nitra')
+    expect(await screen.findByText('Filtru nezodpovedá žiadna inštalácia.')).toBeInTheDocument()
+  })
+
+  it('has phase tabs with counts', async () => {
+    stubFetch(({ path }) =>
+      path === '/api/installations'
+        ? json([
+            installation(),
+            installation({ id: 'i2', name: 'FVE Trnava', state: 'InspectionPassed' }),
+            installation({ id: 'i3', name: 'FVE Senec', state: 'HandedOver' }),
+            installation({ id: 'i4', name: 'FVE Pezinok', state: 'Commissioned' }),
+          ])
+        : undefined,
+    )
+    const { router } = render()
+    await screen.findByText('FVE Nitra')
+    const tabs = screen.getByRole('radiogroup', { name: 'Fáza' })
+    expect(within(tabs).getByRole('radio', { name: /^Všetky\s*4/ })).toBeChecked()
+    expect(within(tabs).getByRole('radio', { name: /^V realizácii\s*1/ })).toBeInTheDocument()
+    expect(within(tabs).getByRole('radio', { name: /^Čaká na DS\s*1/ })).toBeInTheDocument()
+    await userEvent.click(within(tabs).getByRole('radio', { name: /^V prevádzke\s*2/ }))
+    expect(screen.queryByText('FVE Nitra')).not.toBeInTheDocument()
+    expect(screen.getByText('FVE Senec')).toBeInTheDocument()
+    expect(screen.getByText('FVE Pezinok')).toBeInTheDocument()
+    expect(router.state.location.search).toContain('phase=operation')
   })
 
   it('pages the list on the client', async () => {

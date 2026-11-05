@@ -114,3 +114,36 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+.area-chart__plot {
+  position: relative;
+  border-radius: var(--radius-inputs);
+}
+
+.area-chart__cursor line {
+  stroke: var(--chart-text);
+  stroke-dasharray: 3 3;
+}
+
+.area-chart__cursor circle {
+  fill: var(--chart-actual);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.area-chart__tooltip {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 2px;
+  transform: translateX(-50%);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-inputs);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-size: var(--text-label);
+  white-space: nowrap;
+  pointer-events: none;
+}

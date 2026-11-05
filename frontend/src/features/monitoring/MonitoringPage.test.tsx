@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { menuItems } from '../../auth/navigation'
@@ -48,15 +48,16 @@ function handler(over: (call: Call) => Response | undefined = () => undefined, p
   }
 }
 
-const render = (roles = ['Admin']) => renderRoute(<MonitoringPage />, '/monitoring', '/monitoring', roles)
+const render = (roles = ['Admin'], route = '/monitoring') => renderRoute(<MonitoringPage />, route, '/monitoring', roles)
 
 describe('MonitoringPage', () => {
   it('shows skeletons, then KPI cards and the chart with a table alternative', async () => {
     stubFetch(handler())
     render()
     expect(await screen.findByText('70 kWh')).toBeInTheDocument()
-    expect(screen.getByText('6,5 kW')).toBeInTheDocument()
-    expect(screen.getByText('Obdobia s dátami')).toBeInTheDocument()
+    expect(screen.getByText('Špička 6,5 kW')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Obdobia podvýroby' })).toBeInTheDocument()
+    expect(screen.getAllByText('Predikcia nie je dostupná').length).toBeGreaterThan(0)
     expect(screen.getByRole('group', { name: /Graf výroby/ })).toBeInTheDocument()
     expect(screen.getByText('Predikcia výroby zatiaľ nie je dostupná, zobrazuje sa len skutočná výroba.')).toBeInTheDocument()
     await userEvent.click(screen.getByText('Zobraziť ako tabuľku'))
@@ -67,10 +68,49 @@ describe('MonitoringPage', () => {
     stubFetch(handler(() => undefined, true))
     render()
     const chart = await screen.findByRole('group', { name: /Graf výroby/ })
-    expect(screen.getByText('Pásmo tolerancie (85 % predikcie)')).toBeInTheDocument()
+    expect(screen.getByText('100 kWh')).toBeInTheDocument()
+    expect(screen.getByText('-30 %')).toBeInTheDocument()
     chart.focus()
     await userEvent.keyboard('{ArrowRight}')
     expect(screen.getAllByText(/Odchýlka: -40 %/).length).toBeGreaterThan(0)
+  })
+
+  it('lists underproduction periods that open a prefilled ticket', async () => {
+    stubFetch(handler(() => undefined, true))
+    render(['Operator'])
+    const chip = await screen.findByRole('link', { name: /Vytvoriť servisný tiket pre podvýrobu/ })
+    const url = new URL(chip.getAttribute('href') ?? '', 'http://x')
+    expect(url.pathname).toBe('/tickets/new')
+    expect(url.searchParams.get('installationId')).toBe('i1')
+    expect(url.searchParams.get('description')).toContain('FVE Nitra')
+    expect(chip).toHaveTextContent('70 %')
+    expect(within(screen.getByRole('group', { name: 'Ukazovatele výroby' })).getByText('1')).toBeInTheDocument()
+  })
+
+  it('shows the periods without a ticket link to roles that cannot create tickets', async () => {
+    stubFetch(handler(() => undefined, true))
+    render(['Designer'])
+    expect(await screen.findByText(/· 70 %/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Vytvoriť servisný tiket/ })).not.toBeInTheDocument()
+  })
+
+  it('turns the underproduction highlight off and keeps it in the URL', async () => {
+    stubFetch(handler(() => undefined, true))
+    const { router } = render(['Operator'])
+    await screen.findByRole('link', { name: /Vytvoriť servisný tiket/ })
+    await userEvent.click(screen.getByRole('switch', { name: 'Zvýrazniť podvýrobu' }))
+    expect(screen.queryByRole('link', { name: /Vytvoriť servisný tiket/ })).not.toBeInTheDocument()
+    expect(router.state.location.search).toContain('under=0')
+  })
+
+  it('opens the installation from the URL', async () => {
+    stubFetch((c) => {
+      if (c.path === '/api/installations') return json([installation(), installation({ id: 'i2', name: 'FVE Trnava' })])
+      if (c.path.startsWith('/api/installations/i2/production')) return json({ ...production, installationId: 'i2' })
+    })
+    render(['Admin'], '/monitoring?installation=i2')
+    expect(await screen.findByLabelText('Inštalácia')).toHaveValue('i2')
+    expect(await screen.findByText('70 kWh')).toBeInTheDocument()
   })
 
   it('shows the empty state without data', async () => {
@@ -96,7 +136,7 @@ describe('MonitoringPage', () => {
     stubFetch(handler())
     render()
     await screen.findByText('70 kWh')
-    await userEvent.click(screen.getByRole('button', { name: 'Vlastné' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Vlastné' }))
     expect(await screen.findByText('Zadajte začiatok aj koniec obdobia.')).toBeInTheDocument()
   })
 

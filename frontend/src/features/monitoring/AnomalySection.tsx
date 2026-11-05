@@ -48,7 +48,7 @@ function AnomalyList({ installationId }: { installationId: string }) {
 export function AnomalySection({ installationId }: { installationId: string }) {
   return (
     <section className="card prod-anomalies" aria-labelledby="anomalies-title">
-      <h3 id="anomalies-title">{T.anomalies.title}</h3>
+      <h3 id="anomalies-title" className="prod-chart-card__title">{T.anomalies.title}</h3>
       {ANOMALIES_API_ENABLED ? (
         <AnomalyList installationId={installationId} />
       ) : (
