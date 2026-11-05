@@ -1515,6 +1515,155 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("installation_revision_reports", (string)null);
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.MlIntegration.StoredPrediction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double?>("CloudCoverPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("cloud_cover_pct");
+
+                    b.Property<double>("ExpectedEnergyWh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("expected_energy_wh");
+
+                    b.Property<double>("ExpectedPowerW")
+                        .HasColumnType("double precision")
+                        .HasColumnName("expected_power_w");
+
+                    b.Property<DateTimeOffset>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("generated_at");
+
+                    b.Property<double?>("GhiWm2")
+                        .HasColumnType("double precision")
+                        .HasColumnName("ghi_wm2");
+
+                    b.Property<DateTimeOffset>("HourStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hour_start");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("model_version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_production_predictions");
+
+                    b.HasIndex("InstallationId", "HourStart")
+                        .IsUnique()
+                        .HasDatabaseName("ix_production_predictions_installation_id_hour_start");
+
+                    b.ToTable("production_predictions", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.MlIntegration.UnderproductionAlarm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double>("ActualKwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("actual_kwh");
+
+                    b.Property<DateTimeOffset>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<double>("DurationHours")
+                        .HasColumnType("double precision")
+                        .HasColumnName("duration_hours");
+
+                    b.Property<DateTimeOffset?>("End")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end");
+
+                    b.Property<double>("EstimatedLostKwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("estimated_lost_kwh");
+
+                    b.Property<double>("ExpectedKwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("expected_kwh");
+
+                    b.Property<Guid>("InstallationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("installation_id");
+
+                    b.Property<DateTimeOffset>("LastUnderproductionAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_underproduction_at");
+
+                    b.Property<double>("MedianRatio")
+                        .HasColumnType("double precision")
+                        .HasColumnName("median_ratio");
+
+                    b.Property<double>("MinRatio")
+                        .HasColumnType("double precision")
+                        .HasColumnName("min_ratio");
+
+                    b.Property<bool>("Ongoing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ongoing");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("severity");
+
+                    b.Property<DateTimeOffset>("Start")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start");
+
+                    b.Property<string>("TicketPriority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("ticket_priority");
+
+                    b.Property<int>("UnderproducingHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("underproducing_hours");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("ValidHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("valid_hours");
+
+                    b.HasKey("Id")
+                        .HasName("pk_underproduction_alarms");
+
+                    b.HasIndex("InstallationId", "Start")
+                        .HasDatabaseName("ix_underproduction_alarms_installation_id_start");
+
+                    b.ToTable("underproduction_alarms", (string)null);
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.Quotes.Quote", b =>
                 {
                     b.Property<Guid>("Id")

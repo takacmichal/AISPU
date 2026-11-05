@@ -11,21 +11,10 @@ public sealed record ProductionPrediction(string? ModelVersion, IReadOnlyList<Pr
     public bool IsAvailable => Hours.Count > 0;
 }
 
-/// <summary>
-/// Where the comparison (#101) takes predictions from. The ML prediction service and the stored predictions
-/// (#109 to #111) do not exist yet, so the registered implementation is <see cref="NoProductionPredictionSource"/>;
-/// #111 replaces the registration with stored predictions. No model is invented here.
-/// </summary>
+/// <summary>Where the comparison (#101) takes predictions from: the hours stored by the analysis (#376).</summary>
 public interface IProductionPredictionSource
 {
     Task<ProductionPrediction> GetAsync(Guid installationId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct);
-}
-
-/// <summary>No predictions yet: the comparison returns the actual series with <c>predicted = null</c>.</summary>
-internal sealed class NoProductionPredictionSource : IProductionPredictionSource
-{
-    public Task<ProductionPrediction> GetAsync(Guid installationId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct) =>
-        Task.FromResult(ProductionPrediction.None);
 }
 
 /// <summary>Pairs actual buckets with predicted hours aggregated to the same buckets.</summary>
