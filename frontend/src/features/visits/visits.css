@@ -1,0 +1,187 @@
+/* "Moje výjazdy" (wireframe 9a to 9c): mobile first, main action at the bottom within thumb reach. */
+.my-visits {
+  display: grid;
+  gap: var(--spacing-16);
+  max-width: 48rem;
+}
+
+.my-visits .page-header {
+  margin-bottom: 0;
+}
+
+.my-visits__back {
+  margin: 0;
+}
+
+.my-visits__back a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+}
+
+.my-visits__day {
+  display: grid;
+  gap: var(--spacing-8);
+}
+
+.my-visits__day-title {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  text-transform: capitalize;
+}
+
+.visit-cards {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.visit-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-4) var(--spacing-16);
+  min-height: 4.5rem;
+  padding: var(--spacing-16);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius-cards);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.visit-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.visit-card--inprogress {
+  border-left-color: var(--color-accent);
+}
+
+.visit-card--done {
+  border-left-color: var(--color-success);
+}
+
+.visit-card__time {
+  grid-row: span 2;
+  font-size: var(--text-body-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.visit-card__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.visit-card__title {
+  font-weight: 600;
+}
+
+.visit-card__meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.visit-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  grid-column: 2;
+}
+
+.visit-detail {
+  display: grid;
+  gap: var(--spacing-12);
+}
+
+.visit-detail__card {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: var(--spacing-20);
+}
+
+.visit-detail__title {
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.visit-detail__lead,
+.visit-detail__muted {
+  margin: 0;
+}
+
+.visit-detail__lead {
+  font-weight: 600;
+}
+
+.visit-detail__muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.visit-detail__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-4);
+}
+
+.visit-detail__actions .btn {
+  min-height: 48px;
+}
+
+.visit-checklist > legend {
+  float: left;
+  width: 100%;
+}
+
+.visit-checklist > legend + * {
+  clear: both;
+}
+
+.visit-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  min-height: var(--control-height);
+}
+
+.visit-checklist__item input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-primary);
+}
+
+.visit-protocol__times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--spacing-12);
+}
+
+/* Sticky bar so the main action stays at the bottom of the screen on phones. */
+.visit-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  padding: var(--spacing-12) 0 calc(var(--spacing-12) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--color-bg) 75%, transparent);
+}
+
+.visit-actionbar .btn {
+  min-height: 48px;
+}
+
+.visit-actionbar__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}

@@ -94,6 +94,13 @@ export function NavIcon({ path }: { path: string }) {
           <path d="M10 4.5v7" strokeDasharray="1.25 1.5" />
         </Icon>
       )
+    case '/my-visits':
+      return (
+        <Icon>
+          <path d="M8 14s4.5-4.1 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.9 8 14 8 14Z" />
+          <circle cx="8" cy="6.5" r="1.6" />
+        </Icon>
+      )
     case '/my-plants':
       return (
         <Icon>
@@ -178,6 +185,25 @@ export function CollapseIcon() {
   return (
     <Icon>
       <path d="M9.5 4.5 6 8l3.5 3.5M13 4.5 9.5 8l3.5 3.5" />
+    </Icon>
+  )
+}
+
+export function BellIcon() {
+  return (
+    <Icon>
+      <path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z" />
+      <path d="M6.5 14a1.5 1.5 0 0 0 3 0" />
+    </Icon>
+  )
+}
+
+export function HelpIcon() {
+  return (
+    <Icon>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.3-.8.6-.8 1.2" />
+      <path d="M8 11.5v.01" />
     </Icon>
   )
 }

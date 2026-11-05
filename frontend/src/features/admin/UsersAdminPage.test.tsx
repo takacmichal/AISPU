@@ -71,13 +71,44 @@ describe('UsersAdminPage', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('sends the search query', async () => {
-    const fetchMock = mockApi()
-    renderPage(['Admin'], '/admin/users?q=joz&page=2')
+  it('loads every page of users and searches by e-mail on the client', async () => {
+    const fetchMock = mockApi({
+      users: () => {
+        const page = Number(new URL(String(fetchMock.mock.calls.at(-1)?.[0]), 'http://x').searchParams.get('page'))
+        return json({ items: page === 1 ? [user('u1', 'jozef@test.sk', ['Sales'])] : [user('u2', 'maria@test.sk', ['Customer'])], page, pageSize: 100, totalCount: 2 })
+      },
+    })
+    renderPage(['Admin'], '/admin/users?q=mar')
+    expect(await screen.findByText('maria@test.sk')).toBeInTheDocument()
+    expect(screen.queryByText('jozef@test.sk')).not.toBeInTheDocument()
+    const urls = fetchMock.mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/api/users'))
+    expect(urls).toHaveLength(2)
+    expect(urls[0]).toContain('pageSize=100')
+  })
+
+  it('shows avatars and account type tabs with counts', async () => {
+    mockApi({
+      users: () =>
+        list([user('u1', 'jozef@test.sk', ['Sales']), user('u2', 'maria@test.sk', ['Customer']), user('u3', 'eva.kova@test.sk', ['Customer'])]),
+    })
+    renderPage(['Admin'])
     await screen.findByText('jozef@test.sk')
-    const url = String(fetchMock.mock.calls[0][0])
-    expect(url).toContain('q=joz')
-    expect(url).toContain('page=2')
+    expect(screen.getByText('3 používatelia · 6 rolí')).toBeInTheDocument()
+    const tabs = screen.getByRole('radiogroup', { name: 'Typ účtu' })
+    expect(within(tabs).getByRole('radio', { name: /^Interní\s*1/ })).toBeInTheDocument()
+    expect(within(tabs).queryByRole('radio', { name: /Bez roly/ })).not.toBeInTheDocument()
+    await userEvent.click(within(tabs).getByRole('radio', { name: /^Zákazníci\s*2/ }))
+    expect(screen.queryByText('jozef@test.sk')).not.toBeInTheDocument()
+    expect(screen.getByText('maria@test.sk')).toBeInTheDocument()
+    expect(screen.getByText('EK')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('explains each role in the dialog', async () => {
+    mockApi()
+    renderPage(['Admin'])
+    await userEvent.click(await screen.findByRole('button', { name: /Upraviť roly/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(await within(dialog).findByRole('checkbox', { name: 'Technik' })).toHaveAccessibleDescription('Montáže, servisné výjazdy a protokoly.')
   })
 
   it('saves the changed set of roles', async () => {

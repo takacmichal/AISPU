@@ -38,7 +38,7 @@ export interface NavItem {
 
 /** Single source of truth for menu, route guards and breadcrumbs. */
 export const NAVIGATION: readonly NavItem[] = [
-  { path: HOME_PATH, label: 'Prehľad', roles: [] },
+  { path: HOME_PATH, label: 'Dashboard', roles: [] },
   { path: '/my-plants', label: 'Moje elektrárne', roles: ['Customer'] },
   { path: '/customers', label: 'Zákazníci', roles: ['Admin', 'Sales'], group: 'Obchod' },
   { path: '/customers/new', label: 'Nový zákazník', roles: ['Admin', 'Sales'], parent: '/customers', menu: false },
@@ -49,6 +49,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { path: '/connection-requests', label: 'Pripojenie k distribučke', roles: ['Admin', 'Operator', 'Sales', 'Designer', 'Technician'], group: 'Realizácia' },
   { path: '/monitoring', label: 'Monitoring výroby', roles: ['Admin', 'Operator', 'Technician', 'Designer'], group: 'Realizácia' },
   { path: '/tickets', label: 'Servisné tikety', roles: ['Admin', 'Technician', 'Operator', 'Customer'], group: 'Servis' },
+  { path: '/my-visits', label: 'Moje výjazdy', roles: ['Technician'], group: 'Servis' },
   { path: '/tickets/new', label: 'Nahlásiť poruchu', roles: ['Admin', 'Technician', 'Operator', 'Customer'], parent: '/tickets', menu: false },
   { path: '/admin', label: 'Administrácia', roles: ['Admin'], menu: false },
   { path: '/admin/users', label: 'Používatelia a roly', roles: ['Admin'], parent: '/admin', group: 'Systém' },
