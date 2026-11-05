@@ -100,6 +100,15 @@ export function DataTable<T>({
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              // Clickable rows are reachable with Tab and open with Enter, like the link they stand for.
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === 'Enter' && event.target === event.currentTarget) onRowClick(row)
+                    }
+                  : undefined
+              }
               className={onRowClick ? 'clickable' : undefined}
             >
               {columns.map((column) => (

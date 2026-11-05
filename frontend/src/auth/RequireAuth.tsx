@@ -15,7 +15,8 @@ export function RequireAuth() {
   }
 
   const item = matchItem(location.pathname)
-  if (item && !canAccess(item, roles)) return <Navigate to="/forbidden" replace />
+  // The 403 page names the section and the roles that may open it.
+  if (item && !canAccess(item, roles)) return <Navigate to="/forbidden" replace state={{ from: location.pathname }} />
 
   return <Outlet />
 }

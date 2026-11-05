@@ -159,9 +159,13 @@ describe('role navigation', () => {
     expect(within(nav).queryByRole('link', { name: 'Servisné tikety' })).not.toBeInTheDocument()
   })
 
-  it('guards unauthorized routes with 403', () => {
+  it('guards unauthorized routes with 403 that names the section and the allowed roles', () => {
     renderAt('/tickets', session('Sales'))
-    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^403:\s*Do tejto sekcie nemáte prístup$/ })).toBeInTheDocument()
+    expect(screen.getByText(/Sekcia „Servisné tikety“ nie je dostupná/)).toBeInTheDocument()
+    expect(screen.getByText('Vaša rola: Obchod')).toBeInTheDocument()
+    expect(screen.getByText('Sekciu môžu otvoriť: Administrátor, Technik, Operátor, Zákazník')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Späť na prehľad' })).toHaveAttribute('href', '/app')
   })
 
   it('wires the customer portal routes', async () => {
@@ -171,7 +175,7 @@ describe('role navigation', () => {
 
   it('guards the customer portal detail with 403 for internal roles', () => {
     renderAt('/my-plants/i1', session('Admin'))
-    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^403:\s*Do tejto sekcie nemáte prístup$/ })).toBeInTheDocument()
   })
 
   it('redirects anonymous users to login', () => {
@@ -195,7 +199,8 @@ describe('role navigation', () => {
 
   it('shows 404 for unknown routes', () => {
     renderAt('/nope', session('Admin'))
-    expect(screen.getByRole('heading', { name: /404/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^404:\s*Stránka neexistuje$/ })).toBeInTheDocument()
+    expect(screen.getByText('/nope')).toBeInTheDocument()
   })
 
   it('renders the dashboard API status', async () => {

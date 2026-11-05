@@ -9,5 +9,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Stylesheets stay empty in tests, except `?raw` imports (the token contrast test reads index.css).
+    css: { include: [/\.css\?raw$/] },
   },
 })

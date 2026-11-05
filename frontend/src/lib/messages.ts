@@ -17,6 +17,18 @@ export const MESSAGES = {
     upcoming: 'čaká',
     blocked: 'zastavené',
   },
+  errorPages: {
+    back: 'Späť',
+    home: 'Späť na prehľad',
+    forbiddenTitle: 'Do tejto sekcie nemáte prístup',
+    forbiddenText: 'Na túto stránku nemáte oprávnenie. Ak ho potrebujete, požiadajte administrátora o pridelenie role.',
+    forbiddenSection: (section: string) =>
+      `Sekcia „${section}“ nie je dostupná pre vašu rolu. Ak ju potrebujete, požiadajte administrátora o pridelenie role.`,
+    yourRole: (role: string) => `Vaša rola: ${role}`,
+    allowedRoles: (roles: string) => `Sekciu môžu otvoriť: ${roles}`,
+    notFoundTitle: 'Stránka neexistuje',
+    notFoundText: 'Adresa neexistuje alebo bola presunutá. Skontrolujte odkaz alebo pokračujte z prehľadu.',
+  },
   pager: {
     label: 'Stránkovanie',
     previous: 'Predchádzajúca',
