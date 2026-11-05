@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using SolarOps.Api.Tests.Infrastructure;
@@ -20,7 +21,7 @@ public sealed class OpenApiDocumentTests(PostgresFixture postgres) : IClassFixtu
 
     private async Task<JsonDocument> GetDocumentAsync()
     {
-        // The document endpoint is mapped in the Development environment only.
+        // The document endpoint is mapped in the Development environment, or when OpenApi:Enabled is true.
         using var development = _factory.WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
         using var client = development.CreateClient();
 
@@ -28,6 +29,37 @@ public sealed class OpenApiDocumentTests(PostgresFixture postgres) : IClassFixtu
 
         response.EnsureSuccessStatusCode();
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Disabled_OutsideDevelopmentByDefault()
+    {
+        using var client = _factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/openapi/v1.json")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/scalar/v1")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Enabled_OutsideDevelopment_ServesDocumentAndScalarAnonymously()
+    {
+        using var enabled = _factory.WithWebHostBuilder(builder => builder.UseSetting("OpenApi:Enabled", "true"));
+        using var client = enabled.CreateClient();
+
+        var document = await client.GetAsync("/openapi/v1.json");
+        var scalar = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.OK, document.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, scalar.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExplicitlyDisabled_OutsideDevelopment_ReturnsNotFound()
+    {
+        using var disabled = _factory.WithWebHostBuilder(builder => builder.UseSetting("OpenApi:Enabled", "false"));
+        using var client = disabled.CreateClient();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/openapi/v1.json")).StatusCode);
     }
 
     [Fact]
