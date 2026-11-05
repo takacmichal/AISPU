@@ -23,6 +23,7 @@ public sealed record UnderproductionAlarmListResponse(IReadOnlyList<Underproduct
 /// <summary>Underproduction event (ADR #194). Hours are labelled by their end, as the detection reports them.</summary>
 /// <param name="Id">Stable for the same installation and start.</param>
 /// <param name="InstallationId">Installation of the alarm.</param>
+/// <param name="InstallationName">Name of the installation.</param>
 /// <param name="Start">End of the first underproducing hour, UTC.</param>
 /// <param name="End">End of the event; null while it is ongoing.</param>
 /// <param name="DetectedAt">End of the hour that confirmed the event.</param>
@@ -44,6 +45,7 @@ public sealed record UnderproductionAlarmListResponse(IReadOnlyList<Underproduct
 public sealed record UnderproductionAlarmResponse(
     Guid Id,
     Guid InstallationId,
+    string InstallationName,
     DateTimeOffset Start,
     DateTimeOffset? End,
     DateTimeOffset DetectedAt,
@@ -63,9 +65,10 @@ public sealed record UnderproductionAlarmResponse(
     string Reason,
     DateTimeOffset UpdatedAt)
 {
-    public static UnderproductionAlarmResponse From(UnderproductionAlarm a) => new(
+    public static UnderproductionAlarmResponse From(UnderproductionAlarm a, string installationName) => new(
         a.Id,
         a.InstallationId,
+        installationName,
         a.Start,
         a.End,
         a.DetectedAt,

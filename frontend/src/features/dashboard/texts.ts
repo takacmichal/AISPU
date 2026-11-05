@@ -22,6 +22,7 @@ export const DASHBOARD_PARTS = {
     empty: 'Žiadne otvorené hlásenia.',
     ticket: 'Servisný tiket',
     autoDetected: 'Automatická detekcia',
+    underproduction: (installation: string) => `Podvýroba: ${installation}`,
     severity: { critical: 'Kritický', warning: 'Varovanie', info: 'Info' },
   },
 } as const

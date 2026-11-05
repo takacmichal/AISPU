@@ -1,3 +1,4 @@
+import type { Alarm } from '../monitoring/alarmsApi'
 import type { TicketListItem, TicketPriority } from '../tickets/ticketsApi'
 import { DASHBOARD_PARTS as T } from './texts'
 
@@ -16,6 +17,18 @@ export interface AlarmRow {
 
 const SEVERITY_BY_PRIORITY: Record<TicketPriority, AlarmSeverity> = { High: 'critical', Medium: 'warning', Low: 'info' }
 export const CLOSED = new Set(['Resolved', 'Closed'])
+
+/** An ongoing underproduction alarm; it opens the monitoring of its installation. */
+export function fromAlarm(alarm: Alarm): AlarmRow {
+  return {
+    id: alarm.id,
+    href: `/monitoring?installation=${encodeURIComponent(alarm.installationId)}`,
+    title: T.alarms.underproduction(alarm.installationName),
+    meta: T.alarms.autoDetected,
+    severity: SEVERITY_BY_PRIORITY[alarm.ticketPriority],
+    at: alarm.lastUnderproductionAt,
+  }
+}
 
 export function fromTicket(ticket: TicketListItem): AlarmRow {
   return {

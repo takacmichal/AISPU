@@ -17,6 +17,9 @@ public interface IMlAnalysisService
 
     /// <summary>Stored alarms of a visible installation, newest first; 404 for a missing or foreign one.</summary>
     Task<UnderproductionAlarmListResponse> ListAlarmsAsync(Guid installationId, CancellationToken ct);
+
+    /// <summary>Stored alarms of all visible installations, newest first; those of another customer are left out.</summary>
+    Task<UnderproductionAlarmListResponse> ListAlarmsAsync(UnderproductionSeverity? severity, bool? ongoing, CancellationToken ct);
 }
 
 /// <summary>
@@ -67,14 +70,44 @@ internal sealed class MlAnalysisService(
             throw new NotFoundException("Installation", installationId);
         }
 
-        var alarms = await db.Set<UnderproductionAlarm>()
+        return await ListAsync(db.Set<UnderproductionAlarm>().Where(a => a.InstallationId == installationId), visible, ct);
+    }
+
+    public async Task<UnderproductionAlarmListResponse> ListAlarmsAsync(UnderproductionSeverity? severity, bool? ongoing, CancellationToken ct)
+    {
+        var scope = await customerScope.GetAsync(ct);
+        var visible = db.Set<Installation>().AsNoTracking();
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            visible = visible.Where(i => i.CustomerId == own);
+        }
+
+        var alarms = db.Set<UnderproductionAlarm>().AsQueryable();
+        if (severity is { } wanted)
+        {
+            alarms = alarms.Where(a => a.Severity == wanted);
+        }
+
+        if (ongoing is { } state)
+        {
+            alarms = alarms.Where(a => a.Ongoing == state);
+        }
+
+        return await ListAsync(alarms, visible, ct);
+    }
+
+    private static async Task<UnderproductionAlarmListResponse> ListAsync(
+        IQueryable<UnderproductionAlarm> alarms, IQueryable<Installation> installations, CancellationToken ct)
+    {
+        var rows = await alarms
             .AsNoTracking()
-            .Where(a => a.InstallationId == installationId)
-            .OrderByDescending(a => a.Start)
+            .Join(installations, a => a.InstallationId, i => i.Id, (a, i) => new { Alarm = a, i.Name })
+            .OrderByDescending(x => x.Alarm.Start)
             .Take(MaxListedAlarms)
             .ToListAsync(ct);
 
-        return new UnderproductionAlarmListResponse(alarms.Select(UnderproductionAlarmResponse.From).ToList());
+        return new UnderproductionAlarmListResponse(rows.Select(x => UnderproductionAlarmResponse.From(x.Alarm, x.Name)).ToList());
     }
 
     private async Task<PlantParameters> LoadPlantAsync(Guid installationId, CancellationToken ct)

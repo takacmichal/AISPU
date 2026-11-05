@@ -19,6 +19,7 @@ export interface LoadContext {
 }
 
 export const DASHBOARD_POLL_MS = 5 * 60_000
+export const ALARMS_POLL_MS = 60_000
 const MAX_BACKOFF_FACTOR = 8
 
 /** Base interval after a success; after failures it doubles up to 8x, with jitter so tabs do not retry in lockstep. */

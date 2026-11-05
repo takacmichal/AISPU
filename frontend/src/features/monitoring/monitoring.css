@@ -149,6 +149,26 @@ a.under-chip:hover {
   margin-bottom: var(--spacing-12);
 }
 
+.dialog:has(.alarm-detail) {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.alarm-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.alarm-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-8);
+}
+
 /* Cards with and without a trend chip keep their values on one line. */
 .monitoring-kpis .kpi-card {
   justify-content: flex-end;

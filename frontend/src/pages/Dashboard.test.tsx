@@ -88,6 +88,42 @@ describe('Dashboard', () => {
     expect(screen.getByText('Kritický')).toBeInTheDocument()
   })
 
+  describe('ongoing underproduction alarms', () => {
+    const alarm = {
+      id: 'a1',
+      installationId: 'i1',
+      installationName: 'FVE Nitra',
+      lastUnderproductionAt: minutesAgo(30),
+      severity: 'High',
+      ticketPriority: 'High',
+    }
+
+    it('count as alarms, win over sample data and open the monitoring of the installation', async () => {
+      const fetch = mockApi({
+        'GET /api/installations': json([]),
+        'GET /api/quotes': json([]),
+        'GET /api/tickets': json({ items: [], page: 1, pageSize: 100, totalCount: 0 }),
+        'GET /api/underproduction-alarms': json({ items: [alarm] }),
+      })
+      renderDashboard('Admin')
+
+      const link = await screen.findByRole('link', { name: 'Podvýroba: FVE Nitra' })
+      expect(link).toHaveAttribute('href', '/monitoring?installation=i1')
+      expect(screen.queryByText('Chyba izolácie striedača')).not.toBeInTheDocument()
+      expect(within(card('Aktívne alarmy')).getByText('1')).toBeInTheDocument()
+      expect(within(card('Aktívne alarmy')).queryByText('Ukážkové dáta')).not.toBeInTheDocument()
+      expect(fetch.mock.calls.some(([url]) => String(url).includes('/api/underproduction-alarms?ongoing=true'))).toBe(true)
+    })
+
+    it('are not asked for by a role that cannot open monitoring', async () => {
+      const fetch = mockApi({ 'GET /api/quotes': json([]) })
+      renderDashboard('Sales')
+
+      await waitFor(() => expect(card('Ponuky čakajú na odpoveď')).toBeInTheDocument())
+      expect(fetch.mock.calls.some(([url]) => String(url).includes('underproduction-alarms'))).toBe(false)
+    })
+  })
+
   it('does not call APIs the role cannot use', async () => {
     const fetch = mockApi({
       'GET /api/installations': json([]),

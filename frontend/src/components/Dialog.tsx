@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 interface DialogProps {
   title: string
@@ -10,7 +11,10 @@ interface DialogProps {
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-/** Modal dialog: Escape closes it, Tab is trapped inside, focus moves in on open and returns to the opener on close. */
+/**
+ * Modal dialog: Escape closes it, Tab is trapped inside, focus moves in on open and returns to the opener on close.
+ * Rendered into body: a glass panel with backdrop-filter would otherwise be what the fixed backdrop is positioned to.
+ */
 export function Dialog({ title, icon, onClose, children }: DialogProps) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
@@ -45,7 +49,7 @@ export function Dialog({ title, icon, onClose, children }: DialogProps) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="dialog-backdrop">
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} className="dialog" onKeyDown={onKeyDown}>
         {icon && (
@@ -56,6 +60,7 @@ export function Dialog({ title, icon, onClose, children }: DialogProps) {
         <h3 id={titleId}>{title}</h3>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
