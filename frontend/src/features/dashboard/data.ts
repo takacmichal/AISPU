@@ -1,5 +1,5 @@
 import { api } from '../../api/client'
-import { useLoad } from '../../components/useLoad'
+import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { addDays, toDateString } from '../monitoring/periods'
 import { fetchProduction } from '../monitoring/productionApi'
 import { listTickets, type TicketListItem } from '../tickets/ticketsApi'
@@ -25,16 +25,21 @@ let cachedToday: TodayProduction | null = null
  * With `live` false (sidebar card on other pages) the last loaded value is reused without a request.
  */
 export function useTodayProduction(live = true, enabled = true) {
-  return useLoad<TodayProduction | null>(async (signal) => {
-    if (!enabled) return null
-    if (!live) return cachedToday
-    const result = await loadToday(signal)
-    cachedToday = result
-    return result
-  }, `dashboard-today|${live}|${enabled}`)
+  return useLoad<TodayProduction | null>(
+    async (signal, { background }) => {
+      if (!enabled) return null
+      if (!live) return cachedToday
+      const result = await loadToday(signal, background)
+      cachedToday = result
+      return result
+    },
+    `dashboard-today|${live}|${enabled}`,
+    { intervalMs: DASHBOARD_POLL_MS, enabled: live && enabled },
+  )
 }
 
-async function loadToday(signal: AbortSignal): Promise<TodayProduction> {
+/** In a background refresh a failure is rethrown, so the last real data is kept instead of being replaced by sample data. */
+async function loadToday(signal: AbortSignal, background: boolean): Promise<TodayProduction> {
   const now = new Date()
   try {
     const { data } = await api.GET('/api/installations', { signal })
@@ -59,7 +64,7 @@ async function loadToday(signal: AbortSignal): Promise<TodayProduction> {
       mock: false,
     }
   } catch (error) {
-    if (signal.aborted) throw error
+    if (signal.aborted || background) throw error
     return { ...MOCK_TODAY, mock: true }
   }
 }
@@ -77,7 +82,7 @@ export interface TicketSummary {
 
 /** Open service tickets; the alarm KPI counts only those raised by anomaly detection. Sample numbers when there are none. */
 export function useTicketSummary(enabled = true) {
-  return useLoad<TicketSummary | null>(async (signal) => {
+  return useLoad<TicketSummary | null>(async (signal, { background }) => {
     if (!enabled) return null
     try {
       const list = await listTickets({ pageSize: 100 }, signal)
@@ -96,10 +101,10 @@ export function useTicketSummary(enabled = true) {
         mock: false,
       }
     } catch (error) {
-      if (signal.aborted) throw error
+      if (signal.aborted || background) throw error
       return { ...emptyTickets(), mock: true }
     }
-  }, `dashboard-tickets|${enabled}`)
+  }, `dashboard-tickets|${enabled}`, { intervalMs: DASHBOARD_POLL_MS, enabled })
 }
 
 function emptyTickets(): Omit<TicketSummary, 'mock'> {
@@ -115,7 +120,7 @@ export interface QuoteSummary {
 
 /** Quotes sent to customers and waiting for an answer. */
 export function useQuoteSummary(enabled = true) {
-  return useLoad<QuoteSummary | null>(async (signal) => {
+  return useLoad<QuoteSummary | null>(async (signal, { background }) => {
     if (!enabled) return null
     try {
       const { data } = await api.GET('/api/quotes', { signal })
@@ -125,8 +130,8 @@ export function useQuoteSummary(enabled = true) {
       if (sent.length === 0) return { ...MOCK_QUOTE_SUMMARY, open, mock: true }
       return { waiting: sent.length, valueGross: sent.reduce((s, q) => s + Number(q.grossTotal ?? 0), 0), open, mock: false }
     } catch (error) {
-      if (signal.aborted) throw error
+      if (signal.aborted || background) throw error
       return { ...MOCK_QUOTE_SUMMARY, open: 0, mock: true }
     }
-  }, `dashboard-quotes|${enabled}`)
+  }, `dashboard-quotes|${enabled}`, { intervalMs: DASHBOARD_POLL_MS, enabled })
 }

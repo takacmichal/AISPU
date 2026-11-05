@@ -8,7 +8,8 @@ import { SegmentedControl } from '../../components/SegmentedControl'
 import { Skeleton } from '../../components/Skeleton'
 import { FilterSelect } from '../../components/Toolbar'
 import { useToast } from '../../components/toast'
-import { useLoad } from '../../components/useLoad'
+import { UpdatedIndicator } from '../../components/UpdatedIndicator'
+import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { formatDate, formatNumber } from '../../lib/format'
 import { formatBucket } from './chartMath'
 import { TOLERANCE_RATIO, computeKpis, deviationPercent, mergeChartPoints } from './kpis'
@@ -20,6 +21,7 @@ import {
   customRangeError,
   effectiveGranularity,
   resolvePeriod,
+  toDateString,
   type PeriodState,
 } from './periods'
 import { ProductionTable } from './ProductionTable'
@@ -84,8 +86,10 @@ export function ProductionPanel({
   const granularity = resolved ? effectiveGranularity(state, resolved.days) : 'day'
   const allowed = resolved ? allowedGranularities(resolved.days) : []
   const query = resolved ? { from: resolved.from, to: resolved.to, granularity } : null
+  // The range end is exclusive: only a period reaching past today contains the current day and can still change.
+  const includesToday = resolved !== null && !rangeError && resolved.to > toDateString(now)
 
-  const { data, loading, error, reload } = useLoad<Loaded | null>(
+  const { data, loading, error, reload, updatedAt, refreshError, refresh } = useLoad<Loaded | null>(
     async (signal) => {
       if (!query || rangeError) return null
       try {
@@ -103,6 +107,7 @@ export function ProductionPanel({
       }
     },
     JSON.stringify([installationId, query, rangeError]),
+    { intervalMs: DASHBOARD_POLL_MS, enabled: includesToday },
   )
 
   async function exportCsv() {
@@ -187,6 +192,7 @@ export function ProductionPanel({
           {errorText}
         </p>
       )}
+      {includesToday && data?.kind === 'ok' && <UpdatedIndicator updatedAt={updatedAt} refreshError={refreshError} onRetry={refresh} />}
 
       {loading && !errorText && (
         <>

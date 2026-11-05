@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { SegmentedControl } from '../../components/SegmentedControl'
 import { Skeleton } from '../../components/Skeleton'
-import { useLoad } from '../../components/useLoad'
+import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { formatNumber } from '../../lib/format'
 import { fetchProduction } from '../monitoring/productionApi'
 import { barLabel, rangeQuery, sumProduction, type Range } from './aggregate'
@@ -18,17 +18,18 @@ const RANGES = [
 /** Production of all installations the user can see, summed per day or month (bars, the last one highlighted). */
 export function ProductionBarsCard({ installationIds }: { installationIds: readonly string[] }) {
   const [range, setRange] = useState<Range>('14d')
-  const { data: result, loading, error, reload } = useLoad(async (signal) => {
+  const { data: result, loading, error, reload } = useLoad(async (signal, { background }) => {
     const query = rangeQuery(range, new Date())
     try {
       const responses = await Promise.all(installationIds.map((id) => fetchProduction(id, query, signal)))
       const bars = sumProduction(responses)
       if (bars.some((b) => b.kwh > 0)) return { bars, mock: false }
     } catch (failure) {
-      if (signal.aborted) throw failure
+      // A failed background refresh keeps the last data instead of switching to sample data.
+      if (signal.aborted || background) throw failure
     }
     return { bars: mockBars(range, new Date()), mock: true }
-  }, `${range}|${installationIds.join(',')}`)
+  }, `${range}|${installationIds.join(',')}`, { intervalMs: DASHBOARD_POLL_MS })
 
   const data = result?.bars
   const max = Math.max(1, ...(data ?? []).map((b) => b.kwh))
