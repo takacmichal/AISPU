@@ -2698,7 +2698,7 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("InstallationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_installation_checklist_items_installation_installation_id");
+                        .HasConstraintName("fk_installation_checklist_items_installations_installation_id");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.InstallationDevice", b =>
