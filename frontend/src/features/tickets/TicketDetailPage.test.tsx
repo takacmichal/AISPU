@@ -24,6 +24,30 @@ function api(ticket = ticketDetail(), extra?: (path: string, method: string) => 
     return extra?.(path, method)
   })
 }
+const report = {
+  cause: 'InverterFault',
+  findings: 'Poškodená izolácia konektora',
+  workDone: 'Výmena konektora MC4',
+  arrivedAt: '2026-11-03T08:04:00Z',
+  departedAt: '2026-11-03T10:26:00Z',
+  reportedBy: 'tech1',
+  reportedAt: '2026-11-03T10:30:00Z',
+}
+const visit = (over: Record<string, unknown> = {}) => ({
+  id: 'v1',
+  ticketId: 't1',
+  technicianId: 'tech1',
+  state: 'Planned',
+  plannedStart: '2026-11-03T08:00:00Z',
+  plannedEnd: '2026-11-03T10:00:00Z',
+  estimatedMinutes: 120,
+  startedAt: null,
+  report: null,
+  reschedules: [],
+  materials: [{ id: 'm1', name: 'Konektor MC4', quantity: 2, unit: 'ks' }],
+  deviceReplacements: [],
+  ...over,
+})
 const render = (roles = ['Admin']) => renderRoute(<TicketDetailPage />, '/tickets/t1', '/tickets/:id', roles)
 
 describe('buildTimeline', () => {
@@ -85,7 +109,75 @@ describe('TicketDetailPage', () => {
     await screen.findByRole('heading', { name: 'Invertor nesvieti' })
     expect(screen.queryByLabelText('Nový komentár')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Zatriediť tiket' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Pridelenie technika')).not.toBeInTheDocument()
+    expect(screen.queryByText('Priradený technik')).not.toBeInTheDocument()
+  })
+
+  it('never shows internal comments to a customer', async () => {
+    api()
+    render(['Customer'])
+    expect(await screen.findByText('Technik sa ozve')).toBeInTheDocument()
+    expect(screen.queryByText('Interná poznámka')).not.toBeInTheDocument()
+    expect(screen.queryByText('Interný')).not.toBeInTheDocument()
+  })
+
+  it("shows an error instead of another customer's ticket", async () => {
+    stubFetch(({ path }) => (path.startsWith('/api/tickets/t9') ? problem(404, 'Not found') : undefined))
+    renderRoute(<TicketDetailPage />, '/tickets/t9', '/tickets/:id', ['Customer'])
+    expect(await screen.findByText('Tiket sa nepodarilo načítať.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument()
+  })
+
+  it('assigns a technician from the cards', async () => {
+    const calls = api(ticketDetail({ state: 'Triaged', allowedTransitions: ['RemoteDiagnosis'] }), (path, method) => {
+      if (path === '/api/installations/technicians') return json([{ id: 'tech1', userName: 'Tomáš Varga', email: 'tomas@test.sk' }, { id: 'tech2', userName: null, email: 'juraj@test.sk' }])
+      if (path === '/api/tickets/t1/visits') return json({ ticketId: 't1', assignedTechnicianId: 'tech2', visits: [] })
+      if (path === '/api/tickets/t1/technician' && method === 'PUT') return json({ ticketId: 't1', technicianId: 'tech1' })
+    })
+    render(['Operator'])
+    const picker = await screen.findByRole('group', { name: 'Priradený technik' })
+    expect(await within(picker).findByRole('radio', { name: 'Priradiť technika juraj@test.sk' })).toBeChecked()
+    await userEvent.click(within(picker).getByRole('radio', { name: 'Priradiť technika Tomáš Varga' }))
+    await waitFor(() => expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({ technicianId: 'tech1' }))
+    expect(await screen.findByText('Tiket priradený: Tomáš Varga')).toBeInTheDocument()
+  })
+
+  it('plans a visit for the assigned technician', async () => {
+    const calls = api(ticketDetail({ state: 'RemoteDiagnosis', allowedTransitions: ['Resolved', 'VisitScheduled'] }), (path, method) => {
+      if (path === '/api/installations/technicians') return json([{ id: 'tech1', userName: 'Tomáš Varga', email: null }])
+      if (path === '/api/tickets/t1/visits' && method === 'GET') return json({ ticketId: 't1', assignedTechnicianId: 'tech1', visits: [] })
+      if (path === '/api/tickets/t1/visits' && method === 'POST') return json(visit(), 201)
+    })
+    render(['Operator'])
+    await userEvent.type(await screen.findByLabelText('Začiatok výjazdu'), '2026-11-05T08:00')
+    await userEvent.clear(screen.getByLabelText('Odhadované trvanie (min)'))
+    await userEvent.type(screen.getByLabelText('Odhadované trvanie (min)'), '5')
+    await userEvent.click(screen.getByRole('button', { name: 'Naplánovať výjazd' }))
+    expect(await screen.findByText('Trvanie musí byť 15 až 720 minút.')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Odhadované trvanie (min)'), '0')
+    await userEvent.click(screen.getByRole('button', { name: 'Naplánovať výjazd' }))
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === '/api/tickets/t1/visits' && c.method === 'POST')?.body).toEqual({
+        start: new Date(2026, 10, 5, 8, 0).toISOString(),
+        estimatedMinutes: 50,
+      }),
+    )
+  })
+
+  it('shows visits, the service protocol and lets the technician verify production', async () => {
+    const calls = api(ticketDetail({ state: 'OnSite', allowedTransitions: ['Verified'] }), (path, method) => {
+      if (path === '/api/tickets/t1/visits') return json({ ticketId: 't1', assignedTechnicianId: null, visits: [visit({ state: 'Done', report })] })
+      if (path === '/api/tickets/t1/verify' && method === 'POST') return json({ ticketId: 't1', state: 'Verified' })
+    })
+    render(['Technician'])
+    const visits = await screen.findByRole('article', { name: 'Výjazdy' })
+    expect(await within(visits).findByText('Dokončený')).toBeInTheDocument()
+    const protocol = screen.getByRole('article', { name: 'Servisný protokol' })
+    expect(within(protocol).getByText('Porucha striedača')).toBeInTheDocument()
+    expect(within(protocol).getByText('Poškodená izolácia konektora')).toBeInTheDocument()
+    expect(within(protocol).getByText('Konektor MC4 2 ks')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Overiť obnovenie výroby' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Overiť obnovenie výroby' }))
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/tickets/t1/verify' && c.method === 'POST')).toBe(true))
   })
 
   it('triages a new ticket for Operator', async () => {
@@ -104,7 +196,7 @@ describe('TicketDetailPage', () => {
     const group = await screen.findByRole('group', { name: 'Zmena stavu' })
     expect(within(group).getByRole('button', { name: 'Vyriešený' })).toBeInTheDocument()
     expect(within(group).queryByRole('button', { name: 'Výjazd naplánovaný' })).not.toBeInTheDocument()
-    expect(screen.getByText(/plánovaní výjazdov/)).toBeInTheDocument()
+    expect(screen.getByText(/plánovaním výjazdu/)).toBeInTheDocument()
   })
 
   it('lists attachments with a download button', async () => {

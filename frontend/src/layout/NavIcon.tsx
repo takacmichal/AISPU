@@ -94,6 +94,13 @@ export function NavIcon({ path }: { path: string }) {
           <path d="M10 4.5v7" strokeDasharray="1.25 1.5" />
         </Icon>
       )
+    case '/my-visits':
+      return (
+        <Icon>
+          <path d="M8 14s4.5-4.1 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.9 8 14 8 14Z" />
+          <circle cx="8" cy="6.5" r="1.6" />
+        </Icon>
+      )
     case '/my-plants':
       return (
         <Icon>
