@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
 import pytest
+from jsonschema import Draft202012Validator, FormatChecker
 
 from solarops_ml.simulator import (
     FaultSpec,
@@ -14,10 +17,14 @@ from solarops_ml.simulator import (
 from solarops_ml.simulator.solar import solar_position
 
 DEVICE = "7f3c2d9e-1b4a-4c55-9a1e-2d6f0b8e1a10"
+INSTALLATION = "0b8e1a10-7f3c-4d9e-8b4a-2d6f0c551a9e"
+SCHEMA_PATH = (
+    Path(__file__).resolve().parents[2] / "docs/adr/assets/spike-185-telemetry.schema.json"
+)
 READING_KEYS = {
-    "messageId", "timestamp", "intervalSeconds", "status", "acPowerW", "dcPowerW",
-    "acVoltageV", "acCurrentA", "frequencyHz", "powerFactor", "temperatureC", "strings",
-    "energy", "errorCode",
+    "deviceId", "timestamp", "intervalSec", "status", "vendorStatusCode", "acPowerW", "dcPowerW",
+    "acVoltageV", "acCurrentA", "gridFrequencyHz", "temperatureC", "strings",
+    "totalEnergyWh", "dayEnergyWh",
 }  # fmt: skip
 STATUSES = {"OFF", "SLEEPING", "STARTING", "MPPT", "THROTTLED", "SHUTTING_DOWN", "FAULT", "STANDBY"}
 
@@ -114,35 +121,51 @@ def test_inverter_fault_sets_status_and_error_code() -> None:
     assert (win["error_code"] != 0).all()
 
 
-def test_payload_matches_documented_telemetry_format() -> None:
+def test_payload_matches_ingest_contract() -> None:
     result = simulate(alice(), dt(2024, 3, 1), dt(2024, 3, 3))
-    payloads = to_payloads(result, DEVICE)
+    payloads = to_payloads(result, DEVICE, INSTALLATION)
     assert [len(p["readings"]) for p in payloads] == [288, 288]
     totals: list[float] = []
     for p in payloads:
-        assert set(p) == {"schemaVersion", "deviceId", "readings"}
-        assert p["schemaVersion"] == "1.0" and p["deviceId"] == DEVICE
+        assert set(p) == {"schemaVersion", "installationId", "sentAt", "source", "readings"}
+        assert p["schemaVersion"] == "1.0" and p["installationId"] == INSTALLATION
+        assert p["source"] == "simulator"
+        assert p["sentAt"] == p["readings"][-1]["timestamp"]
         for rd in p["readings"]:
             assert set(rd) == READING_KEYS
+            assert rd["deviceId"] == DEVICE
             assert rd["timestamp"].endswith("Z")
-            assert rd["intervalSeconds"] == 300
+            assert rd["intervalSec"] == 300
             assert rd["status"] in STATUSES
             assert rd["acPowerW"] >= 0 and rd["dcPowerW"] >= rd["acPowerW"]
-            assert 40 <= rd["frequencyHz"] <= 70
-            # powerFactor is null while the inverter produces nothing (schema allows null)
-            assert (rd["powerFactor"] is None) == (rd["acPowerW"] == 0)
-            assert rd["powerFactor"] is None or -1 <= rd["powerFactor"] <= 1
-            assert {s["id"] for s in rd["strings"]} == {1, 2}
-            assert set(rd["energy"]) == {"dayWh", "totalWh"}
-            totals.append(rd["energy"]["totalWh"])
+            assert 40 <= rd["gridFrequencyHz"] <= 70
+            assert {s["index"] for s in rd["strings"]} == {1, 2}
+            totals.append(rd["totalEnergyWh"])
     assert totals == sorted(totals) and totals[-1] > totals[0]
     stamps = [rd["timestamp"] for p in payloads for rd in p["readings"]]
     assert len(set(stamps)) == len(stamps)
-    ids = [rd["messageId"] for p in payloads for rd in p["readings"]]
-    assert len(set(ids)) == len(ids)
-    # dayWh resets at local midnight (UTC+9.5 -> 14:30Z) and is non-negative.
-    day = [rd["energy"]["dayWh"] for p in payloads for rd in p["readings"]]
+    # dayEnergyWh resets at local midnight (UTC+9.5 -> 14:30Z) and is non-negative.
+    day = [rd["dayEnergyWh"] for p in payloads for rd in p["readings"]]
     assert min(day) == 0 and any(b < a for a, b in zip(day, day[1:], strict=False))
+
+
+def test_payloads_validate_against_adr_185_schema() -> None:
+    validator = Draft202012Validator(
+        json.loads(SCHEMA_PATH.read_text(encoding="utf-8")), format_checker=FormatChecker()
+    )
+    faults = [FaultSpec("inverter_fault", dt(2024, 6, 20, 8), dt(2024, 6, 20, 10), 1)]
+    result = simulate(kosice(), dt(2024, 6, 20), dt(2024, 6, 22), faults=faults)
+    payloads = to_payloads(result, DEVICE)
+    assert payloads
+    for payload in payloads:
+        assert list(validator.iter_errors(payload)) == []
+    assert payloads == to_payloads(result, DEVICE)
+
+
+def test_payload_rejects_non_uuid_installation_id() -> None:
+    result = simulate(kosice(), dt(2024, 6, 20), dt(2024, 6, 21))
+    with pytest.raises(ValueError):
+        to_payloads(result, DEVICE, "not-a-uuid")
 
 
 def test_invalid_input_is_rejected() -> None:

@@ -37,6 +37,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--end", type=_utc, required=True, help="UTC, ISO 8601 (exclusive)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device-id", help="UUID; default derived from location and seed")
+    p.add_argument(
+        "--installation-id", help="UUID of the installation; default derived from device"
+    )
     p.add_argument("--capacity-kwp", type=float, default=10.0)
     p.add_argument("--cloudiness", type=float, default=0.3, help="mean cloud cover 0..1")
     p.add_argument("--utc-offset", type=float, help="local UTC offset in hours for dayWh reset")
@@ -81,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
         )
         result = simulate(config, args.start, args.end, args.fault)
-        payloads = to_payloads(result)
+        payloads = to_payloads(result, installation_id=args.installation_id)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
