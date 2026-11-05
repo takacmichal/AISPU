@@ -1,0 +1,13 @@
+# ML analysis of an installation (#376). The ML service must run (see README) and Ml:BaseUrl point to it.
+# Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+@installationId = 00000000-0000-0000-0000-000000000000
+
+### Predict from the stored forecast and run the detection (Admin, Operator)
+POST {{baseUrl}}/api/installations/{{installationId}}/analysis
+Authorization: Bearer {{token}}
+
+### Stored underproduction alarms, newest first
+GET {{baseUrl}}/api/installations/{{installationId}}/underproduction-alarms
+Authorization: Bearer {{token}}

@@ -66,6 +66,8 @@ JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lok�
 
 Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier kľúč nepotrebuje; pri platenom pláne ho nastav cez `Weather__ApiKey` (v docker compose `WEATHER_API_KEY`), nikdy ho necommituj.
 
+ML služba sa volá na adrese `Ml:BaseUrl` (`Ml__BaseUrl`; v Development `http://localhost:8000`, v docker compose `http://ml:8000`). Prázdna hodnota znamená, že služba nie je dostupná: API normálne beží a len `POST /api/installations/{id}/analysis` vráti 503.
+
 ## Časté chyby
 
 | Príznak | Príčina a riešenie |

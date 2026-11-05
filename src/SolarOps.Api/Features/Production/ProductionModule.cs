@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using SolarOps.Api.Features.MlIntegration;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
@@ -19,7 +20,7 @@ public sealed class ProductionModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IProductionService, ProductionService>();
-        services.AddScoped<IProductionPredictionSource, NoProductionPredictionSource>();
+        services.AddScoped<IProductionPredictionSource, StoredProductionPredictionSource>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -38,8 +39,8 @@ public sealed class ProductionModule : IModule
             .WithName("CompareInstallationProduction")
             .WithSummary("Actual production compared with the prediction")
             .WithDescription(PeriodDescription + " Granularity hour, day or month (predictions are hourly). " +
-                "Pairs of actual and predicted energy per bucket; the prediction service and stored predictions (#109 to #111) " +
-                "are not available yet, so predictedEnergyKwh, deviationKwh and ratio are null and predictionAvailable is false.")
+                "Pairs of actual and predicted energy per bucket, with predictions stored by the analysis of the installation (#376). " +
+                "Without a stored prediction predictedEnergyKwh, deviationKwh and ratio are null and predictionAvailable is false.")
             .WithValidation<ProductionComparisonQuery>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(AuthorizationPolicies.ProductionRead);

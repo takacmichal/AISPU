@@ -55,6 +55,9 @@ public static class AuthorizationPolicies
     /// <summary>Production overviews and export from telemetry (#28; ADR #207 row "Alerty, telemetria": R for all, customer own).</summary>
     public const string ProductionRead = "ProductionRead";
 
+    /// <summary>Running the ML prediction and detection of an installation (#376); calls an external service, so back office only.</summary>
+    public const string ProductionAnalyze = "ProductionAnalyze";
+
     /// <summary>Service tickets (#35); a customer sees only its own tickets and only public comments.</summary>
     public const string TicketsRead = "TicketsRead";
 
@@ -112,6 +115,7 @@ public static class AuthorizationPolicies
             [ConnectionRequestsSimulate] = [Roles.Admin, Roles.Operator],
 
             [ProductionRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
+            [ProductionAnalyze] = [Roles.Admin, Roles.Operator],
             [TicketsRead] = [Roles.Admin, Roles.Operator, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Customer],
             [TicketsCreate] = [Roles.Admin, Roles.Operator, Roles.Technician, Roles.Customer],
             [TicketsManage] = [Roles.Admin, Roles.Operator],
