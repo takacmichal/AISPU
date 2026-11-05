@@ -6,7 +6,7 @@ Testy a lint (rovnako ako CI `ml.yml`): `uv run pytest`, `uv run ruff check .`, 
 
 ## Simulátor striedačov (`solarops_ml.simulator`, issue #94)
 
-Generuje 5-minútovú telemetriu FVE podľa ADR #185 (`schemaVersion 1.0`, dávky po max. 288 čítaní) z polohy, polohy slnka (čistá numpy/pandas, bez pvlib), sezóny a oblačnosti (AR(1) proces). Výstup je reprodukovateľný cez `--seed` (aj `messageId`). Poruchy: `power_drop` (pokles výkonu o `severity`) a `inverter_fault` (`FAULT`, výkon 0). Labely (`expected_power_w`, `fault_active`, `fault_type`) idú do samostatného CSV, nie do ingest payloadu. Orientácia panelov (`tilt`, `azimuth`) sa berie z `locations.toml` (0 = juh, 180 = sever).
+Generuje 5-minútovú telemetriu FVE podľa ingest kontraktu (ADR #185, `docs/adr/assets/spike-185-telemetry.schema.json`, `schemaVersion 1.0`, dávky po max. 288 čítaní, `source: "simulator"`) z polohy, polohy slnka (čistá numpy/pandas, bez pvlib), sezóny a oblačnosti (AR(1) proces). Výstup je reprodukovateľný cez `--seed`. `installationId` sa berie z `--installation-id` (inak sa odvodí od zariadenia); musí to byť inštalácia, v ktorej je invertor `--device-id` zaregistrovaný, inak ingest odmietne dáta. Poruchy: `power_drop` (pokles výkonu o `severity`) a `inverter_fault` (`FAULT`, výkon 0). Labely (`expected_power_w`, `fault_active`, `fault_type`) idú do samostatného CSV, nie do ingest payloadu. Orientácia panelov (`tilt`, `azimuth`) sa berie z `locations.toml` (0 = juh, 180 = sever).
 
 ```bash
 cd ml

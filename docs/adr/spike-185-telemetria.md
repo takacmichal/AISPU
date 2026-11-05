@@ -3,6 +3,7 @@
 - Stav: návrh na schválenie tímom
 - Dátum: 2026-10-15
 - Projekt: SolarOps (AISPU), issue #185 (takacmichal/AISPU)
+- **Záväzný kontrakt:** JSON Schema [`assets/spike-185-telemetry.schema.json`](assets/spike-185-telemetry.schema.json) a ingest `POST /api/telemetry`, nie príklady nižšie. Oproti pôvodnému návrhu je obálka `installationId`, `sentAt`, `source`, čítanie nesie `deviceId`, `intervalSec`, `gridFrequencyHz`, `totalEnergyWh`, `dayEnergyWh`, `strings[].index`; `messageId` a `powerFactor` odpadli (idempotencia cez `(deviceId, timestamp)`). Simulátor to overuje testom voči schéme (#375).
 
 ## Kontext
 
