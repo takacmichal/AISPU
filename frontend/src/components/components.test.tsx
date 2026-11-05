@@ -110,6 +110,15 @@ describe('DataTable', () => {
     await userEvent.click(within(screen.getAllByRole('row')[1]).getByText('Anna'))
     expect(onRowClick).toHaveBeenCalledWith(rows[0])
   })
+
+  it('opens a clickable row from the keyboard', async () => {
+    const onRowClick = vi.fn()
+    render(table({ onRowClick }))
+    await userEvent.tab()
+    expect(screen.getAllByRole('row')[1]).toHaveFocus()
+    await userEvent.keyboard('{Enter}')
+    expect(onRowClick).toHaveBeenCalledWith(rows[0])
+  })
 })
 
 describe('server validation errors', () => {

@@ -1,7 +1,7 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { HOME_PATH, findItem } from '../auth/navigation'
+import { HOME_PATH, ROLE_LABELS, findItem, matchItem, primaryRole } from '../auth/navigation'
 import { safeReturnUrl } from '../auth/session'
 import type { LoginNotice } from '../features/auth/formHelpers'
 import { AUTH_TEXTS } from '../features/auth/texts'
@@ -80,24 +80,64 @@ export function SectionPage({ path }: { path: string }) {
   return <PageHeader title={findItem(path)?.label ?? path} />
 }
 
-export function ForbiddenPage() {
+interface ErrorStateProps {
+  code: string
+  title: string
+  text: string
+  details?: ReactNode
+}
+
+/** Error page in the new style: big muted code, title, explanation and the way back. */
+function ErrorState({ code, title, text, details }: ErrorStateProps) {
+  const navigate = useNavigate()
   return (
-    <section>
-      <PageHeader title="403 – Nemáte prístup" subtitle="Na túto sekciu nemáte oprávnenie." />
-      <Link to={HOME_PATH} className="btn btn--ghost">
-        Späť na prehľad
-      </Link>
+    <section className="error-page" aria-labelledby="error-page-title">
+      <div className="card error-page__card">
+        <p className="error-page__code" aria-hidden="true">
+          {code}
+        </p>
+        <h2 id="error-page-title" className="error-page__title">
+          <span className="sr-only">{code}: </span>
+          {title}
+        </h2>
+        <p className="error-page__text">{text}</p>
+        {details}
+        <div className="error-page__actions">
+          <button type="button" className="btn btn--ghost" onClick={() => navigate(-1)}>
+            {MESSAGES.errorPages.back}
+          </button>
+          <Link to={HOME_PATH} className="btn btn--primary">
+            {MESSAGES.errorPages.home}
+          </Link>
+        </div>
+      </div>
     </section>
   )
 }
 
-export function NotFoundPage() {
+export function ForbiddenPage() {
+  const { roles } = useAuth()
+  const from = (useLocation().state as { from?: string } | null)?.from
+  const item = from ? matchItem(from) : undefined
+  const role = primaryRole(roles)
+  const T = MESSAGES.errorPages
   return (
-    <section>
-      <PageHeader title="404 – Stránka neexistuje" subtitle="Adresa neexistuje alebo bola presunutá." />
-      <Link to={HOME_PATH} className="btn btn--ghost">
-        Späť na prehľad
-      </Link>
-    </section>
+    <ErrorState
+      code="403"
+      title={T.forbiddenTitle}
+      text={item ? T.forbiddenSection(item.label) : T.forbiddenText}
+      details={
+        <ul className="error-page__details">
+          {role && <li>{T.yourRole(ROLE_LABELS[role] ?? role)}</li>}
+          {item && item.roles.length > 0 && <li>{T.allowedRoles(item.roles.map((r) => ROLE_LABELS[r] ?? r).join(', '))}</li>}
+        </ul>
+      }
+    />
   )
+}
+
+export function NotFoundPage() {
+  const { pathname } = useLocation()
+  const T = MESSAGES.errorPages
+  return <ErrorState code="404" title={T.notFoundTitle} text={T.notFoundText} details={<p className="error-page__path mono">{pathname}</p>} />
 }

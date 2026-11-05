@@ -35,6 +35,10 @@ Vzhľad je prevzatý z `docs/artefact-page-html/Main.dc.html` (landing page), ro
 - Text: `--color-text-muted` má 5,6 : 1 na krémovej a 5,1 : 1 na pieskovej, `--color-primary` 5,0 : 1 na bielej.
 - **Odchýlka od návrhu:** okraj inputov je tmavší (`--color-input-border`, 45 % čiernej, ~3,3 : 1) ako v mockupe (10 %), aby hranica poľa spĺňala 3 : 1 pre ovládacie prvky.
 - Focus: dvojitý prstenec (biela + akcent) na všetkom interaktívnom.
+- **Kontrast stráži test** `src/a11y/contrast.test.ts`: číta tokeny priamo z `index.css` a overí 4,5 : 1 pre text a tóny badge a 3 : 1 pre focus ring a okraje polí. Pri zmene farby ho spusti; ak padne, uprav token, nie test.
+- **Klávesnica:** riadky `DataTable` s `onRowClick` sú v poradí Tab a otvárajú sa Enterom. Kanban má pre každý presun samostatné tlačidlo („→ Zatriedený“), `SegmentedControl` sa ovláda šípkami, `Dialog` drží focus vo vnútri a Escape ho zavrie.
+- **Mobil:** tabuľky sú v `data-table__scroll` a posúvajú sa vodorovne. Na stránkach pre prácu v teréne (Moje výjazdy, detail tiketu) je hlavná akcia dole na dosah palca a ovládacie prvky majú aspoň 44 px (48 px v spodnej lište).
+- Animácie sa pri `prefers-reduced-motion: reduce` vypínajú.
 
 ## Komponenty
 
@@ -64,3 +68,8 @@ Tóny badge: `badge--success`, `--info`, `--warning`, `--error`, `--attention` (
 - Menu, oprávnenia ciest a breadcrumbs sa skladajú z jedného zoznamu `NAVIGATION` v `src/auth/navigation.ts`. Skupiny: Obchod, Realizácia, Servis, Systém. Novú stránku pridaj tam, nie priamo do sidebaru.
 - Sidebar sa dá zbaliť na ikony (pamätá sa v `localStorage`), texty ostávajú pre čítačky. Pod 760 px je z neho vysúvacie menu.
 - Horná lišta: rýchly skok na moduly (`Ctrl/⌘+K`, ponúka len moduly povolené pre rolu) a menu používateľa s odhlásením.
+- **403 a 404** sú karta s veľkým kódom, vysvetlením a cestou späť (`Späť`, `Prejsť na prehľad`). Stránka 403 vie, z ktorej sekcie používateľ prišiel (`RequireAuth` posiela `state.from`), a vypíše jeho rolu aj roly, ktoré sekciu smú otvoriť.
+
+## Snímky
+
+Aktuálne snímky obrazoviek sú v `docs/screenshots/` a v hlavnom README (ukážkové dáta).

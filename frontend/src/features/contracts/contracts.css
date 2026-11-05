@@ -22,14 +22,6 @@
   margin: 0 0 var(--spacing-12);
 }
 
-.contract-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-12);
-  align-items: end;
-  margin-bottom: var(--spacing-16);
-}
-
 .contract-audit {
   margin: 0;
   padding: 0;

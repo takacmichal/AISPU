@@ -1,0 +1,347 @@
+/*
+ * Apple-style "liquid glass" layer. Loaded after index.css and only overrides surfaces:
+ * a soft colourful backdrop, translucent blurred panels, hairline highlights.
+ * Falls back to the solid surfaces when backdrop-filter is unsupported or transparency is reduced.
+ */
+:root {
+  /* Page backdrop behind the glass panels; links and muted text on it must keep 4.5 : 1 (see a11y/contrast.test.ts). */
+  --glass-page: #e4e4e1;
+  /* The default blue has only 3.95 : 1 on the grey backdrop, so the glass theme uses a darker one. */
+  --color-primary: #005a99;
+  --color-primary-hover: #00548c;
+  --color-primary-active: #004a7c;
+  --glass-bg: rgb(244 244 242 / 72%);
+  --glass-bg-strong: rgb(250 250 248 / 85%);
+  --glass-border: rgb(0 0 0 / 11%);
+  --glass-edge: rgb(0 0 0 / 8%);
+  --glass-blur: blur(20px) saturate(140%);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 70%) inset, 0 2px 12px rgb(0 0 0 / 5%);
+  --glass-card: rgb(255 255 255 / 88%);
+}
+
+body {
+  background:
+    radial-gradient(50rem 30rem at 0% 0%, rgb(255 255 255 / 70%), transparent 60%),
+    radial-gradient(50rem 30rem at 100% 100%, rgb(255 255 255 / 50%), transparent 60%),
+    var(--glass-page);
+  background-attachment: fixed;
+}
+
+.shell {
+  background: transparent;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .shell__side,
+  .topbar,
+  .card,
+  .auth-card,
+  .user-menu__menu,
+  .dialog,
+  .kpi-card {
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .shell__side {
+    flex: none;
+    align-self: flex-start;
+    margin: var(--spacing-12);
+    height: calc(100vh - 2 * var(--spacing-12));
+    top: var(--spacing-12);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sections);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Top bar: no full-width strip, just floating glass pills. */
+  .topbar {
+    margin: var(--spacing-12) var(--spacing-12) 0 0;
+    padding: 0;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    pointer-events: none;
+  }
+
+  .topbar > * {
+    pointer-events: auto;
+  }
+
+  .topbar__jump,
+  .user-menu__trigger {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .topbar__jump {
+    flex: 1 1 280px;
+    max-width: 600px;
+    min-height: 42px;
+  }
+
+  .topbar__jump:hover,
+  .user-menu__trigger:hover {
+    background: var(--glass-bg-strong);
+    border-color: #fff;
+  }
+
+  /* Content: one large rounded glass panel under the top bar, as in the wireframe. */
+  .shell__body {
+    gap: var(--spacing-12);
+    padding: 0 var(--spacing-12) var(--spacing-12) var(--spacing-12);
+  }
+
+  .shell__main {
+    flex: none;
+    min-height: calc(100vh - 88px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sections);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .shell__content {
+    max-width: none;
+    padding: 28px 28px 32px;
+  }
+
+  /* Cards inside the panel are lighter so they read as raised, not as glass-on-glass. */
+  .shell__main .card,
+  .shell__main .kpi-card {
+    background: var(--glass-card);
+  }
+
+  .card,
+  .auth-card,
+  .kpi-card {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .card--subtle {
+    background: rgb(0 0 0 / 3%);
+  }
+
+  .user-menu__menu,
+  .dialog {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg-strong);
+    box-shadow: var(--glass-shadow), var(--shadow-xl);
+  }
+
+  .dialog-backdrop {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    background: rgb(20 20 20 / 25%);
+  }
+}
+
+@media (max-width: 760px) {
+  .shell__side {
+    margin: 0;
+    height: 100vh;
+    top: 0;
+    border-radius: 0 var(--radius-sections) var(--radius-sections) 0;
+    background: var(--glass-bg-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .shell__side,
+  .card,
+  .auth-card,
+  .user-menu__menu,
+  .dialog,
+  .kpi-card,
+  .topbar__jump,
+  .user-menu__trigger,
+  .shell__main,
+  .shell__main .card,
+  .shell__main .kpi-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--color-surface);
+  }
+}
+
+/* ---------- Match the wireframe: bold headings, bordered white cards, 4-column KPI row ---------- */
+.shell__main h1,
+.page-header__title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.shell__main h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.page-header__subtitle {
+  font-size: 13px;
+}
+
+.shell__main .card,
+.shell__main .kpi {
+  border: 1px solid rgb(0 0 0 / 10%);
+  border-radius: 18px;
+  background: var(--glass-card);
+  box-shadow: none;
+}
+
+.kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi__value {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.shell__side .side-nav__link.active {
+  background: #4a6fb5;
+}
+
+.shell__side .side-nav__label {
+  letter-spacing: 0.08em;
+}
+
+.topbar__jump,
+.user-menu__trigger {
+  border-color: rgb(0 0 0 / 12%);
+}
+
+.user-menu__trigger .avatar {
+  background: #1d1d1b;
+}
+
+/* ---------- Top bar round buttons, nav counters ---------- */
+.topbar__round {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgb(0 0 0 / 12%);
+  border-radius: 50%;
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  color: var(--color-text-muted);
+}
+
+.topbar__round:hover {
+  background: var(--glass-bg-strong);
+  color: var(--color-text);
+}
+
+.topbar__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pills);
+  background: #4a6fb5;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.side-nav__count {
+  min-width: 22px;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: var(--radius-pills);
+  background: var(--surface-tint);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.side-nav__link.active .side-nav__count {
+  background: rgb(255 255 255 / 25%);
+  color: #fff;
+}
+
+.shell--collapsed .side-nav__count {
+  display: none;
+}
+
+/* ---------- Dashboard details from the wireframe ---------- */
+.kpi-card__value {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.kpi-card__unit {
+  font-weight: 600;
+}
+
+.kpi-card__label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.kpi-card__label a,
+.alarms__title {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.kpi-card__icon {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+.page-header__actions .btn {
+  min-height: 40px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pills);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.page-header__actions .btn--primary {
+  border-color: var(--color-inverse);
+  background: var(--color-inverse);
+  color: var(--color-on-inverse);
+  font-weight: 600;
+}
+
+.page-header__actions .btn--primary:hover {
+  background: #2b2b29;
+}

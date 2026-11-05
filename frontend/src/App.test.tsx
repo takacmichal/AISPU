@@ -40,7 +40,7 @@ describe('role navigation', () => {
     expect(labels('Sales')).toContain('Zákazníci')
     expect(labels('Sales')).not.toContain('Servisné tikety')
     expect(labels('Technician')).toContain('Servisné tikety')
-    expect(labels('Customer')).toEqual(['Prehľad', 'Moje elektrárne', 'Servisné tikety'])
+    expect(labels('Customer')).toEqual(['Dashboard', 'Moje elektrárne', 'Servisné tikety'])
     expect(labels('Admin')).toContain('Používatelia a roly')
     expect(labels('Admin')).not.toContain('Administrácia')
   })
@@ -49,18 +49,18 @@ describe('role navigation', () => {
     const sections = (role: string) => menuGroups([role]).map((s) => [s.group ?? '', s.items.map((i) => i.label)])
     expect(sections('Admin').map(([group]) => group)).toEqual(['', 'Obchod', 'Realizácia', 'Servis', 'Systém'])
     expect(sections('Sales')).toEqual([
-      ['', ['Prehľad']],
+      ['', ['Dashboard']],
       ['Obchod', ['Zákazníci', 'Návrhy FVE', 'Ponuky', 'Zmluvy']],
       ['Realizácia', ['Pripojenie k distribučke']],
       ['Systém', ['Katalóg komponentov']],
     ])
     expect(sections('Technician')).toEqual([
-      ['', ['Prehľad']],
+      ['', ['Dashboard']],
       ['Realizácia', ['Inštalácie', 'Pripojenie k distribučke', 'Monitoring výroby']],
       ['Servis', ['Servisné tikety', 'Moje výjazdy']],
     ])
     expect(sections('Customer')).toEqual([
-      ['', ['Prehľad', 'Moje elektrárne']],
+      ['', ['Dashboard', 'Moje elektrárne']],
       ['Servis', ['Servisné tikety']],
     ])
   })
@@ -115,7 +115,7 @@ describe('role navigation', () => {
 
   it('offers only modules the role may open in the quick jump', async () => {
     renderAt('/app', session('Sales'))
-    await userEvent.click(screen.getByRole('button', { name: /Prejsť na/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Hľadať zákazníkov/ }))
     const options = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)
     expect(options).toContain('Zákazníci')
     expect(options).not.toContain('Servisné tikety')
@@ -140,9 +140,9 @@ describe('role navigation', () => {
 
   it('redirects / to the dashboard on /app', async () => {
     renderAt('/', session('Admin'))
-    expect(await screen.findByRole('heading', { name: 'Prehľad', level: 2 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 2 })).toBeInTheDocument()
     const nav = screen.getByRole('navigation', { name: 'Hlavná navigácia' })
-    expect(within(nav).getByRole('link', { name: 'Prehľad' })).toHaveAttribute('href', '/app')
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/app')
   })
 
   it('hides empty sidebar sections for the role', () => {
@@ -159,9 +159,13 @@ describe('role navigation', () => {
     expect(within(nav).queryByRole('link', { name: 'Servisné tikety' })).not.toBeInTheDocument()
   })
 
-  it('guards unauthorized routes with 403', () => {
+  it('guards unauthorized routes with 403 that names the section and the allowed roles', () => {
     renderAt('/tickets', session('Sales'))
-    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^403:\s*Do tejto sekcie nemáte prístup$/ })).toBeInTheDocument()
+    expect(screen.getByText(/Sekcia „Servisné tikety“ nie je dostupná/)).toBeInTheDocument()
+    expect(screen.getByText('Vaša rola: Obchod')).toBeInTheDocument()
+    expect(screen.getByText('Sekciu môžu otvoriť: Administrátor, Technik, Operátor, Zákazník')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Späť na prehľad' })).toHaveAttribute('href', '/app')
   })
 
   it('wires the customer portal routes', async () => {
@@ -171,7 +175,7 @@ describe('role navigation', () => {
 
   it('guards the customer portal detail with 403 for internal roles', () => {
     renderAt('/my-plants/i1', session('Admin'))
-    expect(screen.getByRole('heading', { name: /403/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^403:\s*Do tejto sekcie nemáte prístup$/ })).toBeInTheDocument()
   })
 
   it('redirects anonymous users to login', () => {
@@ -183,8 +187,8 @@ describe('role navigation', () => {
     renderAt('/admin/users', session('Admin'))
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumbs' })
     expect(within(crumbs).getByText('Používatelia a roly')).toHaveAttribute('aria-current', 'page')
-    expect(within(crumbs).getByRole('link', { name: 'Prehľad' })).toHaveAttribute('href', '/app')
-    expect(breadcrumbs('/admin/users').map((i) => i.label)).toEqual(['Prehľad', 'Administrácia', 'Používatelia a roly'])
+    expect(within(crumbs).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/app')
+    expect(breadcrumbs('/admin/users').map((i) => i.label)).toEqual(['Dashboard', 'Administrácia', 'Používatelia a roly'])
   })
 
   it('marks the current menu link active', () => {
@@ -195,11 +199,7 @@ describe('role navigation', () => {
 
   it('shows 404 for unknown routes', () => {
     renderAt('/nope', session('Admin'))
-    expect(screen.getByRole('heading', { name: /404/ })).toBeInTheDocument()
-  })
-
-  it('renders the dashboard API status', async () => {
-    renderAt('/app', session('Admin'))
-    expect(await screen.findByText('API je nedostupné.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^404:\s*Stránka neexistuje$/ })).toBeInTheDocument()
+    expect(screen.getByText('/nope')).toBeInTheDocument()
   })
 })
