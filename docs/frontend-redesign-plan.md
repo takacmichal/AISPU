@@ -157,7 +157,7 @@ Voliteľné (P2): počítadlá v menu (248, 18 …) a widget „Výroba dnes“ 
 |---|---|---|---|
 | Formulár „Nezáväzný dopyt“ (landing) | Chýba anonymný endpoint | Výzva „Vytvoriť účet“, formulár za prepínačom | `POST /api/inquiries` (anonymný, rate limit, vznikne potenciálny zákazník) |
 | Graf výroby celej flotily, widget „Výroba dnes“, počítadlá v menu | Výroba je len per inštalácia (`/api/installations/{id}/production`) | Nezobrazovať; na dashboarde posledná aktivita | `GET /api/dashboard/summary` |
-| Alarmy a anomálie | Hotové: `GET /api/underproduction-alarms` (#376, #248) | Sekcia v monitoringu a karta na dashboarde | Prepojenie s tiketom a označenie falošného poplachu: #33 |
+| Alarmy a anomálie | Hotové: `GET /api/underproduction-alarms` (#376, #248) | Sekcia v monitoringu a karta na dashboarde, alarm vedie na svoj tiket (#33) | Označenie falošného poplachu a istota klasifikácie: #248 |
 | Notifikácie (zvonček) | Chýba | Nezobrazovať | Voliteľné, P2 |
 | Globálne vyhľadávanie | Chýba | Len skok na moduly | Voliteľné, P2 |
 | Interné schvaľovanie ponuky | Chýba (stavy Draft, Sent, Accepted, Rejected, Expired) | Stepper zo skutočných stavov | Len ak o to tím stojí |

@@ -41,7 +41,7 @@ public sealed class UnderproductionAlarm
 
     public UnderproductionSeverity Severity { get; private set; }
 
-    /// <summary>Priority the service recommends for the ticket (#33).</summary>
+    /// <summary>Priority of the ticket: what the detection recommends, raised by a large loss (#117).</summary>
     public ServiceTicketPriority TicketPriority { get; private set; }
 
     public double MedianRatio { get; private set; }
@@ -66,14 +66,19 @@ public sealed class UnderproductionAlarm
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    internal static UnderproductionAlarm Create(Guid installationId, MlAlarm alarm, DateTimeOffset now)
+    /// <summary>The service ticket that handles this alarm (#33); null until one is needed.</summary>
+    public Guid? TicketId { get; private set; }
+
+    internal static UnderproductionAlarm Create(Guid installationId, MlAlarm alarm, ServiceTicketPriority priority, DateTimeOffset now)
     {
         var entity = new UnderproductionAlarm { Id = alarm.AlarmId, InstallationId = installationId };
-        entity.Apply(alarm, now);
+        entity.Apply(alarm, priority, now);
         return entity;
     }
 
-    internal void Apply(MlAlarm alarm, DateTimeOffset now)
+    internal void LinkTicket(Guid ticketId) => TicketId = ticketId;
+
+    internal void Apply(MlAlarm alarm, ServiceTicketPriority priority, DateTimeOffset now)
     {
         Start = alarm.Start;
         End = alarm.End;
@@ -81,7 +86,7 @@ public sealed class UnderproductionAlarm
         LastUnderproductionAt = alarm.LastUnderproductionAt;
         Ongoing = alarm.Ongoing;
         Severity = alarm.Severity;
-        TicketPriority = alarm.TicketPriority;
+        TicketPriority = priority;
         MedianRatio = alarm.MedianRatio;
         MinRatio = alarm.MinRatio;
         UnderproducingHours = alarm.UnderproducingHours;

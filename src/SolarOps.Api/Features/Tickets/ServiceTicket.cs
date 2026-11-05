@@ -50,7 +50,7 @@ public enum ServiceTicketOrigin
     /// <summary>Created by the back office or a technician, e.g. after a phone call.</summary>
     Manual,
 
-    /// <summary>Created from a confirmed ML alert (#115); not produced by this module yet.</summary>
+    /// <summary>Created from an underproduction alarm of the ML detection (#115), see <see cref="IAnomalyTicketService"/>.</summary>
     AnomalyDetected,
 }
 
@@ -71,6 +71,9 @@ public sealed class ServiceTicket
 {
     public const int TitleMaxLength = 200;
     public const int DescriptionMaxLength = 4000;
+
+    /// <summary>Author of what the system does by itself (#33): it is no user, so it matches no account.</summary>
+    public static readonly Guid SystemActorId = Guid.Empty;
     public const int NoteMaxLength = 2000;
     public const int CommentMaxLength = 4000;
     public const int FileNameMaxLength = 255;
@@ -206,6 +209,19 @@ public sealed class ServiceTicket
     {
         TransitionTo(ServiceTicketState.Triaged, by, note, now);
         Priority = priority;
+    }
+
+    /// <summary>Raises the priority of an open ticket (#117). A lower priority or a finished ticket changes nothing; returns whether it changed.</summary>
+    public bool RaisePriority(ServiceTicketPriority priority, DateTimeOffset now)
+    {
+        if (priority <= Priority || State is ServiceTicketState.Resolved or ServiceTicketState.Closed)
+        {
+            return false;
+        }
+
+        Priority = priority;
+        UpdatedAt = now;
+        return true;
     }
 
     /// <summary>A technician visit is planned (RemoteDiagnosis to VisitScheduled, #125).</summary>

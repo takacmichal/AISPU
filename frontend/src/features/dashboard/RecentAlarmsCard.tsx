@@ -14,7 +14,10 @@ export function RecentAlarmsCard({ summary, alarms = [] }: { summary: TicketSumm
   const now = new Date()
   // Real alarms win over sample data; they come first because they are what needs attention now.
   const mock = Boolean(summary?.mock) && alarms.length === 0
-  const data = summary && (mock ? MOCK_ALARMS : [...alarms.map(fromAlarm), ...summary.items.map(fromTicket)].slice(0, 5))
+  // A ticket created from an alarm is the same event, so it is listed once, as the alarm.
+  const linked = new Set(alarms.map((a) => a.ticketId))
+  const tickets = summary?.items.filter((t) => !linked.has(t.id)) ?? []
+  const data = summary && (mock ? MOCK_ALARMS : [...alarms.map(fromAlarm), ...tickets.map(fromTicket)].slice(0, 5))
   return (
     <article className="card dash-card" aria-labelledby="dash-alarms-title">
       <header className="dash-card__header">

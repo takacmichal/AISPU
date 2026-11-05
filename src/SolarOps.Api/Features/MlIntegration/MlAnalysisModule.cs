@@ -6,8 +6,8 @@ using SolarOps.Api.Infrastructure.Modules;
 namespace SolarOps.Api.Features.MlIntegration;
 
 /// <summary>
-/// Integration with the ML service (#376, ADR #196): a typed client, an on-demand analysis of an installation and the stored
-/// underproduction alarms. Scheduling the analysis and creating tickets from alarms belong to #33.
+/// Integration with the ML service (#376, ADR #196): a typed client, an analysis of an installation on demand and on a schedule,
+/// the stored underproduction alarms and service tickets created from them (#33).
 /// </summary>
 public sealed class MlAnalysisModule : IModule
 {
@@ -17,6 +17,7 @@ public sealed class MlAnalysisModule : IModule
             .Bind(configuration.GetSection(MlOptions.SectionName))
             .ValidateDataAnnotations()
             .Validate(o => o.HasValidBaseUrl(), "Ml:BaseUrl must be empty or an absolute http/https address.")
+            .Validate(o => o.TicketMediumLostKwh <= o.TicketHighLostKwh, "Ml:TicketMediumLostKwh must not exceed Ml:TicketHighLostKwh.")
             .ValidateOnStart();
 
         services.AddHttpClient<IMlServiceClient, MlServiceClient>()
@@ -27,6 +28,8 @@ public sealed class MlAnalysisModule : IModule
             });
 
         services.AddScoped<IMlAnalysisService, MlAnalysisService>();
+        services.AddSingleton<IMlScheduledAnalysis, MlScheduledAnalysis>();
+        services.AddHostedService<MlAnalysisBackgroundService>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -38,6 +41,7 @@ public sealed class MlAnalysisModule : IModule
             .WithSummary("Run the ML prediction and underproduction detection")
             .WithDescription("Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of " +
                 "ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. " +
+                "An ongoing alarm creates a service ticket with origin AnomalyDetected, or an internal comment on an open ticket of the installation. " +
                 "503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)

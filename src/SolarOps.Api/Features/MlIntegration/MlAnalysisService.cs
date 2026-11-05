@@ -4,6 +4,7 @@ using SolarOps.Api.Features.Customers;
 using SolarOps.Api.Features.FveDesigns;
 using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Features.Production;
+using SolarOps.Api.Features.Tickets;
 using SolarOps.Api.Features.Weather;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Persistence;
@@ -31,6 +32,7 @@ internal sealed class MlAnalysisService(
     AppDbContext db,
     IMlServiceClient ml,
     IProductionService production,
+    IAnomalyTicketService tickets,
     ICustomerScope customerScope,
     TimeProvider timeProvider,
     IOptions<MlOptions> options) : IMlAnalysisService
@@ -44,14 +46,16 @@ internal sealed class MlAnalysisService(
         var now = timeProvider.GetUtcNow();
 
         var prediction = await PredictAsync(installationId, plant, now, ct);
-        var alarms = await DetectAsync(installationId, plant, now, ct);
+        var detection = await DetectAsync(installationId, plant, now, ct);
 
         return new MlAnalysisResponse(
             installationId,
             prediction?.ModelVersion,
             prediction?.Predictions.Count ?? 0,
-            alarms.Count,
-            alarms.Count(a => a.Ongoing),
+            detection.Alarms.Count,
+            detection.Alarms.Count(a => a.Ongoing),
+            detection.TicketsCreated,
+            detection.TicketsSupplemented,
             now);
     }
 
@@ -115,7 +119,7 @@ internal sealed class MlAnalysisService(
         var installation = await db.Set<Installation>()
             .AsNoTracking()
             .Where(i => i.Id == installationId)
-            .Select(i => new { i.SupplyPointId, i.PlannedPowerKwp })
+            .Select(i => new { i.Name, i.SupplyPointId, i.PlannedPowerKwp })
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Installation", installationId);
 
@@ -144,6 +148,7 @@ internal sealed class MlAnalysisService(
         }
 
         return new PlantParameters(
+            installation.Name,
             new MlPlant(design.Latitude!.Value, design.Longitude!.Value, dcKwp.Value, plane.TiltDeg, plane.AzimuthDeg, version?.DcAcRatio),
             dcKwp.Value * 1000,
             version is null ? null : version.AcPowerKw * 1000);
@@ -211,7 +216,7 @@ internal sealed class MlAnalysisService(
         }
     }
 
-    private async Task<IReadOnlyList<MlAlarm>> DetectAsync(Guid installationId, PlantParameters plant, DateTimeOffset now, CancellationToken ct)
+    private async Task<DetectionOutcome> DetectAsync(Guid installationId, PlantParameters plant, DateTimeOffset now, CancellationToken ct)
     {
         // Only finished hours: a running hour has too few samples yet.
         var to = new DateTimeOffset(now.UtcDateTime.Date.AddHours(now.UtcDateTime.Hour), TimeSpan.Zero);
@@ -226,7 +231,7 @@ internal sealed class MlAnalysisService(
             .ToListAsync(ct);
         if (expectations.Count == 0)
         {
-            return [];
+            return new DetectionOutcome([], 0, 0);
         }
 
         var actual = await production.GetAsync(
@@ -243,29 +248,63 @@ internal sealed class MlAnalysisService(
 
         var ids = response.Alarms.Select(a => a.AlarmId).ToList();
         var existing = await alarms.Where(a => ids.Contains(a.Id)).ToDictionaryAsync(a => a.Id, ct);
+        var created = 0;
+        var supplemented = 0;
         foreach (var alarm in response.Alarms)
         {
-            if (existing.TryGetValue(alarm.AlarmId, out var stored))
+            var priority = AlarmTicketRules.Priority(alarm, options.Value);
+            var description = AlarmTicketRules.Description(plant.Name, alarm);
+            if (!existing.TryGetValue(alarm.AlarmId, out var stored))
             {
-                stored.Apply(alarm, now);
+                stored = UnderproductionAlarm.Create(installationId, alarm, priority, now);
+                db.Add(stored);
             }
             else
             {
-                db.Add(UnderproductionAlarm.Create(installationId, alarm, now));
+                // Only a rise of this alarm counts: otherwise every run would undo a priority lowered by the operator.
+                if (stored.TicketId is { } linked && priority > stored.TicketPriority)
+                {
+                    await tickets.EscalateAsync(linked, priority, description, ct);
+                }
+
+                stored.Apply(alarm, priority, now);
             }
+
+            // An ended event needs no one to go there; a past one would otherwise open tickets for problems long gone.
+            if (alarm.Ongoing && stored.TicketId is null)
+            {
+                var ticket = await tickets.OpenOrSupplementAsync(
+                    new AnomalyTicketRequest(installationId, AlarmTicketRules.Title(plant.Name), description, priority),
+                    ct);
+                stored.LinkTicket(ticket.TicketId);
+                created += ticket.Created ? 1 : 0;
+                supplemented += ticket.Created ? 0 : 1;
+            }
+
+            // Alarm by alarm, so the next one sees the ticket; the alarm and its ticket are stored together or not at all.
+            await SaveAlarmAsync(ct);
         }
 
+        return new DetectionOutcome(response.Alarms, created, supplemented);
+    }
+
+    private async Task SaveAlarmAsync(CancellationToken ct)
+    {
         try
         {
             await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new DomainException(ConcurrentRunMessage);
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             throw new DomainException(ConcurrentRunMessage);
         }
-
-        return response.Alarms;
     }
 
-    private sealed record PlantParameters(MlPlant Plant, double RatedPowerW, double? AcLimitW);
+    private sealed record DetectionOutcome(IReadOnlyList<MlAlarm> Alarms, int TicketsCreated, int TicketsSupplemented);
+
+    private sealed record PlantParameters(string Name, MlPlant Plant, double RatedPowerW, double? AcLimitW);
 }

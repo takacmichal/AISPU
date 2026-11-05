@@ -1637,6 +1637,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("start");
 
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
                     b.Property<string>("TicketPriority")
                         .IsRequired()
                         .HasMaxLength(20)

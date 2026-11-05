@@ -71,4 +71,8 @@ internal sealed record MlAlarm(
     double ActualKwh,
     double EstimatedLostKwh,
     string ReasonCode,
-    string Reason);
+    string Reason,
+    IReadOnlyList<MlEvidenceHour> Evidence);
+
+// Timestamp: END of the hour, UTC.
+internal sealed record MlEvidenceHour(DateTimeOffset Timestamp, double ActualPowerW, double ExpectedPowerW, double Ratio);

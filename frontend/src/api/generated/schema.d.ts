@@ -1330,7 +1330,7 @@ export interface paths {
         put?: never;
         /**
          * Run the ML prediction and underproduction detection
-         * @description Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. 503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.
+         * @description Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. An ongoing alarm creates a service ticket with origin AnomalyDetected, or an internal comment on an open ticket of the installation. 503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.
          */
         post: operations["RunInstallationAnalysis"];
         delete?: never;
@@ -2891,6 +2891,16 @@ export interface components {
              */
             ongoingAlarms: number | string;
             /**
+             * Format: int32
+             * @description Service tickets created from alarms in this run (#33).
+             */
+            ticketsCreated: number | string;
+            /**
+             * Format: int32
+             * @description Alarms recorded on an already open ticket of the installation instead of a duplicate.
+             */
+            ticketsSupplemented: number | string;
+            /**
              * Format: date-time
              * @description Time of the run, UTC.
              */
@@ -3716,7 +3726,7 @@ export interface components {
             ongoing: boolean;
             /** @description Severity by the ratio and duration. */
             severity: components["schemas"]["UnderproductionSeverity"];
-            /** @description Recommended priority of a service ticket. */
+            /** @description Priority of the service ticket: by the detection, raised by a large loss. */
             ticketPriority: components["schemas"]["ServiceTicketPriority"];
             /**
              * Format: double
@@ -3767,6 +3777,11 @@ export interface components {
              * @description Last time an analysis reported this alarm.
              */
             updatedAt: string;
+            /**
+             * Format: uuid
+             * @description Service ticket handling the alarm; null when it has none (an ended event gets none).
+             */
+            ticketId: null | string;
         };
         /**
          * @description Severity of an underproduction event (ADR #194).

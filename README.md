@@ -68,6 +68,14 @@ Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier
 
 ML služba sa volá na adrese `Ml:BaseUrl` (`Ml__BaseUrl`; v Development `http://localhost:8000`, v docker compose `http://ml:8000`). Prázdna hodnota znamená, že služba nie je dostupná: API normálne beží a len `POST /api/installations/{id}/analysis` vráti 503.
 
+### Automatické servisné tikety
+
+Každých `Ml:AnalysisIntervalMinutes` minút (predvolene 60) API analyzuje inštalácie so zapnutým monitoringom, ak je nastavené `Ml:BaseUrl` a `Ml:AnalysisEnabled` nie je `false`. Tiket vznikne v tom istom behu ako alarm. Rovnakú analýzu spustí aj tlačidlo „Spustiť analýzu“ v monitoringu.
+
+- **Kedy:** len z prebiehajúceho alarmu; alarm, ktorý už skončil, tiket nezakladá. Tiket má pôvod `AnomalyDetected`, odchýlku a dôkazy po hodinách.
+- **Bez duplicít:** ak má inštalácia otvorený tiket (nie `Resolved` ani `Closed`), nový nevznikne a alarm sa na ňom zapíše ako interný komentár. Prednosť má tiket z detekcie. Jeden alarm patrí jednému tiketu, opakovaný beh nič nepridáva.
+- **Priorita:** základ určuje závažnosť z detekcie (ADR #194). Odhadovaná strata ju môže zvýšiť: od `Ml:TicketMediumLostKwh` (10 kWh) aspoň Medium, od `Ml:TicketHighLostKwh` (50 kWh) High. Keď alarmu priorita neskôr stúpne, zvýši sa aj na jeho otvorenom tikete a pribudne interný komentár. Priorita znížená operátorom ostane, kým alarmu znova nestúpne.
+
 ## Časté chyby
 
 | Príznak | Príčina a riešenie |

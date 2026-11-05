@@ -24,6 +24,8 @@ export default function MonitoringPage() {
   const { roles } = useAuth()
   const ticketRoute = findItem('/tickets/new')
   const canCreateTicket = ticketRoute ? canAccess(ticketRoute, roles) : false
+  const ticketsRoute = findItem('/tickets')
+  const canOpenTicket = ticketsRoute ? canAccess(ticketsRoute, roles) : false
   const canAnalyze = roles.includes('Admin') || roles.includes('Operator')
   const [analyses, setAnalyses] = useState(0)
 
@@ -91,6 +93,7 @@ export default function MonitoringPage() {
             }
             canAnalyze={canAnalyze}
             canCreateTicket={canCreateTicket}
+            canOpenTicket={canOpenTicket}
             onAnalyzed={() => setAnalyses((n) => n + 1)}
           />
         </>

@@ -115,6 +115,20 @@ describe('Dashboard', () => {
       expect(fetch.mock.calls.some(([url]) => String(url).includes('/api/underproduction-alarms?ongoing=true'))).toBe(true)
     })
 
+    it('list a ticket created from an alarm only once', async () => {
+      mockApi({
+        'GET /api/installations': json([]),
+        'GET /api/quotes': json([]),
+        'GET /api/tickets': json({ items: [ticket({ id: 't9', title: 'Podvýroba z tiketu' }), ticket({ id: 't2', title: 'Iný tiket' })], page: 1, pageSize: 100, totalCount: 2 }),
+        'GET /api/underproduction-alarms': json({ items: [{ ...alarm, ticketId: 't9' }] }),
+      })
+      renderDashboard('Admin')
+
+      expect(await screen.findByRole('link', { name: 'Podvýroba: FVE Nitra' })).toBeInTheDocument()
+      expect(await screen.findByRole('link', { name: 'Iný tiket' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Podvýroba z tiketu' })).not.toBeInTheDocument()
+    })
+
     it('are not asked for by a role that cannot open monitoring', async () => {
       const fetch = mockApi({ 'GET /api/quotes': json([]) })
       renderDashboard('Sales')

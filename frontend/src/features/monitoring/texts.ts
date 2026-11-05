@@ -88,7 +88,8 @@ export const T = {
     error: 'Alarmy sa nepodarilo načítať.',
     analyze: 'Spustiť analýzu',
     analyzing: 'Analyzujem…',
-    analyzed: (hours: number, alarms: number) => `Analýza dokončená: predikcia na ${hours} h, nájdené alarmy: ${alarms}.`,
+    analyzed: (hours: number, alarms: number, tickets: number) =>
+      `Analýza dokončená: predikcia na ${hours} h, nájdené alarmy: ${alarms}${tickets > 0 ? `, nové tikety: ${tickets}` : ''}.`,
     analyzeFailed: 'Analýzu sa nepodarilo spustiť.',
     serviceUnavailable: 'Služba predikcie je teraz nedostupná. Doterajšie výsledky zostávajú, skúste to neskôr.',
     detail: {
@@ -101,6 +102,7 @@ export const T = {
       summary: (period: string, percent: number) => `Výroba v období ${period} dosiahla ${percent} % predikcie.`,
       close: 'Zavrieť',
       createTicket: 'Vytvoriť servisný tiket',
+      openTicket: 'Otvoriť servisný tiket',
     },
   },
 } as const
