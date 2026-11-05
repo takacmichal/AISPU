@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest'
+import glassCss from '../glass.css?raw'
 import css from '../index.css?raw'
 
 /**
- * WCAG 2.1 AA check of the colour tokens in `index.css` (:root): text pairs need 4.5 : 1, UI parts
+ * WCAG 2.1 AA check of the colour tokens in `index.css` and `glass.css` (:root): text pairs need 4.5 : 1, UI parts
  * (focus ring, input border) 3 : 1. Reads the real stylesheet, so a token change that breaks contrast fails here.
  */
 type Rgb = [number, number, number]
 
-const root = css.slice(css.indexOf(':root {'), css.indexOf('\n}', css.indexOf(':root {')))
-const tokens = new Map<string, string>([...root.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]))
+function rootTokens(sheet: string): [string, string][] {
+  const root = sheet.slice(sheet.indexOf(':root {'), sheet.indexOf('\n}', sheet.indexOf(':root {')))
+  return [...root.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()])
+}
+
+// glass.css is loaded after index.css, so its :root tokens win.
+const tokens = new Map<string, string>([...rootTokens(css), ...rootTokens(glassCss)])
 
 /** Resolves a token to an opaque colour; translucent `rgb(0 0 0 / 8%)` is composited over `base`. */
 function color(name: string, base: Rgb = [255, 255, 255]): Rgb {
@@ -51,6 +57,10 @@ describe('colour contrast of the design tokens (WCAG AA)', () => {
     ['color-text-muted', 'color-info-bg'],
     ['color-primary', 'color-surface'],
     ['color-primary', 'color-bg'],
+    // Text right on the grey glass backdrop (page header, toolbar, breadcrumbs)
+    ['color-text-body', 'glass-page'],
+    ['color-text-muted', 'glass-page'],
+    ['color-primary', 'glass-page'],
     // Buttons
     ['color-on-primary', 'color-primary'],
     ['color-on-primary', 'color-primary-hover'],

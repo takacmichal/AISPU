@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { HOME_PATH, ROLE_LABELS, breadcrumbs, menuGroups, menuItems, primaryRole } from '../auth/navigation'
 import { MESSAGES } from '../lib/messages'
-import { BrandGlyph, CollapseIcon, MenuIcon, NavIcon, SearchIcon } from './NavIcon'
+import { BellIcon, BrandGlyph, CollapseIcon, HelpIcon, MenuIcon, NavIcon, SearchIcon } from './NavIcon'
+import { MOCK_NOTIFICATIONS } from '../features/dashboard/mock'
+import { SideProductionCard } from './SideProductionCard'
+import { useNavCounts } from './useShellData'
+import { canAccess, findItem } from '../auth/navigation'
 import { QuickJump } from './QuickJump'
 import { UserMenu } from './UserMenu'
 import { LAYOUT_TEXTS as T } from './texts'
@@ -32,6 +36,9 @@ export function AppShell() {
   const navOpen = navOpenPath === pathname
   const closeNav = () => setNavOpenPath(null)
   const [quickJump, setQuickJump] = useState(false)
+  const monitoringItem = findItem('/monitoring')
+  const canMonitor = monitoringItem !== undefined && canAccess(monitoringItem, roles)
+  const counts = useNavCounts(pathname === HOME_PATH && roles.length > 0 && !roles.every((r) => r === 'Customer'))
 
   function toggleCollapsed() {
     setCollapsed((value) => {
@@ -93,14 +100,13 @@ export function AppShell() {
         </div>
         <nav aria-label={T.mainNav} className="side-nav">
           {menuGroups(roles).map((section) => {
-            const labelId = section.group ? `nav-group-${section.group}` : undefined
+            const groupLabel = section.group ?? T.topGroup
+            const labelId = `nav-group-${groupLabel}`
             return (
               <div key={section.group ?? 'top'} className="side-nav__section">
-                {section.group && (
-                  <p id={labelId} className="side-nav__label">
-                    {section.group}
-                  </p>
-                )}
+                <p id={labelId} className="side-nav__label">
+                  {groupLabel}
+                </p>
                 <ul aria-labelledby={labelId}>
                   {section.items.map((item) => (
                     <li key={item.path}>
@@ -112,6 +118,11 @@ export function AppShell() {
                       >
                         <NavIcon path={item.path} />
                         <span className="side-nav__text">{item.label}</span>
+                        {counts[item.path] !== undefined && counts[item.path] > 0 && (
+                          <span className="side-nav__count" aria-hidden="true">
+                            {counts[item.path]}
+                          </span>
+                        )}
                       </NavLink>
                     </li>
                   ))}
@@ -120,6 +131,7 @@ export function AppShell() {
             )
           })}
         </nav>
+        {canMonitor && !collapsed && <SideProductionCard live={pathname === HOME_PATH} />}
       </aside>
       {navOpen && <div className="shell__backdrop" aria-hidden="true" onClick={closeNav} />}
       <div className="shell__body">
@@ -140,6 +152,20 @@ export function AppShell() {
             <kbd className="topbar__kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
           </button>
           <div className="topbar__spacer" />
+          <a
+            className="topbar__round"
+            href="https://github.com/takacmichal/AISPU#readme"
+            target="_blank"
+            rel="noreferrer"
+            aria-label={T.help}
+            title={T.help}
+          >
+            <HelpIcon />
+          </a>
+          <Link to="/tickets" className="topbar__round" aria-label={T.notifications} title={T.notifications}>
+            <BellIcon />
+            <span className="topbar__badge">{MOCK_NOTIFICATIONS}</span>
+          </Link>
           <UserMenu name={email} role={roleLabel} onSignOut={signOut} />
         </header>
         <main id="main-content" ref={mainRef} tabIndex={-1} className="shell__main">
