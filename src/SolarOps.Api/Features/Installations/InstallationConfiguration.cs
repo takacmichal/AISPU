@@ -36,9 +36,12 @@ internal sealed class InstallationConfiguration : IEntityTypeConfiguration<Insta
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(x => x.StateChanges).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        // The conventional FK name depends on the order in which entity configurations are applied (principal table
+        // name vs. entity name), which differs between platforms; pin it so the model matches the migrations everywhere.
         builder.HasMany(x => x.ChecklistItems)
             .WithOne()
             .HasForeignKey(x => x.InstallationId)
+            .HasConstraintName("fk_installation_checklist_items_installations_installation_id")
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(x => x.ChecklistItems).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
