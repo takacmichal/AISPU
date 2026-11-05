@@ -1,5 +1,6 @@
 import { api } from '../../api/client'
-import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
+import { ALARMS_POLL_MS, DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
+import { fetchOngoingAlarms, type Alarm } from '../monitoring/alarmsApi'
 import { addDays, toDateString } from '../monitoring/periods'
 import { fetchProduction } from '../monitoring/productionApi'
 import { listTickets, type TicketListItem } from '../tickets/ticketsApi'
@@ -109,6 +110,23 @@ export function useTicketSummary(enabled = true) {
 
 function emptyTickets(): Omit<TicketSummary, 'mock'> {
   return { open: MOCK_TICKET_SUMMARY.open, overSla: MOCK_TICKET_SUMMARY.overSla, fresh: 1, critical: 1, warning: 3, info: 1, items: [] }
+}
+
+/** Ongoing underproduction alarms of all installations, refreshed every minute (ADR #222). Without access the list is empty. */
+export function useOngoingAlarms(enabled = true) {
+  return useLoad<Alarm[]>(
+    async (signal, { background }) => {
+      if (!enabled) return []
+      try {
+        return await fetchOngoingAlarms(signal)
+      } catch (error) {
+        if (signal.aborted || background) throw error
+        return []
+      }
+    },
+    `dashboard-alarms|${enabled}`,
+    { intervalMs: ALARMS_POLL_MS, enabled },
+  )
 }
 
 export interface QuoteSummary {

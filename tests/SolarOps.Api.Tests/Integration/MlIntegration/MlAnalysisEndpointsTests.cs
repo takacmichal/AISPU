@@ -251,6 +251,58 @@ public sealed class MlAnalysisEndpointsTests : IClassFixture<PostgresFixture>, I
         Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
     }
 
+    [Fact]
+    public async Task AllAlarms_Anonymous_Returns401()
+    {
+        using var client = _factory.CreateApiClient();
+
+        using var response = await client.GetAsync("/api/underproduction-alarms");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AllAlarms_CustomerGetsOnlyOwn_StaffGetsAllWithInstallationNames()
+    {
+        var (ownUser, ownInstallation, foreignInstallation) = await SeedTwoCustomersAsync();
+        using var op = Operator();
+        await RunAsync(op, ownInstallation);
+        await RunAsync(op, foreignInstallation);
+
+        var all = await op.GetJsonAsync<UnderproductionAlarmListResponse>("/api/underproduction-alarms");
+        Assert.Equal(2, all.Items.Count);
+        Assert.All(all.Items, a => Assert.False(string.IsNullOrEmpty(a.InstallationName)));
+
+        using var customer = _factory.CreateApiClient(ownUser, Roles.Customer);
+        var own = await customer.GetJsonAsync<UnderproductionAlarmListResponse>("/api/underproduction-alarms");
+        Assert.Equal(ownInstallation, Assert.Single(own.Items).InstallationId);
+    }
+
+    [Fact]
+    public async Task AllAlarms_FiltersBySeverityAndState()
+    {
+        var installationId = await SeedInstallationAsync();
+        using var client = Operator();
+        await RunAsync(client, installationId);
+
+        async Task<int> CountAsync(string query) =>
+            (await client.GetJsonAsync<UnderproductionAlarmListResponse>($"/api/underproduction-alarms?{query}")).Items.Count;
+
+        Assert.Equal(1, await CountAsync("severity=Medium&ongoing=true"));
+        Assert.Equal(0, await CountAsync("severity=High"));
+        Assert.Equal(0, await CountAsync("ongoing=false"));
+    }
+
+    [Fact]
+    public async Task AllAlarms_UnknownSeverity_Returns400()
+    {
+        using var client = Operator();
+
+        using var response = await client.GetAsync("/api/underproduction-alarms?severity=Catastrophic");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<(Guid OwnUser, Guid OwnInstallation, Guid ForeignInstallation)> SeedTwoCustomersAsync()
     {
         var userA = await NewUserAsync();

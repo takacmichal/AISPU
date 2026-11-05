@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
@@ -7,7 +8,8 @@ import { PageHeader } from '../../components/PageHeader'
 import { Skeleton } from '../../components/Skeleton'
 import { FilterSelect } from '../../components/Toolbar'
 import { useLoad } from '../../components/useLoad'
-import { AnomalySection } from './AnomalySection'
+import type { AlarmSeverityFilter, AlarmStateFilter } from './alarmLogic'
+import { AlarmsSection } from './AlarmsSection'
 import './monitoring.css'
 import { periodFromParams, periodToParams } from './periods'
 import { ProductionPanel } from './ProductionPanel'
@@ -22,6 +24,8 @@ export default function MonitoringPage() {
   const { roles } = useAuth()
   const ticketRoute = findItem('/tickets/new')
   const canCreateTicket = ticketRoute ? canAccess(ticketRoute, roles) : false
+  const canAnalyze = roles.includes('Admin') || roles.includes('Operator')
+  const [analyses, setAnalyses] = useState(0)
 
   const { data, loading, error, reload } = useLoad(async (signal) => {
     const { data, response } = await api.GET('/api/installations', { signal })
@@ -57,7 +61,7 @@ export default function MonitoringPage() {
       {selected && (
         <>
           <ProductionPanel
-            key={selected.id}
+            key={`${selected.id}#${analyses}`}
             installationId={selected.id}
             installationName={selected.name}
             period={periodFromParams(params)}
@@ -74,7 +78,21 @@ export default function MonitoringPage() {
               />
             }
           />
-          <AnomalySection installationId={selected.id} />
+          <AlarmsSection
+            key={selected.id}
+            installationId={selected.id}
+            severity={(params.get('alarmSeverity') as AlarmSeverityFilter | null) ?? 'all'}
+            state={(params.get('alarmState') as AlarmStateFilter | null) ?? 'all'}
+            onFilterChange={({ severity, state }) =>
+              update({
+                ...(severity && { alarmSeverity: severity === 'all' ? null : severity }),
+                ...(state && { alarmState: state === 'all' ? null : state }),
+              })
+            }
+            canAnalyze={canAnalyze}
+            canCreateTicket={canCreateTicket}
+            onAnalyzed={() => setAnalyses((n) => n + 1)}
+          />
         </>
       )}
     </section>

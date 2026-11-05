@@ -53,7 +53,7 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
 | `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
-| `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export` (prehľady výroby, #28), `GET /api/installations/{installationId}/underproduction-alarms` (alarmy podvýroby, #376) |
+| `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export` (prehľady výroby, #28), `GET /api/installations/{installationId}/underproduction-alarms`, `GET /api/underproduction-alarms` (alarmy podvýroby, #376, #248) |
 | `ProductionAnalyze` | Admin, Operator | `POST /api/installations/{installationId}/analysis` (spustenie ML predikcie a detekcie, #376) |
 | `TicketsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/history`, `GET /api/tickets/{id}/comments`, `GET /api/tickets/{id}/attachments/{attachmentId}`, `GET /api/tickets/{id}/visits`, `GET /api/visits/{id}` |
 | `TicketsCreate` | Admin, Technician, Operator, Customer | `POST /api/tickets` (zákazník len pre vlastnú inštaláciu, pôvod `CustomerReport`) |

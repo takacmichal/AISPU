@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom'
 import { Skeleton } from '../../components/Skeleton'
 import { formatRelative } from '../../lib/format'
-import { fromTicket } from './alarms'
+import type { Alarm } from '../monitoring/alarmsApi'
+import { fromAlarm, fromTicket } from './alarms'
 import type { TicketSummary } from './data'
 import { MOCK_ALARMS } from './mock'
 import { DASHBOARD_PARTS as T } from './texts'
 import './dashboard.css'
 
 /** `summary` comes from the dashboard (one request shared with the KPI cards); undefined while loading. */
-export function RecentAlarmsCard({ summary }: { summary: TicketSummary | null | undefined }) {
+export function RecentAlarmsCard({ summary, alarms = [] }: { summary: TicketSummary | null | undefined; alarms?: readonly Alarm[] }) {
   const loading = summary === undefined
   const now = new Date()
-  const data = summary && (summary.mock ? MOCK_ALARMS : summary.items.slice(0, 5).map(fromTicket))
+  // Real alarms win over sample data; they come first because they are what needs attention now.
+  const mock = Boolean(summary?.mock) && alarms.length === 0
+  const data = summary && (mock ? MOCK_ALARMS : [...alarms.map(fromAlarm), ...summary.items.map(fromTicket)].slice(0, 5))
   return (
     <article className="card dash-card" aria-labelledby="dash-alarms-title">
       <header className="dash-card__header">
@@ -21,7 +24,7 @@ export function RecentAlarmsCard({ summary }: { summary: TicketSummary | null | 
           </h3>
           <p className="dash-card__subtitle">
             {T.alarms.subtitle}
-            {summary?.mock && <span className="mock-tag">{T.mock}</span>}
+            {mock && <span className="mock-tag">{T.mock}</span>}
           </p>
         </div>
         <Link to="/tickets" className="dash-card__link">

@@ -8,6 +8,10 @@
 POST {{baseUrl}}/api/installations/{{installationId}}/analysis
 Authorization: Bearer {{token}}
 
-### Stored underproduction alarms, newest first
+### Ongoing high-severity alarms of all installations
+GET {{baseUrl}}/api/underproduction-alarms?severity=High&ongoing=true
+Authorization: Bearer {{token}}
+
+### Stored underproduction alarms of one installation, newest first
 GET {{baseUrl}}/api/installations/{{installationId}}/underproduction-alarms
 Authorization: Bearer {{token}}

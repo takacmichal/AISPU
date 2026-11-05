@@ -52,6 +52,15 @@ public sealed class MlAnalysisModule : IModule
                 "A customer sees only its own installations (another one is 404).")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(AuthorizationPolicies.ProductionRead);
+
+        endpoints.MapGet("/api/underproduction-alarms", ListAllAlarms)
+            .WithTags("ML analysis")
+            .WithName("ListAllUnderproductionAlarms")
+            .WithSummary("Underproduction alarms of all installations")
+            .WithDescription("Stored results of the last analyses, newest first, at most 100; light enough for the dashboard to poll every minute " +
+                "(ADR #222), the ML service is not called. severity: Low, Medium, High. ongoing: true or false. " +
+                "A customer gets only the alarms of its own installations.")
+            .RequireAuthorization(AuthorizationPolicies.ProductionRead);
     }
 
     internal static async Task<Results<Ok<MlAnalysisResponse>, ProblemHttpResult>> RunAnalysis(
@@ -70,6 +79,10 @@ public sealed class MlAnalysisModule : IModule
                 : TypedResults.Problem("The ML service returned an unusable answer.", statusCode: StatusCodes.Status502BadGateway);
         }
     }
+
+    internal static async Task<Ok<UnderproductionAlarmListResponse>> ListAllAlarms(
+        UnderproductionSeverity? severity, bool? ongoing, IMlAnalysisService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.ListAlarmsAsync(severity, ongoing, ct));
 
     internal static async Task<Ok<UnderproductionAlarmListResponse>> ListAlarms(
         Guid installationId, IMlAnalysisService service, CancellationToken ct) =>
