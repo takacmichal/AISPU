@@ -50,6 +50,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { path: '/monitoring', label: 'Monitoring výroby', roles: ['Admin', 'Operator', 'Technician', 'Designer'], group: 'Realizácia' },
   { path: '/tickets', label: 'Servisné tikety', roles: ['Admin', 'Technician', 'Operator', 'Customer'], group: 'Servis' },
   { path: '/my-visits', label: 'Moje výjazdy', roles: ['Technician'], group: 'Servis' },
+  { path: '/visit-calendar', label: 'Kalendár výjazdov', roles: ['Admin', 'Operator'], group: 'Servis' },
   { path: '/tickets/new', label: 'Nahlásiť poruchu', roles: ['Admin', 'Technician', 'Operator', 'Customer'], parent: '/tickets', menu: false },
   { path: '/admin', label: 'Administrácia', roles: ['Admin'], menu: false },
   { path: '/admin/users', label: 'Používatelia a roly', roles: ['Admin'], parent: '/admin', group: 'Systém' },

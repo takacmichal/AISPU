@@ -123,6 +123,8 @@ export const verifyTicket = (ticketId: string) => send<unknown>('POST', `/api/ti
 
 export const startVisit = (id: string) => send<Visit>('POST', `/api/visits/${id}/start`)
 export const reportVisit = (id: string, body: VisitReportRequest) => send<Visit>('POST', `/api/visits/${id}/report`, body)
+export const rescheduleVisit = (id: string, body: { start: string; estimatedMinutes: number; reason: string }) =>
+  send<Visit>('PUT', `/api/visits/${id}/schedule`, body)
 
 /** Technicians that can be assigned (planner roles: Admin, Operator, Sales, Designer). */
 export const listTechnicians = (signal?: AbortSignal) => request<Technician[]>('/api/installations/technicians', { signal })
@@ -131,6 +133,12 @@ export const listTechnicians = (signal?: AbortSignal) => request<Technician[]>('
 export function getMyVisits(from: Date, to: Date, signal?: AbortSignal): Promise<TechnicianCalendar> {
   const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
   return request<TechnicianCalendar>(`/api/technicians/me/visits?${params.toString()}`, { signal })
+}
+
+/** Visits of any technician starting in [from, to) (planner roles: Admin, Operator). */
+export function getTechnicianVisits(technicianId: string, from: Date, to: Date, signal?: AbortSignal): Promise<TechnicianCalendar> {
+  const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
+  return request<TechnicianCalendar>(`/api/technicians/${technicianId}/visits?${params.toString()}`, { signal })
 }
 
 export const technicianName = (t: Pick<Technician, 'userName' | 'email' | 'id'>) => t.userName || t.email || t.id.slice(0, 8)
