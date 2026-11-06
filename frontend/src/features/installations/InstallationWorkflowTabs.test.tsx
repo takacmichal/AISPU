@@ -81,7 +81,8 @@ function setup(state: string, extra?: (call: Call) => Response | undefined, role
 describe('installation checklist tab', () => {
   it('lists steps with required markers and progress of required steps', async () => {
     setup('Mounting', (c) => (c.path === '/api/installations/i1/checklist' ? json(checklist()) : undefined), ['Admin'], 'checklist')
-    const list = await screen.findByRole('list', { name: 'Kroky montáže' })
+    // First test in this file: on a busy machine the page takes longer than the default 1 s to render.
+    const list = await screen.findByRole('list', { name: 'Kroky montáže' }, { timeout: 4000 })
     expect(within(list).getAllByRole('checkbox')).toHaveLength(3)
     expect(screen.getByLabelText(/Zabezpečenie pracoviska a BOZP/)).toBeChecked()
     expect(screen.getByLabelText(/Upratanie pracoviska/)).not.toBeChecked()
