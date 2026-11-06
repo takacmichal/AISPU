@@ -58,6 +58,7 @@ export function userMessage(error: unknown): string {
     if (error.status === 403) return errors.forbidden
     if (error.status === 404) return errors.notFound
     if (error.status === 409) return error.message.startsWith('HTTP ') ? errors.conflict : error.message
+    if (error.status === 429) return errors.tooManyRequests
     if (error.status >= 500) return errors.server
     return errors.generic
   }

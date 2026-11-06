@@ -83,7 +83,8 @@ Každých `Ml:AnalysisIntervalMinutes` minút (predvolene 60) API analyzuje inš
 | `dotnet test` padá hneď pri štarte integračných testov | Testcontainers potrebuje bežiaci Docker. Spusti Docker Desktop a over `docker info`. |
 | API nenaštartuje mimo Development a hlási chýbajúci JWT kľúč | Nastav `Jwt__SigningKey` (min. 32 bajtov, napr. `openssl rand -base64 48`). Vývojový kľúč je len v `appsettings.Development.json`. |
 | API alebo testy hlásia chýbajúcu tabuľku či stĺpec po pull-e | Pribudla migrácia. Lokálnu DB zmaž: `docker compose down -v && docker compose up -d postgres`. |
-| `POST /api/auth/login` vráti 429 | Limit prihlásení je 10 za minútu na IP. Počkaj `Retry-After` sekúnd; limit sa mení cez `RateLimiting__Auth__PermitLimit` a `RateLimiting__Auth__WindowSeconds`. |
+| `POST /api/auth/login` vráti 429 | Prihlásenie, registrácia a obnova hesla majú spolu limit 10 za minútu na IP. Počkaj `Retry-After` sekúnd; limit sa mení cez `RateLimiting__Auth__PermitLimit` a `RateLimiting__Auth__WindowSeconds`. Obnova tokenu má vlastný limit 60 za minútu (`RateLimiting__Refresh__*`). |
+| Za reverznou proxy všetci klienti zdieľajú jeden limit | API číta `X-Forwarded-For` len od dôveryhodnej proxy. Nastav jej adresu `ForwardedHeaders__KnownProxies__0=10.0.0.5` alebo rozsah `ForwardedHeaders__KnownNetworks__0=10.0.0.0/8` podľa siete prostredia. |
 | `pnpm api:fetch` zlyhá s chybou spojenia | API musí bežať na `http://localhost:5080`, alebo nastav `OPENAPI_URL`. |
 | `uv run pytest` v `ml/` padá na `lightgbm` / `libomp.dylib` (macOS) | Nainštaloval sa voliteľný balík zo skupiny `experiment` (`uv run --group experiment ...`), ktorý potrebuje `brew install libomp`. Obnov prostredie príkazom `uv sync`; testy s lightgbm sa potom preskočia. |
 

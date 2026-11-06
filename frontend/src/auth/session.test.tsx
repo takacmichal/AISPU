@@ -77,6 +77,17 @@ describe('session handling', () => {
     expect(loadSession()).toBeNull()
   })
 
+  it('keeps the session when the refresh is only rate limited', async () => {
+    saveSession(admin)
+    const unauthorized = new Response(null, { status: 401 })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(unauthorized).mockResolvedValueOnce(new Response(null, { status: 429 })))
+
+    const response = await authFetch('/api/customers')
+
+    expect(response.status).toBe(401)
+    expect(loadSession()).toEqual(admin)
+  })
+
   it('returns to the originally requested URL after login', async () => {
     const access = jwt({ email: 'a@test.sk', role: 'Admin' })
     vi.stubGlobal(

@@ -15,8 +15,10 @@ internal static class AuthEndpoints
             .WithSummary("Register a customer account")
             .WithDescription("Creates a user with the Customer role. Internal roles are assigned by an administrator.")
             .AllowAnonymous()
+            .RequireRateLimiting(SecurityExtensions.AuthPolicy)
             .WithValidation<RegisterRequest>()
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/login", LoginAsync)
             .WithName("Login")
@@ -35,7 +37,9 @@ internal static class AuthEndpoints
                 + "exchanged token revokes the whole session (401), except for a repeated request within a few seconds "
                 + "(concurrent tabs), which gets another valid token. Unknown, expired and revoked tokens return 401.")
             .AllowAnonymous()
-            .WithValidation<RefreshTokenRequest>();
+            .RequireRateLimiting(SecurityExtensions.RefreshPolicy)
+            .WithValidation<RefreshTokenRequest>()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/logout", LogoutAsync)
             .WithName("Logout")
@@ -51,7 +55,9 @@ internal static class AuthEndpoints
             .WithDescription("Always returns 202, whether or not the e-mail belongs to an account. "
                 + $"The link is valid for {PasswordResetOptions.TokenLifetime.TotalHours:0} hour.")
             .AllowAnonymous()
-            .WithValidation<ForgotPasswordRequest>();
+            .RequireRateLimiting(SecurityExtensions.AuthPolicy)
+            .WithValidation<ForgotPasswordRequest>()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/reset-password", ResetPasswordAsync)
             .WithName("ResetPassword")
@@ -59,7 +65,9 @@ internal static class AuthEndpoints
             .WithDescription("Unknown e-mail, wrong or expired token all return the same 400. A new password that "
                 + "violates the policy returns 400 on newPassword. On success all sessions (refresh tokens) are revoked.")
             .AllowAnonymous()
-            .WithValidation<ResetPasswordRequest>();
+            .RequireRateLimiting(SecurityExtensions.AuthPolicy)
+            .WithValidation<ResetPasswordRequest>()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         return endpoints;
     }

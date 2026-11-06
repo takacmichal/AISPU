@@ -1,5 +1,5 @@
 import { apiUrl } from '../api/config'
-import { loadSession, refreshTokens, saveSession, type Session } from './session'
+import { REFRESH_LIMITED, loadSession, refreshTokens, saveSession, type Session } from './session'
 
 /** Notifies the AuthProvider about session changes made outside of React (token refresh, expiry). */
 export const sessionEvents = new EventTarget()
@@ -9,6 +9,7 @@ let pendingRefresh: Promise<Session | null> | null = null
 function refreshOnce(current: Session): Promise<Session | null> {
   pendingRefresh ??= refreshTokens(current.refreshToken)
     .then((next) => {
+      if (next === REFRESH_LIMITED) return null
       if (next) {
         saveSession(next)
         sessionEvents.dispatchEvent(new CustomEvent('refreshed', { detail: next }))
