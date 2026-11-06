@@ -89,6 +89,7 @@ export const T = {
     boardLabel: 'Nástenka tiketov podľa stavu',
     boardTruncated: (shown: number, total: number) => `Nástenka zobrazuje prvých ${shown} z ${total} tiketov. Zúžte výber filtrom.`,
     columnEmpty: 'Žiadne tikety',
+    dragHint: 'Kartu presuniete myšou do zvýrazneného stĺpca alebo tlačidlom na karte.',
     moveLabel: (title: string) => `Zmeniť stav tiketu ${title}`,
     moveTo: (state: string) => `Presunúť do stavu „${state}“`,
   },
