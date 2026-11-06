@@ -6,12 +6,14 @@ import { json, problem, renderRoute, stubFetch, type Call } from '../installatio
 import MyVisitsPage from './MyVisitsPage'
 
 beforeEach(() => {
+  localStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 10, 5, 7, 30))
 })
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 const entry = (over: Record<string, unknown> = {}) => ({
@@ -157,5 +159,97 @@ describe('my visits navigation', () => {
   it('is in the Servis menu only for technicians', () => {
     expect(menuItems(['Technician']).find((i) => i.path === '/my-visits')?.group).toBe('Servis')
     for (const role of ['Admin', 'Operator', 'Customer', 'Sales']) expect(menuItems([role]).some((i) => i.path === '/my-visits')).toBe(false)
+  })
+})
+
+describe('service protocol draft', () => {
+  // Before the mocked current time, so the default departure is not earlier than the arrival.
+  const started = new Date(2026, 10, 5, 7, 0).toISOString()
+  const inProgress = (extra?: (c: Call) => Response | undefined) =>
+    handler([entry({ state: 'InProgress' })], visit({ state: 'InProgress', startedAt: started }), extra)
+  const open = () => render('/my-visits?visit=v1')
+  const findings = () => screen.findByLabelText('Zistenie *')
+  const reportCalls = (calls: Call[]) => calls.filter((c) => c.path === '/api/visits/v1/report')
+
+  async function fill() {
+    await userEvent.selectOptions(await screen.findByRole('combobox'), 'InverterFault')
+    await userEvent.type(await findings(), 'Chyba izolácie')
+    await userEvent.type(screen.getByLabelText('Vykonané práce *'), 'Výmena poistky')
+  }
+
+  it('restores what was typed after leaving the page and clears it after sending', async () => {
+    const calls = stubFetch(inProgress((c) => (c.path === '/api/visits/v1/report' ? json(visit({ state: 'Done' })) : undefined)))
+    const first = open()
+    await fill()
+    first.unmount()
+
+    open()
+
+    expect(await findings()).toHaveValue('Chyba izolácie')
+    expect(screen.getByText(/Obnovili sme rozpracovaný protokol/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Odoslať protokol' }))
+
+    await waitFor(() => expect(reportCalls(calls)).toHaveLength(1))
+    await waitFor(() => expect(localStorage.getItem('solarops.visit-protocol.v1')).toBeNull())
+  })
+
+  it('starts over when the technician discards the draft', async () => {
+    stubFetch(inProgress())
+    const first = open()
+    await fill()
+    first.unmount()
+    open()
+    await findings()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Začať odznova' }))
+
+    expect(await findings()).toHaveValue('')
+    expect(localStorage.getItem('solarops.visit-protocol.v1')).toBeNull()
+  })
+
+  it('waits for the connection when offline and sends the protocol when it returns', async () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const calls = stubFetch(inProgress((c) => (c.path === '/api/visits/v1/report' ? json(visit({ state: 'Done' })) : undefined)))
+    open()
+    await fill()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Odoslať protokol' }))
+
+    expect(await screen.findByText(/odošle sa po obnovení pripojenia/)).toHaveAttribute('role', 'status')
+    expect(reportCalls(calls)).toHaveLength(0)
+    expect(JSON.parse(localStorage.getItem('solarops.visit-protocol.v1')!).waiting).toBe(true)
+
+    onLine.mockReturnValue(true)
+    window.dispatchEvent(new Event('online'))
+
+    await waitFor(() => expect(reportCalls(calls)).toHaveLength(1))
+    expect(reportCalls(calls)[0].body).toMatchObject({ findings: 'Chyba izolácie', workDone: 'Výmena poistky', cause: 'InverterFault' })
+  })
+
+  it('sends a waiting protocol right after reopening the page with a connection', async () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const calls = stubFetch(inProgress((c) => (c.path === '/api/visits/v1/report' ? json(visit({ state: 'Done' })) : undefined)))
+    const first = open()
+    await fill()
+    await userEvent.click(screen.getByRole('button', { name: 'Odoslať protokol' }))
+    await screen.findByText(/odošle sa po obnovení pripojenia/)
+    first.unmount()
+
+    onLine.mockReturnValue(true)
+    open()
+
+    await waitFor(() => expect(reportCalls(calls)).toHaveLength(1))
+  })
+
+  it('keeps the draft when the server refuses the protocol', async () => {
+    stubFetch(inProgress((c) => (c.path === '/api/visits/v1/report' ? problem(409, 'Already reported') : undefined)))
+    open()
+    await fill()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Odoslať protokol' }))
+
+    await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0))
+    expect(localStorage.getItem('solarops.visit-protocol.v1')).not.toBeNull()
   })
 })

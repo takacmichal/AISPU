@@ -247,5 +247,8 @@ export const T = {
     tooLong: 'Text môže mať najviac 4000 znakov.',
     departBeforeArrive: 'Odchod nemôže byť pred príchodom.',
     protocolHint: 'Protokol sa odosiela raz a potom ho nemožno meniť.',
+    draftRestored: 'Obnovili sme rozpracovaný protokol uložený v tomto zariadení.',
+    draftDiscard: 'Začať odznova',
+    waitingForConnection: 'Bez pripojenia. Protokol je uložený a odošle sa po obnovení pripojenia, nechajte túto stránku otvorenú.',
   },
 } as const
