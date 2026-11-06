@@ -104,7 +104,7 @@ describe('role navigation', () => {
     renderAt('/app', session('Sales'))
     await userEvent.keyboard('{Control>}k{/Control}')
     const dialog = screen.getByRole('dialog', { name: 'Prejsť na modul' })
-    const input = within(dialog).getByRole('combobox', { name: 'Názov modulu' })
+    const input = within(dialog).getByRole('combobox', { name: 'Hľadať zákazníka, ponuku, inštaláciu alebo tiket' })
     await userEvent.type(input, 'pon')
     expect(within(dialog).getAllByRole('option').map((o) => o.textContent)).toEqual(['Ponuky'])
     await userEvent.keyboard('{Enter}')

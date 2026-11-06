@@ -16,6 +16,12 @@ const GROUPS: Group[] = [
   { key: 'tickets', label: T.globalSearch.groups.tickets, path: (hit) => `/tickets/${hit.id}` },
 ]
 
+const fold = (value: string) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+const matchesModule = (label: string, query: string) => {
+  const folded = fold(query.trim())
+  return folded === '' || fold(label).split(/\s+/).some((word) => word.startsWith(folded))
+}
+
 /** API-backed global search opened by Ctrl/⌘+K. */
 export function QuickJump({ items, onClose, onSelect }: { items: readonly NavItem[]; onClose: () => void; onSelect: (path: string) => void }) {
   const listId = useId()
@@ -47,7 +53,7 @@ export function QuickJump({ items, onClose, onSelect }: { items: readonly NavIte
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [normalized])
 
-  const moduleResults = items.filter((item) => !normalized || item.label.toLowerCase().includes(normalized.toLowerCase()))
+  const moduleResults = items.filter((item) => matchesModule(item.label, normalized))
   const entityResults = useMemo(() => normalized.length < 2 ? [] : GROUPS.flatMap((group) => (response?.[group.key] ?? []).map((hit) => ({ ...hit, group, path: group.path(hit) }))), [normalized.length, response])
   const results = [...moduleResults.map((item) => ({ kind: 'module' as const, id: item.path, title: item.label, subtitle: '', label: T.globalSearch.groups.modules, path: item.path })), ...entityResults.map((item) => ({ kind: 'entity' as const, ...item, label: item.group.label }))]
   const current = Math.min(active, Math.max(0, results.length - 1))
@@ -70,7 +76,7 @@ export function QuickJump({ items, onClose, onSelect }: { items: readonly NavIte
         <input type="search" role="combobox" aria-label={T.globalSearch.inputLabel} aria-expanded="true" aria-controls={listId} aria-autocomplete="list" aria-activedescendant={results[current] ? `${listId}-${current}` : undefined} placeholder={T.globalSearch.placeholder} value={query} onChange={(event) => { const value = event.target.value; setQuery(value); setActive(0); if (value.trim().length < 2) { setResponse(null); setLoading(false); setError(false) } else setResponse(null) }} onKeyDown={onKeyDown} />
         <ul id={listId} role="listbox" aria-label={T.globalSearch.listLabel} className="quick-jump__list">
           {results.map((result, index) => <li key={`${result.kind}-${result.id}`} id={`${listId}-${index}`} role="option" aria-selected={index === current} className="quick-jump__option" onMouseEnter={() => setActive(index)} onClick={() => select(index)}>
-            <span className="quick-jump__result"><strong>{result.title}</strong><span>{result.label}{result.subtitle ? ` · ${result.subtitle}` : ''}</span></span>
+            <span className="quick-jump__result"><strong>{result.title}</strong>{result.kind === 'entity' && <span>{result.label}{result.subtitle ? ` · ${result.subtitle}` : ''}</span>}</span>
           </li>)}
         </ul>
         {normalized.length < 2 && <p className="quick-jump__empty">{T.globalSearch.minimum}</p>}

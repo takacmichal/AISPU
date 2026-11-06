@@ -915,53 +915,6 @@ textarea[aria-invalid='true'] {
   background: var(--surface-hover);
 }
 
-/* ---------- Notification bell (contents of the notifications dialog) ---------- */
-.notification-bell__list {
-  display: grid;
-  gap: 2px;
-  max-height: 20rem;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.notification-bell__item {
-  display: grid;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.notification-bell__item:hover,
-.notification-bell__item:focus-visible {
-  background: var(--surface-hover);
-}
-
-.notification-bell__kind,
-.notification-bell__time {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.notification-bell__item-title {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.notification-bell__state {
-  margin: 0;
-  padding: 10px;
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
-
-.notification-bell__state .btn {
-  margin-top: 8px;
-}
-
 /* ---------- Quick jump ---------- */
 .quick-jump {
   display: grid;

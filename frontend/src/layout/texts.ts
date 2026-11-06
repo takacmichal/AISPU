@@ -9,7 +9,7 @@ export const LAYOUT_TEXTS = {
   closeMenu: 'Zavrieť menu',
   quickJumpButton: 'Hľadať zákazníkov, ponuky, inštalácie, tikety…',
   globalSearch: {
-    title: 'Globálne vyhľadávanie', inputLabel: 'Hľadať zákazníka, ponuku, inštaláciu alebo tiket',
+    title: 'Prejsť na modul', inputLabel: 'Hľadať zákazníka, ponuku, inštaláciu alebo tiket',
     placeholder: 'Zadajte aspoň 2 znaky…', listLabel: 'Výsledky vyhľadávania', minimum: 'Zadajte aspoň 2 znaky.',
     loading: 'Vyhľadávam…', error: 'Vyhľadávanie sa nepodarilo. Skúste to znova.', empty: 'Nenašli sa žiadne výsledky.',
     hint: 'Šípkami vyberte, Enter otvorí, Esc zavrie.',
@@ -17,19 +17,6 @@ export const LAYOUT_TEXTS = {
   },
   topGroup: 'Prehľad',
   help: 'Pomocník',
-  notifications: 'Notifikácie',
-  bell: {
-    label: (unread: number) => (unread > 0 ? `Notifikácie, neprečítané: ${unread}` : 'Notifikácie'),
-    panelLabel: 'Notifikácie',
-    loading: 'Načítavam notifikácie…',
-    error: 'Notifikácie sa nepodarilo načítať.',
-    retry: 'Skúsiť znova',
-    empty: 'Zatiaľ nemáte žiadne notifikácie.',
-    kind: {
-      ticket: 'Servisný tiket',
-      connection_request: 'Žiadosť o pripojenie',
-    },
-  },
   userMenu: 'Používateľ',
   signOut: 'Odhlásiť',
   quickJump: {
