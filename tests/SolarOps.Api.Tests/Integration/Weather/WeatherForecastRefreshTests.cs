@@ -57,7 +57,8 @@ public sealed class WeatherForecastRefreshTests : IClassFixture<PostgresFixture>
             _factory,
             Guid.CreateVersion7(),
             (48.15, 17.11, DateTimeOffset.UtcNow));
-        _client.ForecastFactory = FakeWeatherForecastClient.Forecast;
+        // A rerun replaces only recent rows and this host runs on the real clock, so the forecast must start today.
+        _client.ForecastFactory = seed => FakeWeatherForecastClient.Forecast(seed, DateTime.UtcNow.Date);
 
         await WeatherTestData.RefreshAsync(_factory);
         await WeatherTestData.RefreshAsync(_factory);
