@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { vi } from 'vitest'
 import { AuthProvider } from '../../auth/AuthContext'
 import { saveSession } from '../../auth/session'
+import { ConfirmProvider } from '../../components/confirm'
 import { ToastProvider } from '../../components/toast'
 import DesignDetailPage from './DesignDetailPage'
 import DesignListPage from './DesignListPage'
@@ -16,12 +17,16 @@ export function renderAt(path: string, role = 'Designer') {
   return render(
     <AuthProvider initialSession={session}>
       <ToastProvider>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/designs" element={<DesignListPage />} />
-            <Route path="/designs/:id" element={<DesignDetailPage />} />
-          </Routes>
-        </MemoryRouter>
+        <ConfirmProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/designs" element={<DesignListPage />} />
+              <Route path="/designs/:id" element={<DesignDetailPage />} />
+              {/* Target of the "create quote" navigation in tests (quote id q1). */}
+              <Route path="/quotes/q1" element={<h2>Ponuka q1</h2>} />
+            </Routes>
+          </MemoryRouter>
+        </ConfirmProvider>
       </ToastProvider>
     </AuthProvider>,
   )
