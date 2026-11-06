@@ -1,0 +1,8 @@
+# Notification bell. Every authenticated role may call it; the content depends on the role and customer scope.
+# Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+
+### Notifications of the current user, newest first
+GET {{baseUrl}}/api/notifications
+Authorization: Bearer {{token}}

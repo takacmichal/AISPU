@@ -2157,6 +2157,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notifications for the current user
+         * @description Changes of tickets and connection requests from the last 30 days, newest first, at most 20. A customer gets only own records, a technician only assigned tickets. The user's own ticket changes are left out and draft connection requests are not reported.
+         */
+        get: operations["ListNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4295,6 +4315,31 @@ export interface components {
             /** Format: double */
             specificYieldKwhPerKwp: number | string;
             source: string;
+        };
+        /** @description One entry of the notification bell. */
+        NotificationItemResponse: {
+            /** @description Stable for one event, so the client can remember which notifications were seen. */
+            id: string;
+            /** @description Type of the record the notification is about. */
+            kind: components["schemas"]["NotificationKind"];
+            /** @description Slovak text for the user. */
+            title: string;
+            /**
+             * Format: date-time
+             * @description When the change happened.
+             */
+            createdAt: string;
+            /** @description Frontend route of the record. */
+            link: string;
+        };
+        /**
+         * @description What a notification is about; the wire values are the ones the notification bell expects.
+         * @enum {unknown}
+         */
+        NotificationKind: "ticket" | "connection_request";
+        /** @description Notifications of the current user, newest first. */
+        NotificationListResponse: {
+            items: components["schemas"]["NotificationItemResponse"][];
         };
     };
     responses: never;
@@ -9706,6 +9751,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationListResponse"];
                 };
             };
         };

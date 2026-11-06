@@ -88,6 +88,9 @@ public static class AuthorizationPolicies
     /// </summary>
     public const string SearchRead = "SearchRead";
 
+    /// <summary>Notification bell: every authenticated role may call it; the content is limited by role and customer scope in the service.</summary>
+    public const string NotificationsRead = "NotificationsRead";
+
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
@@ -135,6 +138,8 @@ public static class AuthorizationPolicies
             [DashboardRead] = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator, Roles.Technician],
 
             [SearchRead] = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Operator, Roles.Customer],
+
+            [NotificationsRead] = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Operator, Roles.Customer],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>
