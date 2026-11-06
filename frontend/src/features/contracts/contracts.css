@@ -8,12 +8,6 @@
   box-shadow: var(--shadow-inset-border);
 }
 
-.contract-hint {
-  margin: var(--spacing-8) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-caption);
-}
-
 .contract-section {
   margin-top: var(--spacing-24);
 }

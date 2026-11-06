@@ -55,7 +55,6 @@ export const CONTRACT_TEXTS = {
     loading: 'Generujem PDF…',
     download: 'Stiahnuť PDF',
     frameTitle: 'Náhľad PDF zmluvy',
-    unavailable: 'Generovanie PDF zmluvy zatiaľ nie je na serveri dostupné.',
     failed: 'PDF zmluvy sa nepodarilo vygenerovať.',
     fileName: (number: string) => `zmluva-${number}.pdf`,
   },
