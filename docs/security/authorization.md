@@ -63,8 +63,9 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `TicketsConfirm` | Customer | `POST /api/tickets/{id}/confirm`, `POST /api/tickets/{id}/reopen` (len vlastný tiket, cudzí dáva 404; znovuotvorenie do 7 dní od uzavretia) |
 | `DashboardRead` | Admin, Sales, Designer, Technician, Operator | `GET /api/dashboard/summary` (počty tiketov a ponúk; ponuky len pre roly s `QuotesRead`, inak `null`; zákazník dostane 403) |
 | `SearchRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/search` (globálne vyhľadávanie; skupina výsledkov sa vráti len roly, ktorá smie čítať daný modul, inak `null`; zákazník nikdy nedostane zákazníkov ani ponuky a v inštaláciách a tiketoch vidí len vlastné) |
+| `NotificationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/notifications` (zvonček; obsah závisí od roly, zákazník dostane len vlastné záznamy a technik len tikety svojich aktívnych výjazdov) |
 
-`Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead`, `TicketsCreate` a `SearchRead`, ale vidí a smie
+`Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead`, `TicketsCreate`, `SearchRead` a `NotificationsRead`, ale vidí a smie
 použiť **len vlastné záznamy**: obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná
 politika. Politika rozhoduje, či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti. Pri tiketoch
 zákazník navyše vidí len verejné komentáre a v histórii nevidí interné poznámky prechodov.
