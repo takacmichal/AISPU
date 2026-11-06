@@ -7490,6 +7490,42 @@
           }
         }
       }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List notifications for the current user",
+        "description": "PROVISIONAL entry added by the frontend; the backend spec replaces it. Newest first.",
+        "operationId": "ListNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NotificationItemResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13958,6 +13994,38 @@
             "type": "string"
           }
         }
+      },
+      "NotificationItemResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "createdAt",
+          "link"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ticket",
+              "connection_request"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "link": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -14009,6 +14077,9 @@
     },
     {
       "name": "System"
+    },
+    {
+      "name": "Notifications"
     },
     {
       "name": "Telemetry"

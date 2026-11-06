@@ -6,6 +6,8 @@ interface DialogProps {
   /** Short decorative mark above the title, e.g. "!" for destructive confirmations (K-06). */
   icon?: string
   onClose: () => void
+  /** Clicking the backdrop calls `onClose`. Off by default so destructive confirmations need an explicit choice. */
+  dismissOnBackdrop?: boolean
   children: ReactNode
 }
 
@@ -15,7 +17,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  * Modal dialog: Escape closes it, Tab is trapped inside, focus moves in on open and returns to the opener on close.
  * Rendered into body: a glass panel with backdrop-filter would otherwise be what the fixed backdrop is positioned to.
  */
-export function Dialog({ title, icon, onClose, children }: DialogProps) {
+export function Dialog({ title, icon, onClose, dismissOnBackdrop = false, children }: DialogProps) {
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -50,7 +52,12 @@ export function Dialog({ title, icon, onClose, children }: DialogProps) {
   }
 
   return createPortal(
-    <div className="dialog-backdrop">
+    <div
+      className="dialog-backdrop"
+      onMouseDown={(event) => {
+        if (dismissOnBackdrop && event.target === event.currentTarget) onClose()
+      }}
+    >
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} className="dialog" onKeyDown={onKeyDown}>
         {icon && (
           <span className="dialog__icon" aria-hidden="true">
