@@ -17,6 +17,19 @@ export const LAYOUT_TEXTS = {
   },
   topGroup: 'Prehľad',
   help: 'Pomocník',
+  notifications: 'Notifikácie',
+  bell: {
+    label: (unread: number) => (unread > 0 ? `Notifikácie, neprečítané: ${unread}` : 'Notifikácie'),
+    panelLabel: 'Notifikácie',
+    loading: 'Načítavam notifikácie…',
+    error: 'Notifikácie sa nepodarilo načítať.',
+    retry: 'Skúsiť znova',
+    empty: 'Zatiaľ nemáte žiadne notifikácie.',
+    kind: {
+      ticket: 'Servisný tiket',
+      connection_request: 'Žiadosť o pripojenie',
+    },
+  },
   userMenu: 'Používateľ',
   signOut: 'Odhlásiť',
   quickJump: {

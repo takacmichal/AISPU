@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { HOME_PATH, ROLE_LABELS, breadcrumbs, menuGroups, menuItems, primaryRole } from '../auth/navigation'
 import { MESSAGES } from '../lib/messages'
 import { BrandGlyph, CollapseIcon, HelpIcon, MenuIcon, NavIcon, SearchIcon } from './NavIcon'
+import { NotificationBell } from './NotificationBell'
 import { SideProductionCard } from './SideProductionCard'
 import { useNavCounts } from './useShellData'
 import { canAccess, findItem } from '../auth/navigation'
@@ -161,6 +162,7 @@ export function AppShell() {
           >
             <HelpIcon />
           </a>
+          <NotificationBell />
           <UserMenu name={email} role={roleLabel} onSignOut={signOut} />
         </header>
         <main id="main-content" ref={mainRef} tabIndex={-1} className="shell__main">
