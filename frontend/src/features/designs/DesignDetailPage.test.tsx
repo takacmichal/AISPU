@@ -208,4 +208,80 @@ describe('DesignDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Uložiť parametre' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Skontrolovať a odhadnúť výrobu' })).not.toBeInTheDocument()
   })
+
+  describe('approval and quote', () => {
+    const approved = { ...inDesign, status: 'Approved', approval: { approvedBy: 'u2', approvedAt: '2026-01-05T09:00:00Z', versionNumber: 2 } }
+
+    it('lets Sales approve the newest version after confirming', async () => {
+      let current: unknown = inDesign
+      const calls = api(inDesign, [version(1, 10, 4500), version(2, 12, 5400)], (c) => {
+        if (c.path === '/api/designs/d1' && c.method === 'GET') return json(current)
+        if (c.path === '/api/designs/d1/approve') {
+          current = approved
+          return json(approved)
+        }
+      })
+      renderAt('/designs/d1', 'Sales')
+      await userEvent.click(await screen.findByRole('button', { name: 'Schváliť návrh' }))
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText(/verzia 2/)).toBeInTheDocument()
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Schváliť' }))
+      expect(await screen.findByText('Návrh bol schválený.')).toBeInTheDocument()
+      expect(calls.some((c) => c.method === 'POST' && c.path === '/api/designs/d1/approve')).toBe(true)
+      expect(await screen.findByText(/Schválená verzia 2/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Vytvoriť ponuku' })).toBeInTheDocument()
+    })
+
+    it('offers no approval without a saved version or to the designer', async () => {
+      api(inDesign, [])
+      const { unmount } = renderAt('/designs/d1', 'Sales')
+      expect(await screen.findByText('Schváliť návrh možno až po uložení aspoň jednej verzie.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Schváliť návrh' })).not.toBeInTheDocument()
+      unmount()
+      api(inDesign, [version(1, 10, 4500)])
+      renderAt('/designs/d1', 'Designer')
+      expect(await screen.findByText(/Odhad ročnej výroby/)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Schváliť návrh' })).not.toBeInTheDocument()
+    })
+
+    it('creates a draft quote from the approved design and opens it', async () => {
+      const calls = api(approved, [version(2, 12, 5400)], (c) =>
+        c.path === '/api/designs/d1/quote' ? json({ id: 'q1', status: 'Draft' }, 201) : undefined,
+      )
+      renderAt('/designs/d1', 'Sales')
+      await userEvent.click(await screen.findByRole('button', { name: 'Vytvoriť ponuku' }))
+      expect(await screen.findByRole('heading', { name: 'Ponuka q1' })).toBeInTheDocument()
+      expect(calls.filter((c) => c.path === '/api/designs/d1/quote')).toHaveLength(1)
+    })
+
+    it('shows why a quote cannot be created', async () => {
+      api(approved, [version(2, 12, 5400)], (c) =>
+        c.path === '/api/designs/d1/quote' ? json({ title: 'Conflict', status: 409, detail: 'Zákazník je archivovaný.' }, 409) : undefined,
+      )
+      renderAt('/designs/d1', 'Sales')
+      await userEvent.click(await screen.findByRole('button', { name: 'Vytvoriť ponuku' }))
+      expect(await screen.findAllByText('Zákazník je archivovaný.')).not.toHaveLength(0)
+    })
+
+    it('sends an approved design back for rework with a reason', async () => {
+      const calls = api(approved, [version(2, 12, 5400)], (c) =>
+        c.path === '/api/designs/d1/rework' ? json({ ...inDesign, lastRework: { reason: 'Pridať batériu', requestedBy: 'u2', requestedAt: '2026-01-06T09:00:00Z' } }) : undefined,
+      )
+      renderAt('/designs/d1', 'Sales')
+      await userEvent.click(await screen.findByRole('button', { name: 'Vrátiť na prepracovanie' }))
+      const dialog = screen.getByRole('dialog')
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Vrátiť' }))
+      expect(within(dialog).getByText('Vyplňte toto pole.')).toBeInTheDocument()
+      await userEvent.type(within(dialog).getByLabelText('Dôvod'), 'Pridať batériu')
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Vrátiť' }))
+      await waitFor(() => expect(calls.find((c) => c.path === '/api/designs/d1/rework')?.body).toEqual({ reason: 'Pridať batériu' }))
+      expect(await screen.findByText('Návrh bol vrátený na prepracovanie.')).toBeInTheDocument()
+    })
+
+    it('shows the last rework reason while the design is being reworked', async () => {
+      api({ ...inDesign, lastRework: { reason: 'Pridať batériu', requestedBy: 'u2', requestedAt: '2026-01-06T09:00:00Z' } }, [version(1, 10, 4500)])
+      renderAt('/designs/d1', 'Designer')
+      expect(await screen.findByText(/Vrátené na prepracovanie: Pridať batériu/)).toBeInTheDocument()
+    })
+  })
 })

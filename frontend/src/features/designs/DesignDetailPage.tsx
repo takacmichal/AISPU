@@ -8,6 +8,7 @@ import { Skeleton } from '../../components/Skeleton'
 import { useLoad } from '../../components/useLoad'
 import { MESSAGES } from '../../lib/messages'
 import { formatDateTime } from '../../lib/format'
+import { ApprovalSection } from './ApprovalSection'
 import { ConfigurationSection } from './ConfigurationSection'
 import './designs.css'
 import { InfeasibleDialog } from './InfeasibleDialog'
@@ -18,12 +19,15 @@ import { VersionHistory, VersionResult } from './VersionsSection'
 
 /** The backend allows writes for these roles only; the UI just hides the controls. */
 const DESIGNER_ROLES = ['Admin', 'Designer']
+/** Approve, send back and quote a design (DesignsApprove and QuotesWrite on the backend). */
+const APPROVER_ROLES = ['Admin', 'Sales']
 
 /** Design detail (/designs/:id): survey, parameters, configuration with yield estimate, versions, infeasible. */
 export default function DesignDetailPage() {
   const { id = '' } = useParams()
   const { roles } = useAuth()
   const canEdit = roles.some((r) => DESIGNER_ROLES.includes(r))
+  const canApprove = roles.some((r) => APPROVER_ROLES.includes(r))
   const [infeasibleOpen, setInfeasibleOpen] = useState(false)
 
   const design = useLoad(async (signal) => {
@@ -80,6 +84,12 @@ export default function DesignDetailPage() {
       {d.requestNotes && (
         <p>
           <strong>{TEXT.requestNotes}:</strong> {d.requestNotes}
+        </p>
+      )}
+
+      {d.status === 'InDesign' && d.lastRework && (
+        <p role="status" className="alert">
+          {TEXT.lastRework(d.lastRework.reason)}
         </p>
       )}
 
@@ -144,6 +154,10 @@ export default function DesignDetailPage() {
             </>
           )}
         </div>
+      )}
+
+      {canApprove && (d.status === 'InDesign' || d.status === 'Approved') && !versions.loading && !versions.error && (
+        <ApprovalSection design={d} latestVersion={sorted.length > 0 ? Number(sorted[0].versionNumber) : null} onChanged={refresh} />
       )}
 
       {d.status === 'SiteSurveyDone' && canEdit && (
