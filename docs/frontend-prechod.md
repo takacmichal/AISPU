@@ -2,7 +2,7 @@
 
 Kontrolný zoznam na ručné prejdenie všetkých obrazoviek. Postupuje sa po rolách, lebo každá rola vidí iné menu a iné dáta. Pri každom bode over, že sa obrazovka načíta bez chyby, dáta sedia s tabuľkou nižšie a akcia urobí to, čo má.
 
-Dokument opisuje frontend po zlúčení PR z 6. 11. 2026: checklist, revízia a uvedenie do prevádzky (#422), skutočné dáta na dashboarde (#423), záložka Stringy (#424), výroba v portáli (#425), chyby PDF zmluvy (#426), schválenie návrhu FVE a potvrdenie tiketu zákazníkom.
+Dokument opisuje frontend po zlúčení PR z 6. 11. 2026: checklist, revízia a uvedenie do prevádzky (#422), skutočné dáta na dashboarde (#423), záložka Stringy (#424), výroba v portáli (#425), chyby PDF zmluvy (#426), schválenie návrhu FVE (#427) a potvrdenie tiketu zákazníkom (#428).
 
 ## 0. Príprava
 
