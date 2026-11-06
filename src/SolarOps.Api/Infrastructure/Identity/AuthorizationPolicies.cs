@@ -79,6 +79,15 @@ public static class AuthorizationPolicies
     /// <summary>The customer confirms a closed ticket or reopens it within 7 days (#129); only its own tickets (scope).</summary>
     public const string TicketsConfirm = "TicketsConfirm";
 
+    /// <summary>Dashboard summary for staff; the quote part is limited to <see cref="QuotesRead"/> roles in the response.</summary>
+    public const string DashboardRead = "DashboardRead";
+
+    /// <summary>
+    /// Global search box: every authenticated role may call it, but each result group is limited to what the role may read
+    /// (<see cref="CustomersRead"/>, <see cref="QuotesRead"/>, <see cref="InstallationsRead"/>, <see cref="TicketsRead"/>) and to own data for a customer.
+    /// </summary>
+    public const string SearchRead = "SearchRead";
+
     /// <summary>
     /// Policy name → roles allowed by the policy. Read policies include every role that may see the data;
     /// a customer still gets only its own records through <c>ICustomerScope</c> (#137).
@@ -122,6 +131,10 @@ public static class AuthorizationPolicies
             [TicketsComment] = [Roles.Admin, Roles.Operator, Roles.Technician],
             [TicketsField] = [Roles.Admin, Roles.Operator, Roles.Technician],
             [TicketsConfirm] = [Roles.Customer],
+
+            [DashboardRead] = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Operator, Roles.Technician],
+
+            [SearchRead] = [Roles.Admin, Roles.Sales, Roles.Designer, Roles.Technician, Roles.Operator, Roles.Customer],
         };
 
     /// <summary>Names of all policies; used by tests to prove that every policy is documented and exercised.</summary>

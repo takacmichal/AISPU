@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/production/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Production of all visible installations for a period
+         * @description from/to: ISO 8601 with Z or an offset (encode + as %2B), or a date meaning local midnight in timeZone; the period is [from, to). granularity: fiveMinutes, hour (default), day, month. timeZone: IANA id for day and month buckets, default Europe/Bratislava. A reading belongs to the bucket of its window start (timestamp - intervalSec); energy comes from the totalWh counters, peak power is the highest sum of the inverters' AC power. Only buckets with data are returned; an empty period gives an empty list. A customer sees only its own installations (another one is 404). Limits: fiveMinutes 31 days, hour 366 days, day and month 3660 days. Power and energy are summed over the inverters of all installations the caller may see (staff: all, customer: own); peakPowerKw is the highest summed power of a window. installationCount counts the visible installations, also those without data. No installation or no data gives empty points, totalEnergyKwh 0 and peakPowerKw null.
+         */
+        get: operations["GetProductionSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -583,7 +603,7 @@ export interface paths {
         };
         /**
          * List customers
-         * @description Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).
+         * @description Filters: q (name, company, e-mail, phone and IČO, case-insensitive substring), type = Person | Company, status = Active | Archived. Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100). statusCounts holds the customers per status for the current q and type (the status filter is ignored); every item carries supplyPointCount and lastActivityAt.
          */
         get: operations["ListCustomers"];
         put?: never;
@@ -641,6 +661,26 @@ export interface paths {
         put?: never;
         /** Reactivate an archived customer */
         post: operations["ReactivateCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Counts of tickets and quotes for the dashboard
+         * @description tickets: open (not Resolved or Closed), new (state New) and open by priority. quotes: sent (status Sent), sentGrossTotal (sum of their gross totals, EUR) and open (Draft or Sent); null for roles without access to quotes (Technician). A customer gets 403.
+         */
+        get: operations["GetDashboardSummary"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1157,6 +1197,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/installations/paged": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List installations with paging, search and state counts
+         * @description Filters: state, customerId, technicianId (assigned technician), q (installation name, supply point name or address, customer name; case-insensitive substring). sortBy = createdAt | updatedAt | name | state | scheduledStart | plannedPowerKwp, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). statusCounts holds the installations per state for the current q, customerId and technicianId (the state filter is ignored). A customer sees only its own installations.
+         */
+        get: operations["ListInstallationsPaged"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/installations/technicians": {
         parameters: {
             query?: never;
@@ -1526,6 +1586,46 @@ export interface paths {
         };
         /** Status change history of the quote, oldest first */
         get: operations["GetQuoteHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quotes/paged": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List quotes with paging, search and status counts
+         * @description Filters: status (Draft | Sent | Accepted | Rejected | Expired), customerId, q (customer name or note, case-insensitive substring). sortBy = createdAt | updatedAt | status | grossTotal | validUntil, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). statusCounts holds the quotes per status for the current q and customerId (the status filter is ignored).
+         */
+        get: operations["ListQuotesPaged"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search customers, quotes, installations and tickets
+         * @description q is 2 to 200 characters (case-insensitive substring), limit is the maximum hits per group (default 5, max 10). Customers match name, e-mail, phone and IČO; quotes match the customer name and note; installations match their name, supply point name or address and customer name; tickets match the title and customer name. A group is null when the caller's role may not read that module; a customer account never gets customers or quotes and only its own installations and tickets.
+         */
+        get: operations["Search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2057,26 +2157,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List notifications for the current user
-         * @description PROVISIONAL entry added by the frontend; the backend spec replaces it. Newest first.
-         */
-        get: operations["ListNotifications"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2190,6 +2270,29 @@ export interface components {
             installationName: null | string;
             address: null | components["schemas"]["PostalAddress"];
             customer: null | components["schemas"]["CalendarCustomer"];
+        };
+        /** @description Assembly checklist of an installation (#90). `Editable` is true only while mounting. */
+        ChecklistResponse: {
+            /** Format: uuid */
+            installationId: string;
+            editable: boolean;
+            complete: boolean;
+            missingRequiredSteps: string[];
+            steps: components["schemas"]["ChecklistStepResponse"][];
+        };
+        /** @description One step of the checklist: template data plus the stored state. */
+        ChecklistStepResponse: {
+            code: string;
+            /** Format: int32 */
+            position: number | string;
+            title: string;
+            required: boolean;
+            done: boolean;
+            note: null | string;
+            /** Format: uuid */
+            changedBy: null | string;
+            /** Format: date-time */
+            changedAt: null | string;
         };
         /** @description Payload of `POST /api/tickets/{id}/close`. */
         CloseTicketRequest: {
@@ -2539,15 +2642,54 @@ export interface components {
             priority?: null | components["schemas"]["ServiceTicketPriority"];
             attachments?: null | components["schemas"]["TicketAttachmentRequest"][];
         };
-        /** @description Page of customers returned by `GET /api/customers`. */
+        /**
+         * @description Customer in a list: the customer data plus list summaries. `SupplyPointCount` is the number of supply points
+         *     (odberné miesta); `LastActivityAt` is the latest of the customer's own update and the newest update of its
+         *     quotes, installations and tickets.
+         */
+        CustomerListItemResponse: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["CustomerType"];
+            status: components["schemas"]["CustomerStatus"];
+            displayName: string;
+            firstName: null | string;
+            lastName: null | string;
+            companyName: null | string;
+            ico: null | string;
+            dic: null | string;
+            icDph: null | string;
+            email: string;
+            phone: null | string;
+            address: components["schemas"]["AddressDto"];
+            note: null | string;
+            /** Format: uuid */
+            userId: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int32 */
+            supplyPointCount: number | string;
+            /** Format: date-time */
+            lastActivityAt: string;
+        };
+        /**
+         * @description Page of customers returned by `GET /api/customers`. `StatusCounts` holds the customers per status
+         *     (all values present, 0 when none) for the current `q` and `type` filters; the `status` filter is
+         *     ignored so the status segments stay stable.
+         */
         CustomerListResponse: {
-            items: components["schemas"]["CustomerResponse"][];
+            items: components["schemas"]["CustomerListItemResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
             pageSize: number | string;
             /** Format: int32 */
             totalCount: number | string;
+            statusCounts: {
+                [key: string]: number | string;
+            };
         };
         /** @description Customer returned by the API. */
         CustomerResponse: {
@@ -2583,6 +2725,55 @@ export interface components {
          * @enum {unknown}
          */
         CustomerType: "Person" | "Company";
+        DashboardQuotesResponse: {
+            /**
+             * Format: int32
+             * @description Quotes in status Sent.
+             */
+            sent: number | string;
+            /**
+             * Format: double
+             * @description Sum of the gross totals of the Sent quotes in EUR.
+             */
+            sentGrossTotal: number | string;
+            /**
+             * Format: int32
+             * @description Quotes in status Draft or Sent.
+             */
+            open: number | string;
+        };
+        /** @description Counts for the staff dashboard. A part is null when the caller's role may not read that data. */
+        DashboardSummaryResponse: {
+            /**
+             * Format: date-time
+             * @description Time the summary was computed (UTC).
+             */
+            generatedAt: string;
+            tickets: null | components["schemas"]["DashboardTicketsResponse"];
+            quotes: null | components["schemas"]["DashboardQuotesResponse"];
+        };
+        DashboardTicketPriorityResponse: {
+            /** Format: int32 */
+            high: number | string;
+            /** Format: int32 */
+            medium: number | string;
+            /** Format: int32 */
+            low: number | string;
+        };
+        DashboardTicketsResponse: {
+            /**
+             * Format: int32
+             * @description Tickets that are not Resolved or Closed.
+             */
+            open: number | string;
+            /**
+             * Format: int32
+             * @description Tickets in state New (not triaged yet).
+             */
+            new: number | string;
+            /** @description Open tickets by priority. */
+            byPriority: components["schemas"]["DashboardTicketPriorityResponse"];
+        };
         /**
          * @description Deposit (zálohová platba) of a contract.
          * @enum {unknown}
@@ -2767,29 +2958,6 @@ export interface components {
                 [key: string]: string[];
             };
         };
-        /** @description Assembly checklist of an installation (#90). `Editable` is true only while mounting. */
-        ChecklistResponse: {
-            /** Format: uuid */
-            installationId: string;
-            editable: boolean;
-            complete: boolean;
-            missingRequiredSteps: string[];
-            steps: components["schemas"]["ChecklistStepResponse"][];
-        };
-        /** @description One step of the checklist: template data plus the stored state. */
-        ChecklistStepResponse: {
-            code: string;
-            /** Format: int32 */
-            position: number | string;
-            title: string;
-            required: boolean;
-            done: boolean;
-            note: null | string;
-            /** Format: uuid */
-            changedBy: null | string;
-            /** Format: date-time */
-            changedAt: null | string;
-        };
         /** @description Installation detail including its state history. */
         InstallationDetailResponse: {
             installation: components["schemas"]["InstallationResponse"];
@@ -2811,6 +2979,23 @@ export interface components {
          * @enum {unknown}
          */
         InstallationDocumentKind: "RevisionReport" | "HandoverProtocol";
+        /**
+         * @description Page of installations returned by `GET /api/installations/paged`. `StatusCounts` holds the installations per
+         *     InstallationState (all values present) for the current `q`, `customerId` and `technicianId`
+         *     filters; the `state` filter is ignored.
+         */
+        InstallationPageResponse: {
+            items: components["schemas"]["InstallationResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+            statusCounts: {
+                [key: string]: number | string;
+            };
+        };
         /** @description Installation as returned in lists. */
         InstallationResponse: {
             /** Format: uuid */
@@ -3100,6 +3285,40 @@ export interface components {
             /** @description Buckets with data, oldest first. */
             points: components["schemas"]["ProductionPointResponse"][];
         };
+        /** @description Production of all installations visible to the caller for a period. Points exist only for buckets with data. */
+        ProductionSummaryResponse: {
+            /**
+             * Format: date-time
+             * @description Start of the period, UTC (inclusive).
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description End of the period, UTC (exclusive).
+             */
+            to: string;
+            /** @description Bucket size. */
+            granularity: components["schemas"]["ProductionGranularity"];
+            /** @description IANA time zone of day and month buckets. */
+            timeZone: string;
+            /**
+             * Format: int32
+             * @description Number of installations the caller may see (also those without data).
+             */
+            installationCount: number | string;
+            /**
+             * Format: double
+             * @description Sum of the energy of all points.
+             */
+            totalEnergyKwh: number | string;
+            /**
+             * Format: double
+             * @description Highest summed AC power of all visible installations in the period; null without data.
+             */
+            peakPowerKw: null | number | string;
+            /** @description Buckets with data, oldest first; power and energy are summed over all visible installations. */
+            points: components["schemas"]["ProductionPointResponse"][];
+        };
         QuoteLineRequest: {
             /** Format: uuid */
             componentId: null | string;
@@ -3127,6 +3346,22 @@ export interface components {
         /** @description Optional body of `accept` and `reject`. */
         QuoteNoteRequest: {
             note?: null | string;
+        };
+        /**
+         * @description Page of quotes returned by `GET /api/quotes/paged`. `StatusCounts` holds the quotes per QuoteStatus
+         *     (all values present) for the current `q` and `customerId` filters; the `status` filter is ignored.
+         */
+        QuotePageResponse: {
+            items: components["schemas"]["QuoteResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+            statusCounts: {
+                [key: string]: number | string;
+            };
         };
         QuoteResponse: {
             /** Format: uuid */
@@ -3241,14 +3476,6 @@ export interface components {
         ReplaceVisitMaterialsRequest: {
             materials: null | components["schemas"]["VisitMaterialRequest"][];
         };
-        /** @description Sets a new password with the token from the reset link. */
-        ResetPasswordRequest: {
-            email: string;
-            /** @description Token from the reset link. */
-            token: string;
-            /** @description Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit). */
-            newPassword: string;
-        };
         /** @description Payload of `PUT /api/visits/{id}/schedule`: a new date with the reason of the change. */
         RescheduleVisitRequest: {
             /** Format: date-time */
@@ -3256,6 +3483,14 @@ export interface components {
             /** Format: int32 */
             estimatedMinutes: null | number | string;
             reason: null | string;
+        };
+        /** @description Sets a new password with the token from the reset link. */
+        ResetPasswordRequest: {
+            email: string;
+            /** @description Token from the reset link. */
+            token: string;
+            /** @description Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit). */
+            newPassword: string;
         };
         /** @description Revision report metadata; the file itself is downloaded separately. */
         RevisionReportResponse: {
@@ -3340,6 +3575,35 @@ export interface components {
          * @enum {unknown}
          */
         RoofType: "PitchedTile" | "PitchedMetal" | "PitchedOther" | "Flat" | "GroundMount";
+        /** @description Planned mounting window of an installation. */
+        ScheduleInstallationRequest: {
+            /** Format: date */
+            scheduledStart: null | string;
+            /** Format: date */
+            scheduledEnd: null | string;
+        };
+        /** @description One search hit. The frontend builds the link from the group and `Id`. */
+        SearchHit: {
+            /**
+             * Format: uuid
+             * @description Id of the customer, quote, installation or ticket.
+             */
+            id: string;
+            /** @description Main line, e.g. the customer name, installation name or ticket title. */
+            title: string;
+            /** @description Secondary line (e-mail, status and customer); may be null. */
+            subtitle: null | string;
+        };
+        /**
+         * @description Hits grouped by type. A group is null when the caller's role may not read that module (the customers group is
+         *     never returned to a customer account); otherwise it is a list, possibly empty, with at most `limit` hits.
+         */
+        SearchResponse: {
+            customers: null | components["schemas"]["SearchHit"][];
+            quotes: null | components["schemas"]["SearchHit"][];
+            installations: null | components["schemas"]["SearchHit"][];
+            tickets: null | components["schemas"]["SearchHit"][];
+        };
         /** @description Optional body of `POST /api/quotes/{id}/send`. */
         SendQuoteRequest: {
             /**
@@ -3374,13 +3638,6 @@ export interface components {
         SetUserRolesRequest: {
             /** @description Role names (case-insensitive), at least one. Roles missing from the list are removed. */
             roles: string[];
-        };
-        /** @description Planned mounting window of an installation. */
-        ScheduleInstallationRequest: {
-            /** Format: date */
-            scheduledStart: null | string;
-            /** Format: date */
-            scheduledEnd: null | string;
         };
         /** @description Payload for `POST /api/contracts/{id}/sign`. */
         SignContractRequest: {
@@ -3808,6 +4065,11 @@ export interface components {
          * @enum {unknown}
          */
         UnderproductionSeverity: "Low" | "Medium" | "High";
+        /** @description Marks a checklist step done or not done (#90). */
+        UpdateChecklistStepRequest: {
+            done: null | boolean;
+            note?: null | string;
+        };
         UpdateComponentRequest: {
             type: null | components["schemas"]["ComponentType"];
             /** @description Catalog code (SKU); unique, case-insensitive. */
@@ -3870,11 +4132,6 @@ export interface components {
             annualConsumptionKwh: null | number | string;
             consumptionProfile: null | components["schemas"]["ConsumptionProfile"];
             roofPlanes: null | components["schemas"]["RoofPlaneRequest"][];
-        };
-        /** @description Marks a checklist step done or not done (#90). */
-        UpdateChecklistStepRequest: {
-            done: null | boolean;
-            note?: null | string;
         };
         /** @description Payload for updating descriptive fields of an installation. */
         UpdateInstallationRequest: {
@@ -4039,15 +4296,6 @@ export interface components {
             specificYieldKwhPerKwp: number | string;
             source: string;
         };
-        NotificationItemResponse: {
-            id: string;
-            /** @enum {string} */
-            kind: "ticket" | "connection_request";
-            title: string;
-            /** Format: date-time */
-            createdAt: string;
-            link: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -4076,6 +4324,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnderproductionAlarmListResponse"];
+                };
+            };
+        };
+    };
+    GetProductionSummary: {
+        parameters: {
+            query?: {
+                /** @description Start of the period (inclusive). */
+                From?: string;
+                /** @description End of the period (exclusive). */
+                To?: string;
+                /** @description `fiveMinutes`, `hour` (default), `day` or `month`. */
+                Granularity?: string;
+                /** @description IANA time zone for day and month buckets and date-only bounds; default Europe/Bratislava. */
+                TimeZone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionSummaryResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -5331,11 +5617,13 @@ export interface operations {
     ListCustomers: {
         parameters: {
             query?: {
-                q?: string;
                 page?: number | string;
                 pageSize?: number | string;
+                q?: string;
                 sortBy?: string;
                 sortDir?: string;
+                type?: string;
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -5565,6 +5853,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetDashboardSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummaryResponse"];
                 };
             };
         };
@@ -6809,6 +7117,44 @@ export interface operations {
             };
         };
     };
+    ListInstallationsPaged: {
+        parameters: {
+            query?: {
+                page?: number | string;
+                pageSize?: number | string;
+                q?: string;
+                sortBy?: string;
+                sortDir?: string;
+                state?: string;
+                customerId?: string;
+                technicianId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationPageResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
     ListInstallationTechnicians: {
         parameters: {
             query?: never;
@@ -7863,6 +8209,75 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListQuotesPaged: {
+        parameters: {
+            query?: {
+                page?: number | string;
+                pageSize?: number | string;
+                q?: string;
+                sortBy?: string;
+                sortDir?: string;
+                status?: string;
+                customerId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotePageResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    Search: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -9292,35 +9707,6 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
-            };
-        };
-    };
-    ListNotifications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items: components["schemas"]["NotificationItemResponse"][];
-                    };
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

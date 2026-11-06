@@ -1,0 +1,12 @@
+# Global search for the command palette. Every authenticated role may call it; groups the role cannot read are null.
+# Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+
+### Search all groups (default 5 hits per group)
+GET {{baseUrl}}/api/search?q=novak
+Authorization: Bearer {{token}}
+
+### At most 2 hits per group (limit 1 to 10)
+GET {{baseUrl}}/api/search?q=fve&limit=2
+Authorization: Bearer {{token}}

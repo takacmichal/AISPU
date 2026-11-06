@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -7,12 +8,16 @@ using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Persistence;
+using SolarOps.Api.Infrastructure.Querying;
 
 namespace SolarOps.Api.Features.Installations;
 
 public interface IInstallationService
 {
     Task<IReadOnlyList<InstallationResponse>> ListAsync(InstallationQuery query, CancellationToken ct);
+
+    /// <summary>Paged list with search, filters and per-state counts; <paramref name="state"/> is an enum name (400 when unknown).</summary>
+    Task<InstallationPageResponse> ListPagedAsync(PageQuery page, string? state, Guid? customerId, Guid? technicianId, CancellationToken ct);
 
     Task<InstallationDetailResponse> GetAsync(Guid id, CancellationToken ct);
 
@@ -32,6 +37,16 @@ public interface IInstallationService
 internal sealed class InstallationService(AppDbContext db, ICurrentUser currentUser, ICustomerScope customerScope, TimeProvider time) : IInstallationService
 {
     private const string UniqueViolation = "23505";
+
+    private static readonly Dictionary<string, Expression<Func<Installation, object>>> SortMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["createdAt"] = x => x.CreatedAt,
+        ["updatedAt"] = x => x.UpdatedAt,
+        ["name"] = x => x.Name,
+        ["state"] = x => x.State,
+        ["scheduledStart"] = x => x.ScheduledStart!,
+        ["plannedPowerKwp"] = x => x.PlannedPowerKwp!,
+    };
 
     public async Task<IReadOnlyList<InstallationResponse>> ListAsync(InstallationQuery query, CancellationToken ct)
     {
@@ -80,6 +95,47 @@ internal sealed class InstallationService(AppDbContext db, ICurrentUser currentU
             .ToListAsync(ct);
 
         return result.Select(InstallationResponse.From).ToList();
+    }
+
+    public async Task<InstallationPageResponse> ListPagedAsync(
+        PageQuery page, string? state, Guid? customerId, Guid? technicianId, CancellationToken ct)
+    {
+        var stateFilter = EnumFilter.Parse<InstallationState>(state, "state");
+
+        var query = db.Set<Installation>().AsNoTracking();
+        var scope = await customerScope.GetAsync(ct);
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            query = query.Where(x => x.CustomerId == own);
+        }
+
+        if (customerId is { } c)
+        {
+            query = query.Where(x => x.CustomerId == c);
+        }
+
+        if (technicianId is { } t)
+        {
+            query = query.Where(x => x.TechnicianIds.Contains(t));
+        }
+
+        if (page.SearchTerm is { } term)
+        {
+            query = query.Matching(db, SqlLike.Contains(term));
+        }
+
+        var sorted = query.ApplySort(page, SortMap, x => x.Id, "createdAt", defaultDescending: true);
+        var stateCounts = await query.CountByAsync(x => x.State, ct);
+        if (stateFilter is { } st)
+        {
+            sorted = sorted.Where(x => x.State == st);
+        }
+
+        var installations = await sorted.ToPagedAsync(page, ct);
+        return new InstallationPageResponse(
+            installations.Items.Select(InstallationResponse.From).ToList(),
+            installations.Page, installations.PageSize, installations.TotalCount, stateCounts);
     }
 
     public async Task<InstallationDetailResponse> GetAsync(Guid id, CancellationToken ct)

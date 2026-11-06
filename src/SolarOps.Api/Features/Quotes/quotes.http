@@ -1,0 +1,16 @@
+# Quotes (#74, #75). Reading: Admin/Sales/Designer/Operator; writing: Admin/Sales. Port matches launchSettings.json (http profile).
+@baseUrl = http://localhost:5080
+@token = paste-access-token-here
+@customerId = 0199f0a0-0000-7000-8000-000000000001
+
+### List all quotes (unpaged array; filters: customerId, status)
+GET {{baseUrl}}/api/quotes?status=Sent
+Authorization: Bearer {{token}}
+
+### Paged list: search by customer name or note, status filter, sorting, per-status counts (statusCounts)
+GET {{baseUrl}}/api/quotes/paged?q=novak&status=Sent&page=1&pageSize=20&sortBy=grossTotal&sortDir=desc
+Authorization: Bearer {{token}}
+
+### Paged list of one customer's quotes, newest first (default order)
+GET {{baseUrl}}/api/quotes/paged?customerId={{customerId}}
+Authorization: Bearer {{token}}

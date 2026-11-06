@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
+using SolarOps.Api.Infrastructure.Querying;
 using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Quotes;
@@ -63,6 +64,15 @@ public sealed class QuotesModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(AuthorizationPolicies.QuotesRead);
 
+        group.MapGet("/paged", ListPagedAsync)
+            .WithName("ListQuotesPaged")
+            .WithSummary("List quotes with paging, search and status counts")
+            .WithDescription("Filters: status (Draft | Sent | Accepted | Rejected | Expired), customerId, q (customer name or note, case-insensitive substring). "
+                + "sortBy = createdAt | updatedAt | status | grossTotal | validUntil, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). "
+                + "statusCounts holds the quotes per status for the current q and customerId (the status filter is ignored).")
+            .WithValidation<PageQuery>()
+            .RequireAuthorization(AuthorizationPolicies.QuotesRead);
+
         group.MapGet("/", ListAsync)
             .WithName("ListQuotes")
             .WithSummary("List quotes")
@@ -83,6 +93,10 @@ public sealed class QuotesModule : IModule
     internal static async Task<Ok<IReadOnlyList<QuoteResponse>>> ListAsync(
         IQuoteService service, CancellationToken ct, Guid? customerId = null, QuoteStatus? status = null) =>
         TypedResults.Ok(await service.ListAsync(customerId, status, ct));
+
+    internal static async Task<Ok<QuotePageResponse>> ListPagedAsync(
+        [AsParameters] PageQuery page, IQuoteService service, CancellationToken ct, string? status = null, Guid? customerId = null) =>
+        TypedResults.Ok(await service.ListPagedAsync(page, status, customerId, ct));
 
     internal static async Task<Ok<QuoteResponse>> SendAsync(Guid id, IQuoteService service, CancellationToken ct, SendQuoteRequest? request = null) =>
         TypedResults.Ok(await service.SendAsync(id, request, ct));
