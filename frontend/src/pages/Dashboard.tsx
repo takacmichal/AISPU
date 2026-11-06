@@ -4,9 +4,8 @@ import { canAccess, findItem } from '../auth/navigation'
 import { EmptyState } from '../components/EmptyState'
 import { KpiCard } from '../components/KpiCard'
 import { PageHeader } from '../components/PageHeader'
-import { Skeleton } from '../components/Skeleton'
 import { UpdatedIndicator } from '../components/UpdatedIndicator'
-import { useOngoingAlarms, useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
+import { OPERATING_STATES, useOngoingAlarms, useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
 import { ProductionBarsCard } from '../features/dashboard/ProductionBarsCard'
 import { RecentAlarmsCard } from '../features/dashboard/RecentAlarmsCard'
 import PortalHome from '../features/portal/PortalHome'
@@ -44,10 +43,6 @@ function latestUpdate(times: (Date | null)[]): Date | null {
 }
 
 const countBy = (alarms: readonly { ticketPriority: string }[], priority: string) => alarms.filter((a) => a.ticketPriority === priority).length
-
-function Mock({ on }: { on: boolean }) {
-  return on ? <span className="mock-tag">{T.mock}</span> : null
-}
 
 export default function Dashboard() {
   const { roles } = useAuth()
@@ -123,96 +118,64 @@ export default function Dashboard() {
 
       <div className="kpi-grid" role="group" aria-label={T.kpiRegion}>
         {canMonitor && (
-          <div>
-            {p ? (
-              <KpiCard
-                icon={<NavIcon path="/monitoring" />}
-                trend={trendOf(p.todayKwh, p.yesterdayKwh)}
-                value={formatNumber(p.todayKwh, 0)}
-                unit=" kWh"
-                label={T.production.label}
-                href="/monitoring"
-                detail={
-                  <>
-                    {T.production.detail(p.online, p.asOf)}
-                    <Mock on={p.mock} />
-                  </>
-                }
-              />
-            ) : (
-              <Skeleton lines={3} label={T.kpiLoading} />
-            )}
-          </div>
+          <KpiCard
+            icon={<NavIcon path="/monitoring" />}
+            trend={p ? trendOf(p.todayKwh, p.yesterdayKwh) : undefined}
+            value={p ? formatNumber(p.todayKwh, 0) : ''}
+            unit=" kWh"
+            label={T.production.label}
+            href="/monitoring"
+            detail={p ? T.production.detail(p.operating, p.asOf) : undefined}
+            loading={production.loading ? T.kpiLoading : undefined}
+            error={production.error ? { message: T.kpiError, onRetry: production.reload } : undefined}
+          />
         )}
         {canTickets && (
-          <div>
-            {t ? (
-              <KpiCard
-                icon={<BellIcon />}
-                trend={!ongoing.length && t.fresh > 0 ? { text: T.alarms.fresh(t.fresh), tone: 'neutral' } : undefined}
-                value={ongoing.length || t.critical + t.warning + t.info}
-                label={T.alarms.label}
-                href={ongoing.length ? '/monitoring' : '/tickets'}
-                detail={
-                  ongoing.length ? (
-                    T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low'))
-                  ) : (
-                    <>
-                      {T.alarms.detail(t.critical, t.warning, t.info)}
-                      <Mock on={t.mock} />
-                    </>
-                  )
-                }
-              />
-            ) : (
-              <Skeleton lines={3} label={T.kpiLoading} />
-            )}
-          </div>
+          <KpiCard
+            icon={<BellIcon />}
+            trend={t && !ongoing.length && t.fresh > 0 ? { text: T.alarms.fresh(t.fresh), tone: 'neutral' } : undefined}
+            value={t ? ongoing.length || t.critical + t.warning + t.info : ''}
+            label={T.alarms.label}
+            href={ongoing.length ? '/monitoring' : '/tickets'}
+            detail={
+              ongoing.length
+                ? T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low'))
+                : t && T.alarms.detail(t.critical, t.warning, t.info)
+            }
+            loading={tickets.loading ? T.kpiLoading : undefined}
+            error={tickets.error ? { message: T.kpiError, onRetry: tickets.reload } : undefined}
+          />
         )}
         {canTickets && (
-          <div>
-            {t ? (
-              <KpiCard
-                icon={<NavIcon path="/tickets" />}
-                value={t.open}
-                label={T.tickets.label}
-                href="/tickets"
-                detail={
-                  <>
-                    {T.tickets.detail(t.overSla)}
-                    <Mock on={t.mock} />
-                  </>
-                }
-              />
-            ) : (
-              <Skeleton lines={3} label={T.kpiLoading} />
-            )}
-          </div>
+          <KpiCard
+            icon={<NavIcon path="/tickets" />}
+            value={t ? t.open : ''}
+            label={T.tickets.label}
+            href="/tickets"
+            detail={t ? T.tickets.detail(t.waitingTriage) : undefined}
+            loading={tickets.loading ? T.kpiLoading : undefined}
+            error={tickets.error ? { message: T.kpiError, onRetry: tickets.reload } : undefined}
+          />
         )}
         {canQuotes && (
-          <div>
-            {q ? (
-              <KpiCard
-                icon={<NavIcon path="/quotes" />}
-                value={q.waiting}
-                label={T.quotes.label}
-                href="/quotes"
-                detail={
-                  <>
-                    {T.quotes.detail(formatCurrency(q.valueGross, 'EUR'))}
-                    <Mock on={q.mock} />
-                  </>
-                }
-              />
-            ) : (
-              <Skeleton lines={3} label={T.kpiLoading} />
-            )}
-          </div>
+          <KpiCard
+            icon={<NavIcon path="/quotes" />}
+            value={q ? q.waiting : ''}
+            label={T.quotes.label}
+            href="/quotes"
+            detail={q ? T.quotes.detail(formatCurrency(q.valueGross, 'EUR')) : undefined}
+            loading={quotes.loading ? T.kpiLoading : undefined}
+            error={quotes.error ? { message: T.kpiError, onRetry: quotes.reload } : undefined}
+          />
         )}
       </div>
 
       <div className="dashboard__grid">
-        {canMonitor && !installations.loading && <ProductionBarsCard installationIds={(installations.data ?? []).map((i) => i.id)} />}
+        {canMonitor && !installations.loading && (
+          <ProductionBarsCard
+            installationIds={(installations.data ?? []).filter((i) => OPERATING_STATES.has(i.state)).map((i) => i.id)}
+          />
+        )}
         {canTickets && <RecentAlarmsCard summary={tickets.loading ? undefined : tickets.data} alarms={ongoing} />}
       </div>
     </section>

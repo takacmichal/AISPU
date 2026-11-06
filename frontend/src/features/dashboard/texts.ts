@@ -1,16 +1,15 @@
 /** Slovak strings of the dashboard cards (production chart, alarms). */
 export const DASHBOARD_PARTS = {
   retry: 'Skúsiť znova',
-  mock: 'Ukážkové dáta',
   production: {
     title: 'Výroba v čase',
-    subtitle: () => 'Všetky inštalácie · kWh/deň',
+    subtitle: () => 'Elektrárne v prevádzke · kWh/deň',
     range: 'Obdobie',
     ranges: { '14d': '14 dní', '30d': '30 dní', '12m': '12 mesiacov' },
     loading: 'Načítavam výrobu…',
     error: 'Výrobu sa nepodarilo načítať.',
     empty: 'Za vybrané obdobie nie sú žiadne údaje.',
-    noInstallations: 'Zatiaľ nie sú žiadne inštalácie.',
+    noInstallations: 'Zatiaľ nie sú žiadne elektrárne v prevádzke.',
     summary: (total: string) => `Súčet výroby za obdobie: ${total} kWh`,
   },
   alarms: {

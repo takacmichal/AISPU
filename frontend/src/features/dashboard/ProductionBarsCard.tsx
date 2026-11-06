@@ -5,7 +5,6 @@ import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { formatNumber } from '../../lib/format'
 import { fetchProduction } from '../monitoring/productionApi'
 import { barLabel, rangeQuery, sumProduction, type Range } from './aggregate'
-import { mockBars } from './mock'
 import { DASHBOARD_PARTS as T } from './texts'
 import './dashboard.css'
 
@@ -15,23 +14,20 @@ const RANGES = [
   { value: '12m', label: T.production.ranges['12m'] },
 ] as const
 
-/** Production of all installations the user can see, summed per day or month (bars, the last one highlighted). */
+/** Production of the plants in operation, summed per day or month (bars, the last one highlighted). */
 export function ProductionBarsCard({ installationIds }: { installationIds: readonly string[] }) {
   const [range, setRange] = useState<Range>('14d')
-  const { data: result, loading, error, reload } = useLoad(async (signal, { background }) => {
-    const query = rangeQuery(range, new Date())
-    try {
+  const { data, loading, error, reload } = useLoad(
+    async (signal) => {
+      const query = rangeQuery(range, new Date())
       const responses = await Promise.all(installationIds.map((id) => fetchProduction(id, query, signal)))
-      const bars = sumProduction(responses)
-      if (bars.some((b) => b.kwh > 0)) return { bars, mock: false }
-    } catch (failure) {
-      // A failed background refresh keeps the last data instead of switching to sample data.
-      if (signal.aborted || background) throw failure
-    }
-    return { bars: mockBars(range, new Date()), mock: true }
-  }, `${range}|${installationIds.join(',')}`, { intervalMs: DASHBOARD_POLL_MS })
+      return sumProduction(responses)
+    },
+    `${range}|${installationIds.join(',')}`,
+    { intervalMs: DASHBOARD_POLL_MS, enabled: installationIds.length > 0 },
+  )
 
-  const data = result?.bars
+  const noPlants = installationIds.length === 0
   const max = Math.max(1, ...(data ?? []).map((b) => b.kwh))
   const total = (data ?? []).reduce((sum, b) => sum + b.kwh, 0)
 
@@ -44,12 +40,12 @@ export function ProductionBarsCard({ installationIds }: { installationIds: reado
           </h3>
           <p className="dash-card__subtitle">
             {T.production.subtitle()}
-            {result?.mock && <span className="mock-tag">{T.mock}</span>}
           </p>
         </div>
         <SegmentedControl label={T.production.range} options={RANGES} value={range} onChange={setRange} size="sm" />
       </header>
-      {loading && <Skeleton lines={4} label={T.production.loading} />}
+      {noPlants && <p className="dash-card__empty">{T.production.noInstallations}</p>}
+      {!noPlants && loading && <Skeleton lines={4} label={T.production.loading} />}
       {error && (
         <p className="dash-card__empty">
           {T.production.error}{' '}
@@ -58,7 +54,8 @@ export function ProductionBarsCard({ installationIds }: { installationIds: reado
           </button>
         </p>
       )}
-      {data && (
+      {!noPlants && data && total <= 0 && <p className="dash-card__empty">{T.production.empty}</p>}
+      {!noPlants && data && total > 0 && (
         <figure className="bars">
           <figcaption className="sr-only">{T.production.summary(formatNumber(total, 0))}</figcaption>
           <div className="bars__plot" role="img" aria-label={T.production.summary(formatNumber(total, 0))}>
@@ -74,7 +71,6 @@ export function ProductionBarsCard({ installationIds }: { installationIds: reado
               </div>
             ))}
           </div>
-          {data.length === 0 && <p className="dash-card__empty">{T.production.empty}</p>}
         </figure>
       )}
     </article>

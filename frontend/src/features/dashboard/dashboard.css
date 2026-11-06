@@ -167,18 +167,6 @@
   color: var(--color-text-muted);
 }
 
-.mock-tag {
-  margin-left: var(--spacing-8);
-  padding: 1px 8px;
-  border-radius: var(--radius-pills);
-  background: var(--surface-tint);
-  color: var(--color-text-muted);
-  font-size: var(--text-micro);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .side-card {
   display: flex;
   flex-direction: column;
