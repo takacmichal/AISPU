@@ -14,20 +14,15 @@ const RANGES = [
   { value: '12m', label: T.production.ranges['12m'] },
 ] as const
 
-/** Production of the plants in operation, summed per day or month (bars, the last one highlighted). */
+/** Production of all visible installations, summed per day or month (bars, the last one highlighted). */
 export function ProductionBarsCard() {
   const [range, setRange] = useState<Range>('14d')
   const { data, loading, error, reload } = useLoad(
     async (signal) => {
       const query = rangeQuery(range, new Date())
-      const [production, installations] = await Promise.all([
-        api.GET('/api/production/summary', { params: { query: { From: query.from, To: query.to, Granularity: query.granularity } }, signal }),
-        api.GET('/api/installations/paged', { params: { query: { page: 1, pageSize: 1 } }, signal }),
-      ])
+      const production = await api.GET('/api/production/summary', { params: { query: { From: query.from, To: query.to, Granularity: query.granularity } }, signal })
       if (!production.data) throw new Error(`HTTP ${production.response.status}`)
-      if (!installations.data) throw new Error(`HTTP ${installations.response.status}`)
-      const counts = installations.data.statusCounts
-      return { bars: production.data.points.map((point) => ({ key: point.periodStart, start: point.periodStart, kwh: Number(point.energyKwh) })), installations: Number(counts.Commissioned ?? 0) + Number(counts.HandedOver ?? 0) }
+      return { bars: production.data.points.map((point) => ({ key: point.periodStart, start: point.periodStart, kwh: Number(point.energyKwh) })), installations: Number(production.data.installationCount) }
     },
     range,
     { intervalMs: DASHBOARD_POLL_MS },

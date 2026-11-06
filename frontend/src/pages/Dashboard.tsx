@@ -52,7 +52,7 @@ export default function Dashboard() {
   const tickets = useTicketSummary(canTickets)
   const summary = useDashboardSummary(canTickets || canQuotes)
   // The alarms link to monitoring, so only roles that can open it see them.
-  const alarms = useOngoingAlarms(canMonitor && canTickets)
+  const alarms = useOngoingAlarms(canMonitor)
   const ongoing = alarms.data ?? []
 
   if (isCustomerOnly(roles)) return <PortalHome />
@@ -78,11 +78,7 @@ export default function Dashboard() {
 
   const p = production.data
   const summaryTickets = summary.data?.tickets
-  const t = summaryTickets ? {
-    open: Number(summaryTickets.open), waitingTriage: Number(summaryTickets.new),
-    critical: Number(summaryTickets.byPriority.high), warning: Number(summaryTickets.byPriority.medium), info: Number(summaryTickets.byPriority.low),
-    fresh: Number(summaryTickets.new),
-  } : null
+  const t = summaryTickets ? { open: Number(summaryTickets.open), waitingTriage: Number(summaryTickets.new) } : null
   const q = summary.data?.quotes ? { waiting: Number(summary.data.quotes.sent), valueGross: Number(summary.data.quotes.sentGrossTotal), open: Number(summary.data.quotes.open) } : null
 
   return (
@@ -129,20 +125,15 @@ export default function Dashboard() {
             error={production.error ? { message: T.kpiError, onRetry: production.reload } : undefined}
           />
         )}
-        {canTickets && (
+        {canMonitor && (
           <KpiCard
             icon={<BellIcon />}
-            trend={t && !ongoing.length && t.fresh > 0 ? { text: T.alarms.fresh(t.fresh), tone: 'neutral' } : undefined}
-            value={t ? ongoing.length || t.critical + t.warning + t.info : ''}
+            value={alarms.data ? ongoing.length : ''}
             label={T.alarms.label}
-            href={ongoing.length ? '/monitoring' : '/tickets'}
-            detail={
-              ongoing.length
-                ? T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low'))
-                : t && T.alarms.detail(t.critical, t.warning, t.info)
-            }
-            loading={summary.loading ? T.kpiLoading : undefined}
-            error={summary.error ? { message: T.kpiError, onRetry: summary.reload } : undefined}
+            href="/monitoring"
+            detail={alarms.data ? T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low')) : undefined}
+            loading={alarms.loading ? T.kpiLoading : undefined}
+            error={alarms.error ? { message: T.kpiError, onRetry: alarms.reload } : undefined}
           />
         )}
         {canTickets && (

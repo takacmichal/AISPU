@@ -3,13 +3,13 @@ export const DASHBOARD_PARTS = {
   retry: 'Skúsiť znova',
   production: {
     title: 'Výroba v čase',
-    subtitle: () => 'Elektrárne v prevádzke · kWh/deň',
+    subtitle: () => 'Všetky dostupné inštalácie · kWh/deň',
     range: 'Obdobie',
     ranges: { '14d': '14 dní', '30d': '30 dní', '12m': '12 mesiacov' },
     loading: 'Načítavam výrobu…',
     error: 'Výrobu sa nepodarilo načítať.',
     empty: 'Za vybrané obdobie nie sú žiadne údaje.',
-    noInstallations: 'Zatiaľ nie sú žiadne elektrárne v prevádzke.',
+    noInstallations: 'Zatiaľ nie sú dostupné žiadne inštalácie.',
     summary: (total: string) => `Súčet výroby za obdobie: ${total} kWh`,
   },
   alarms: {
