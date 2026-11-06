@@ -21,13 +21,12 @@ const PAGE_SIZE = 20
 
 /**
  * `/installations`: list with phase tabs (Všetky / V realizácii / Čaká na DS / V prevádzke), search and filters in the URL.
- * The API returns the whole list, so state, phase, search and paging are applied on the client; customer and
- * "my installations" go to the API.
+ * The API applies search, state, customer and technician filters and returns a page with state counts.
  */
 export default function InstallationListPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { roles } = useAuth()
+  const { roles, session } = useAuth()
 
   const state = STATES.find((s) => s === params.get('state')) ?? ''
   const group: GroupFilter = LIST_GROUPS.find((g) => g === params.get('phase')) ?? 'all'
@@ -38,13 +37,29 @@ export default function InstallationListPage() {
   const isTechnician = roles.includes('Technician')
 
   const { data, loading, error } = useLoad(async (signal) => {
-    const { data, response } = await api.GET('/api/installations', {
-      params: { query: { customerId: customerId || undefined, assignedToMe: mine || undefined } },
-      signal,
-    })
-    if (!data) throw new Error(`HTTP ${response.status}`)
-    return data
-  }, JSON.stringify([customerId, mine]))
+    const query = { q: q.trim() || undefined, customerId: customerId || undefined, technicianId: mine ? session?.userId : undefined }
+    if (group === 'all') {
+      const { data, response } = await api.GET('/api/installations/paged', { params: { query: { ...query, page, pageSize: PAGE_SIZE, state: state || undefined } }, signal })
+      if (!data) throw new Error(`HTTP ${response.status}`)
+      return { ...data, items: data.items, phaseTotal: Number(data.totalCount) }
+    }
+    const memberStates = STATES.filter((item) => listGroup(item) === group && (!state || state === item))
+    const pageResults = await Promise.all(memberStates.map(async (item) => {
+      const target = page * PAGE_SIZE
+      const requests = Array.from({ length: Math.ceil(target / 100) }, (_, index) =>
+        api.GET('/api/installations/paged', { params: { query: { ...query, state: item, page: index + 1, pageSize: 100 } }, signal }),
+      )
+      const responses = await Promise.all(requests)
+      const first = responses[0]
+      if (!first?.data) throw new Error(`HTTP ${first?.response.status ?? 500}`)
+      for (const result of responses) if (!result.data) throw new Error(`HTTP ${result.response.status}`)
+      return { items: responses.flatMap((result) => result.data?.items ?? []), totalCount: Number(first.data.totalCount), statusCounts: first.data.statusCounts }
+    }))
+    const items = pageResults.flatMap((result) => result.items).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    const phaseTotal = pageResults.reduce((sum, result) => sum + result.totalCount, 0)
+    const mergedCounts = pageResults[0]?.statusCounts ?? {}
+    return { items: items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), totalCount: phaseTotal, phaseTotal, statusCounts: mergedCounts }
+  }, JSON.stringify([page, q, state, customerId, mine, session?.userId, group]))
 
   // Customer names are best effort: the customers API is not readable for every role that can read installations.
   const customers = useLoad(async (signal) => {
@@ -76,21 +91,10 @@ export default function InstallationListPage() {
     { key: 'changed', header: T.list.colChanged, render: (i) => formatDate(i.stateChangedAt) },
   ]
 
-  const all = data ?? []
-  const needle = q.trim().toLowerCase()
-  const searched = all.filter(
-    (i) =>
-      (!state || i.state === state) &&
-      (!needle || i.name.toLowerCase().includes(needle) || (customerNames.get(i.customerId) ?? '').toLowerCase().includes(needle)),
-  )
-  const counts = Object.fromEntries(LIST_GROUPS.map((g) => [g, searched.filter((i) => listGroup(i.state) === g).length])) as Record<
-    ListGroup,
-    number
-  >
-  const rows = group === 'all' ? searched : searched.filter((i) => listGroup(i.state) === group)
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
-  const safePage = Math.min(page, pageCount)
-  const filtered = Boolean(state || customerId || mine || needle || group !== 'all')
+  const statusCounts = data?.statusCounts ?? {}
+  const counts = Object.fromEntries(LIST_GROUPS.map((g) => [g, Object.entries(statusCounts).reduce((sum, [s, count]) => sum + (listGroup(s as Installation['state']) === g ? Number(count) : 0), 0)])) as Record<ListGroup, number>
+  const totalCount = data?.totalCount ?? 0
+  const filtered = Boolean(state || customerId || mine || q.trim() || group !== 'all')
 
   return (
     <section>
@@ -101,7 +105,7 @@ export default function InstallationListPage() {
           value={group}
           onChange={(value) => update({ phase: value, page: null })}
           options={[
-            { value: 'all', label: T.list.groups.all, count: searched.length },
+            { value: 'all', label: T.list.groups.all, count: Number(group === 'all' ? totalCount : LIST_GROUPS.reduce((sum, g) => sum + counts[g], 0)) },
             ...LIST_GROUPS.map((g) => ({ value: g, label: T.list.groups[g], count: counts[g] })),
           ]}
         />
@@ -134,11 +138,11 @@ export default function InstallationListPage() {
       </Toolbar>
       <DataTable
         columns={columns}
-        rows={rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)}
+        rows={data?.items ?? []}
         rowKey={(i) => i.id}
-        page={safePage}
+        page={page}
         pageSize={PAGE_SIZE}
-        totalCount={rows.length}
+        totalCount={Number(data?.phaseTotal ?? (group === 'all' ? totalCount : counts[group]))}
         onPageChange={(next) => update({ page: next === 1 ? null : String(next) })}
         loading={loading}
         error={error ? T.list.error : null}

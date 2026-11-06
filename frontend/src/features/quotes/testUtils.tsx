@@ -56,10 +56,75 @@ export function mockApi(routes: Record<string, Handler | Response>) {
     const url = String(input instanceof Request ? input.url : input)
     const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
     const path = new URL(url, 'http://x').pathname
-    const key = Object.keys(routes).find((k) => k === `${method} ${path}`)
+    const key = Object.keys(routes).find((k) => k === `${method} ${path}`) ?? (path === '/api/quotes/paged' ? Object.keys(routes).find((k) => k === `${method} /api/quotes`) : undefined)
+    if (!key && path === '/api/installations/paged') {
+      const legacy = routes['GET /api/installations']
+      if (!legacy) return json({ items: [], page: 1, pageSize: 1, totalCount: 0, statusCounts: {} })
+      const response = legacy instanceof Response ? legacy.clone() : await legacy(url, init)
+      if (!response.ok) return response
+      const rows = await response.json() as { state: string }[]
+      const statusCounts = Object.fromEntries([...new Set(rows.map((item) => item.state))].map((state) => [state, rows.filter((item) => item.state === state).length]))
+      const params = new URL(url, 'http://x').searchParams
+      const page = Number(params.get('page') ?? 1)
+      const pageSize = Number(params.get('pageSize') ?? 20)
+      return json({ items: rows.slice((page - 1) * pageSize, page * pageSize), page, pageSize, totalCount: rows.length, statusCounts })
+    }
+    if (!key && path === '/api/dashboard/summary') {
+      const getBody = async (route: string) => {
+        const match = routes[`GET ${route}`]
+        if (!match) return null
+        const res = match instanceof Response ? match.clone() : await match(url, init)
+        if (!res.ok) throw res
+        return res.json() as Promise<unknown>
+      }
+      try {
+        const [quoteRaw, ticketRaw] = await Promise.all([getBody('/api/quotes'), getBody('/api/tickets')])
+        const quotes = Array.isArray(quoteRaw) ? quoteRaw : []
+        const ticketPage = (ticketRaw ?? { items: [] }) as { items?: { state: string; priority: string }[] }
+        const open = (ticketPage.items ?? []).filter((item) => item.state !== 'Resolved' && item.state !== 'Closed')
+        const sent = quotes.filter((item) => (item as { status: string }).status === 'Sent')
+        return json({ generatedAt: new Date().toISOString(), tickets: ticketRaw === null ? null : { open: open.length, new: open.filter((item) => item.state === 'New').length, byPriority: { high: open.filter((item) => item.priority === 'High').length, medium: open.filter((item) => item.priority === 'Medium').length, low: open.filter((item) => item.priority === 'Low').length } }, quotes: quoteRaw === null ? null : { sent: sent.length, sentGrossTotal: sent.reduce((sum, item) => sum + Number((item as { grossTotal?: number }).grossTotal ?? 0), 0), open: quotes.filter((item) => ['Draft', 'Sent'].includes((item as { status: string }).status)).length } })
+      } catch { return json({}, 500) }
+    }
+    if (!key && path === '/api/production/summary') {
+      const match = routes['GET /api/installations']
+      if (!match) return json({ installationCount: 0, points: [] })
+      const res = match instanceof Response ? match.clone() : await match(url, init)
+      if (!res.ok) return res
+      const installations = await res.json() as { id: string; state: string }[]
+      const operating = installations.filter((item) => ['Commissioned', 'HandedOver'].includes(item.state))
+      const search = new URL(url, 'http://x').searchParams
+      const from = search.get('From') ?? new Date().toISOString().slice(0, 10)
+      const to = search.get('To') ?? from
+      const totals = new Map<string, number>()
+      for (const item of operating) {
+        const productionRoute = `GET /api/installations/${item.id}/production`
+        const handler = routes[productionRoute]
+        if (!handler) continue
+        const response = handler instanceof Response ? handler.clone() : await handler(url, init)
+        if (!response.ok) continue
+        const data = await response.json() as { points?: { periodStart: string; energyKwh: number }[] }
+        for (const point of data.points ?? []) totals.set(point.periodStart, (totals.get(point.periodStart) ?? 0) + Number(point.energyKwh))
+      }
+      const points = [...totals].map(([periodStart, energyKwh]) => ({ periodStart, energyKwh, peakPowerKw: 0 }))
+      return json({ from, to, granularity: 'Day', timeZone: 'Europe/Bratislava', installationCount: operating.length, totalEnergyKwh: points.reduce((sum, item) => sum + item.energyKwh, 0), peakPowerKw: null, points })
+    }
     if (!key) throw new Error(`Unmocked ${method} ${path}`)
     const handler = routes[key]
-    return handler instanceof Response ? handler.clone() : handler(url, init)
+    const response = handler instanceof Response ? handler.clone() : await handler(url, init)
+    if (path === '/api/quotes/paged' && response.ok) {
+      const body: unknown = await response.clone().json()
+      if (Array.isArray(body)) {
+        const params = new URL(url, 'http://x').searchParams
+        const status = params.get('status')
+        const filtered = body.filter((item) => !status || (item as { status?: string }).status === status)
+        const page = Number(params.get('page') ?? 1)
+        const pageSize = Number(params.get('pageSize') ?? 20)
+        const statusCounts = Object.fromEntries([...new Set(body.map((item) => (item as { status: string }).status))].map((item) => [item, body.filter((row) => (row as { status: string }).status === item).length]))
+        return json({ items: filtered.slice((page - 1) * pageSize, page * pageSize), page, pageSize, totalCount: filtered.length, statusCounts })
+      }
+    }
+    return response
   })
   vi.stubGlobal('fetch', mock)
   return mock

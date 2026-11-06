@@ -3,8 +3,8 @@ import { SegmentedControl } from '../../components/SegmentedControl'
 import { Skeleton } from '../../components/Skeleton'
 import { DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { formatNumber } from '../../lib/format'
-import { fetchProduction } from '../monitoring/productionApi'
-import { barLabel, rangeQuery, sumProduction, type Range } from './aggregate'
+import { barLabel, rangeQuery, type Range } from './aggregate'
+import { api } from '../../api/client'
 import { DASHBOARD_PARTS as T } from './texts'
 import './dashboard.css'
 
@@ -15,21 +15,28 @@ const RANGES = [
 ] as const
 
 /** Production of the plants in operation, summed per day or month (bars, the last one highlighted). */
-export function ProductionBarsCard({ installationIds }: { installationIds: readonly string[] }) {
+export function ProductionBarsCard() {
   const [range, setRange] = useState<Range>('14d')
   const { data, loading, error, reload } = useLoad(
     async (signal) => {
       const query = rangeQuery(range, new Date())
-      const responses = await Promise.all(installationIds.map((id) => fetchProduction(id, query, signal)))
-      return sumProduction(responses)
+      const [production, installations] = await Promise.all([
+        api.GET('/api/production/summary', { params: { query: { From: query.from, To: query.to, Granularity: query.granularity } }, signal }),
+        api.GET('/api/installations/paged', { params: { query: { page: 1, pageSize: 1 } }, signal }),
+      ])
+      if (!production.data) throw new Error(`HTTP ${production.response.status}`)
+      if (!installations.data) throw new Error(`HTTP ${installations.response.status}`)
+      const counts = installations.data.statusCounts
+      return { bars: production.data.points.map((point) => ({ key: point.periodStart, start: point.periodStart, kwh: Number(point.energyKwh) })), installations: Number(counts.Commissioned ?? 0) + Number(counts.HandedOver ?? 0) }
     },
-    `${range}|${installationIds.join(',')}`,
-    { intervalMs: DASHBOARD_POLL_MS, enabled: installationIds.length > 0 },
+    range,
+    { intervalMs: DASHBOARD_POLL_MS },
   )
 
-  const noPlants = installationIds.length === 0
-  const max = Math.max(1, ...(data ?? []).map((b) => b.kwh))
-  const total = (data ?? []).reduce((sum, b) => sum + b.kwh, 0)
+  const noPlants = Boolean(data && data.installations === 0)
+  const bars = data?.bars ?? []
+  const max = Math.max(1, ...bars.map((b) => b.kwh))
+  const total = bars.reduce((sum, b) => sum + b.kwh, 0)
 
   return (
     <article className="card dash-card" aria-labelledby="dash-production-title">
@@ -59,10 +66,10 @@ export function ProductionBarsCard({ installationIds }: { installationIds: reado
         <figure className="bars">
           <figcaption className="sr-only">{T.production.summary(formatNumber(total, 0))}</figcaption>
           <div className="bars__plot" role="img" aria-label={T.production.summary(formatNumber(total, 0))}>
-            {data.map((bar, index) => (
+            {bars.map((bar, index) => (
               <div key={bar.key} className="bars__col" title={`${barLabel(bar.start, range)} · ${formatNumber(bar.kwh, 0)} kWh`}>
                 <div
-                  className={`bars__bar${index === data.length - 1 ? ' bars__bar--current' : ''}`}
+                  className={`bars__bar${index === bars.length - 1 ? ' bars__bar--current' : ''}`}
                   style={{ height: `${Math.max(2, (bar.kwh / max) * 100)}%` }}
                 />
                 <span className="bars__label" aria-hidden="true">

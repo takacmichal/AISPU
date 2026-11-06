@@ -10,7 +10,7 @@ import { useCustomerOptions } from './useCustomerNames'
 
 const PAGE_SIZE = 20
 
-/** Quote list; status, customer and page live in the URL. The API returns the full list, so paging is done here. */
+/** Quote list; the API applies URL-backed filters, search and paging. */
 export default function QuoteListPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -21,16 +21,17 @@ export default function QuoteListPage() {
   const statusParam = params.get('status') ?? ''
   const status = (STATUSES as string[]).includes(statusParam) ? (statusParam as QuoteStatus) : ''
   const customerId = params.get('customerId') ?? ''
+  const q = params.get('q') ?? ''
   const page = Math.max(1, Number(params.get('page')) || 1)
 
   const { data, loading, error } = useLoad(async (signal) => {
-    const { data, response } = await api.GET('/api/quotes', {
-      params: { query: { status: status || undefined, customerId: customerId || undefined } },
+    const { data, response } = await api.GET('/api/quotes/paged', {
+      params: { query: { page, pageSize: PAGE_SIZE, status: status || undefined, customerId: customerId || undefined, q: q.trim() || undefined } },
       signal,
     })
     if (!data) throw new Error(`HTTP ${response.status}`)
     return data
-  }, `${status}|${customerId}`)
+  }, `${status}|${customerId}|${q}|${page}`)
 
   const names = new Map(customers.map((c) => [c.id, c.name]))
   const columns: Column<Quote>[] = [
@@ -51,9 +52,8 @@ export default function QuoteListPage() {
     setParams(next)
   }
 
-  const rows = data ?? []
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const filtered = status !== '' || customerId !== ''
+  const rows = data?.items ?? []
+  const filtered = status !== '' || customerId !== '' || q.trim() !== ''
 
   return (
     <section>
@@ -66,6 +66,10 @@ export default function QuoteListPage() {
         )}
       </div>
       <div className="quote-filters">
+        <label>
+          Hľadať
+          <input type="search" value={q} onChange={(e) => update({ q: e.target.value, page: null })} placeholder="Zákazník alebo poznámka…" />
+        </label>
         <label>
           {TEXT.statusFilter}
           <select value={status} onChange={(e) => update({ status: e.target.value, page: null })}>
@@ -91,11 +95,11 @@ export default function QuoteListPage() {
       </div>
       <DataTable
         columns={columns}
-        rows={pageRows}
+        rows={rows}
         rowKey={(q) => q.id}
         page={page}
         pageSize={PAGE_SIZE}
-        totalCount={rows.length}
+        totalCount={Number(data?.totalCount ?? 0)}
         onPageChange={(next) => update({ page: next === 1 ? null : String(next) })}
         loading={loading}
         error={error ? TEXT.listError : null}

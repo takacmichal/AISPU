@@ -5,12 +5,10 @@ import { EmptyState } from '../components/EmptyState'
 import { KpiCard } from '../components/KpiCard'
 import { PageHeader } from '../components/PageHeader'
 import { UpdatedIndicator } from '../components/UpdatedIndicator'
-import { OPERATING_STATES, useOngoingAlarms, useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
+import { useDashboardSummary, useOngoingAlarms, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
 import { ProductionBarsCard } from '../features/dashboard/ProductionBarsCard'
 import { RecentAlarmsCard } from '../features/dashboard/RecentAlarmsCard'
 import PortalHome from '../features/portal/PortalHome'
-import { api } from '../api/client'
-import { useLoad } from '../components/useLoad'
 import { BellIcon } from '../layout/NavIcon'
 import { NavIcon } from '../layout/NavIcon'
 import { formatCurrency, formatNumber } from '../lib/format'
@@ -52,14 +50,10 @@ export default function Dashboard() {
   const canQuotes = allowed('/quotes', roles)
   const production = useTodayProduction(true, canMonitor)
   const tickets = useTicketSummary(canTickets)
-  const quotes = useQuoteSummary(canQuotes)
+  const summary = useDashboardSummary(canTickets || canQuotes)
   // The alarms link to monitoring, so only roles that can open it see them.
   const alarms = useOngoingAlarms(canMonitor && canTickets)
   const ongoing = alarms.data ?? []
-  const installations = useLoad(
-    async (signal) => (canMonitor ? ((await api.GET('/api/installations', { signal })).data ?? []) : []),
-    `dashboard-installations|${canMonitor}`,
-  )
 
   if (isCustomerOnly(roles)) return <PortalHome />
 
@@ -83,8 +77,13 @@ export default function Dashboard() {
   }
 
   const p = production.data
-  const t = tickets.data
-  const q = quotes.data
+  const summaryTickets = summary.data?.tickets
+  const t = summaryTickets ? {
+    open: Number(summaryTickets.open), waitingTriage: Number(summaryTickets.new),
+    critical: Number(summaryTickets.byPriority.high), warning: Number(summaryTickets.byPriority.medium), info: Number(summaryTickets.byPriority.low),
+    fresh: Number(summaryTickets.new),
+  } : null
+  const q = summary.data?.quotes ? { waiting: Number(summary.data.quotes.sent), valueGross: Number(summary.data.quotes.sentGrossTotal), open: Number(summary.data.quotes.open) } : null
 
   return (
     <section className="dashboard">
@@ -107,12 +106,12 @@ export default function Dashboard() {
         }
       />
       <UpdatedIndicator
-        updatedAt={latestUpdate([production.updatedAt, tickets.updatedAt, quotes.updatedAt])}
-        refreshError={production.refreshError || tickets.refreshError || quotes.refreshError}
+        updatedAt={latestUpdate([production.updatedAt, tickets.updatedAt, summary.updatedAt])}
+        refreshError={production.refreshError || tickets.refreshError || summary.refreshError}
         onRetry={() => {
           production.refresh()
           tickets.refresh()
-          quotes.refresh()
+          summary.refresh()
         }}
       />
 
@@ -142,8 +141,8 @@ export default function Dashboard() {
                 ? T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low'))
                 : t && T.alarms.detail(t.critical, t.warning, t.info)
             }
-            loading={tickets.loading ? T.kpiLoading : undefined}
-            error={tickets.error ? { message: T.kpiError, onRetry: tickets.reload } : undefined}
+            loading={summary.loading ? T.kpiLoading : undefined}
+            error={summary.error ? { message: T.kpiError, onRetry: summary.reload } : undefined}
           />
         )}
         {canTickets && (
@@ -153,8 +152,8 @@ export default function Dashboard() {
             label={T.tickets.label}
             href="/tickets"
             detail={t ? T.tickets.detail(t.waitingTriage) : undefined}
-            loading={tickets.loading ? T.kpiLoading : undefined}
-            error={tickets.error ? { message: T.kpiError, onRetry: tickets.reload } : undefined}
+            loading={summary.loading ? T.kpiLoading : undefined}
+            error={summary.error ? { message: T.kpiError, onRetry: summary.reload } : undefined}
           />
         )}
         {canQuotes && (
@@ -164,19 +163,15 @@ export default function Dashboard() {
             label={T.quotes.label}
             href="/quotes"
             detail={q ? T.quotes.detail(formatCurrency(q.valueGross, 'EUR')) : undefined}
-            loading={quotes.loading ? T.kpiLoading : undefined}
-            error={quotes.error ? { message: T.kpiError, onRetry: quotes.reload } : undefined}
+            loading={summary.loading ? T.kpiLoading : undefined}
+            error={summary.error ? { message: T.kpiError, onRetry: summary.reload } : undefined}
           />
         )}
       </div>
 
       <div className="dashboard__grid">
-        {canMonitor && !installations.loading && (
-          <ProductionBarsCard
-            installationIds={(installations.data ?? []).filter((i) => OPERATING_STATES.has(i.state)).map((i) => i.id)}
-          />
-        )}
-        {canTickets && <RecentAlarmsCard summary={tickets.loading ? undefined : tickets.data} alarms={ongoing} />}
+        {canMonitor && <ProductionBarsCard />}
+        {canTickets && <RecentAlarmsCard summary={tickets.loading ? undefined : { items: tickets.data?.items ?? [] }} alarms={ongoing} />}
       </div>
     </section>
   )

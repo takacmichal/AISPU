@@ -233,7 +233,7 @@ describe('Dashboard', () => {
     expect(screen.queryByRole('group', { name: 'Kľúčové ukazovatele' })).not.toBeInTheDocument()
   })
 
-  it('counts only anomaly tickets as alarms', async () => {
+  it('uses the dashboard priority summary for the active alarm card', async () => {
     mockApi({
       'GET /api/installations': json([]),
       'GET /api/tickets': json({
@@ -246,6 +246,6 @@ describe('Dashboard', () => {
     renderDashboard('Operator')
 
     await waitFor(() => expect(within(card('Otvorené tikety')).getByText('2')).toBeInTheDocument())
-    expect(within(card('Aktívne alarmy')).getByText('1')).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('2')).toBeInTheDocument()
   })
 })
