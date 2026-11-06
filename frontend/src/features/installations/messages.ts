@@ -160,7 +160,6 @@ export const T = {
   },
   strings: {
     title: 'Rozloženie panelov v stringoch',
-    disabled: 'Rozloženie stringov bude dostupné po nasadení API pre stringy (PR #342).',
     loading: 'Načítavam rozloženie…',
     error: 'Rozloženie stringov sa nepodarilo načítať.',
     empty: 'Zatiaľ nie sú definované žiadne stringy.',

@@ -148,10 +148,17 @@ describe('InstallationDetailPage', () => {
     expect(await screen.findByText('Stepper i1')).toBeInTheDocument()
   })
 
-  it('shows the strings placeholder while the API of PR #342 is not enabled', async () => {
-    stubFetch(base())
+  it('loads the string layout in the strings tab', async () => {
+    stubFetch(
+      base((c) =>
+        c.path === '/api/installations/i1/strings'
+          ? json({ installationId: 'i1', strings: [], unassignedPanels: [{ id: 'd1', serialNumber: 'JA2410-000123', manufacturer: 'JA Solar', model: 'M', powerW: 450 }], assignedPowerW: 0, totalPanelPowerW: 450 })
+          : undefined,
+      ),
+    )
     render(['Admin'], '/installations/i1?tab=strings')
-    expect(await screen.findByText(/PR #342/)).toBeInTheDocument()
+    expect(await screen.findByText('Nepriradené panely')).toBeInTheDocument()
+    expect(screen.queryByText(/PR #342/)).not.toBeInTheDocument()
   })
 
   describe('devices tab', () => {
