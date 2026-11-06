@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import InstallationDetailPage from './InstallationDetailPage'
 import { detailOf, json, problem, renderRoute, stubFetch, type Call } from './testHelpers'
 
@@ -234,8 +234,15 @@ describe('installation revision and handover tab', () => {
   })
 
   it('shows the documentation package and downloads the hand-over protocol', async () => {
+    // jsdom has no object URLs; set them for this test only.
+    const original = { create: URL.createObjectURL, revoke: URL.revokeObjectURL }
     const createObjectURL = vi.fn(() => 'blob:x')
-    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }))
+    URL.createObjectURL = createObjectURL
+    URL.revokeObjectURL = vi.fn()
+    onTestFinished(() => {
+      URL.createObjectURL = original.create
+      URL.revokeObjectURL = original.revoke
+    })
     const { calls } = setup(
       'Commissioned',
       (c) => {
@@ -257,7 +264,7 @@ describe('installation revision and handover tab', () => {
             devices: [{ type: 'Panel', serialNumber: 'SN-1', manufacturer: 'JA', model: 'M', powerW: 450 }],
             downloads: [],
           })
-        if (c.path === '/api/installations/i1/documentation/handover-protocol') return new Response(new Blob(['%PDF']), { status: 200 })
+        if (c.path === '/api/installations/i1/documentation/handover-protocol') return new Response('%PDF', { status: 200, headers: { 'Content-Type': 'application/pdf' } })
       },
       ['Operator'],
       'revision',
