@@ -150,6 +150,24 @@ export const transitionTicket = (id: string, state: TicketState, note?: string) 
 export const addTicketComment = (id: string, body: string, isPublic: boolean) =>
   post<TicketComment>(`/api/tickets/${id}/comments`, { body, isPublic })
 
+/** Result of the customer's confirmation or reopening (TicketConfirmationResponse). */
+export interface TicketConfirmation {
+  ticketId: string
+  decision: 'Confirmed' | 'Reopened'
+  comment: string | null
+  decidedAt: string
+  ticketState: TicketState
+}
+
+/** How long after closing the customer may reopen a ticket (ServiceTicket.ReopenWindow). */
+export const REOPEN_WINDOW_DAYS = 7
+
+/** The customer confirms that the fault of a closed ticket is fixed. */
+export const confirmTicket = (id: string, comment?: string) =>
+  post<TicketConfirmation>(`/api/tickets/${id}/confirm`, { comment: comment || undefined })
+/** The customer reopens a closed ticket within REOPEN_WINDOW_DAYS; it returns to remote diagnosis. */
+export const reopenTicket = (id: string, reason: string) => post<TicketConfirmation>(`/api/tickets/${id}/reopen`, { reason })
+
 export function triageTicket(id: string, priority: TicketPriority, note?: string): Promise<Ticket> {
   return request<Ticket>(`/api/tickets/${id}/triage`, { method: 'PUT', body: JSON.stringify({ priority, note: note || undefined }) })
 }
