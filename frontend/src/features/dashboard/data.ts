@@ -44,7 +44,9 @@ async function loadToday(signal: AbortSignal): Promise<TodayProduction> {
   if (!production.data) throw new Error(`HTTP ${production.response.status}`)
   if (!installations.data) throw new Error(`HTTP ${installations.response.status}`)
   const day = toDateString(now)
-  const sumFor = (key: string) => production.data.points.filter((p) => p.periodStart.slice(0, 10) === key).reduce((sum, p) => sum + Number(p.energyKwh), 0)
+  // periodStart is a UTC instant (the local day starts at 23:00Z), so the local calendar day is taken in the plant time zone.
+  const localDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bratislava' }).format(new Date(iso))
+  const sumFor = (key: string) => production.data.points.filter((p) => localDay(p.periodStart) === key).reduce((sum, p) => sum + Number(p.energyKwh), 0)
   const counts = installations.data.statusCounts
   const operating = Number(counts.Commissioned ?? 0) + Number(counts.HandedOver ?? 0)
   return { todayKwh: sumFor(day), yesterdayKwh: sumFor(addDays(day, -1)), operating, asOf: hhmm(now) }

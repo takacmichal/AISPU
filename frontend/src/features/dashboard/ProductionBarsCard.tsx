@@ -63,6 +63,7 @@ export function ProductionBarsCard() {
           <div className="bars__plot" role="img" aria-label={T.production.summary(formatNumber(total, 0))}>
             {bars.map((bar, index) => (
               <div key={bar.key} className="bars__col" title={`${barLabel(bar.start, range)} · ${formatNumber(bar.kwh, 0)} kWh`}>
+                <span className="bars__value" aria-hidden="true">{formatNumber(bar.kwh, 0)}</span>
                 <div
                   className={`bars__bar${index === bars.length - 1 ? ' bars__bar--current' : ''}`}
                   style={{ height: `${Math.max(2, (bar.kwh / max) * 100)}%` }}
