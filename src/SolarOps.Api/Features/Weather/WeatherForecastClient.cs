@@ -27,7 +27,8 @@ public interface IWeatherForecastClient
 /// </summary>
 internal sealed class OpenMeteoWeatherForecastClient(HttpClient http, IOptions<WeatherOptions> options) : IWeatherForecastClient
 {
-    private const string HourlyVariables =
+    /// <summary>Hourly variables shared with the archive client; the same names and units in both APIs.</summary>
+    internal const string HourlyVariables =
         "shortwave_radiation,direct_normal_irradiance,diffuse_radiation,cloud_cover,temperature_2m,wind_speed_10m";
 
     public async Task<IReadOnlyList<WeatherForecastPoint>> GetForecastAsync(
@@ -51,7 +52,12 @@ internal sealed class OpenMeteoWeatherForecastClient(HttpClient http, IOptions<W
             query["apikey"] = settings.ApiKey;
         }
 
-        var url = QueryHelpers.AddQueryString(settings.BaseUrl, query);
+        return await ExecuteAsync(http, QueryHelpers.AddQueryString(settings.BaseUrl, query), ct);
+    }
+
+    /// <summary>Calls an Open-Meteo endpoint (forecast or archive) and parses its hourly block; errors are HttpRequestExceptions.</summary>
+    internal static async Task<IReadOnlyList<WeatherForecastPoint>> ExecuteAsync(HttpClient http, string url, CancellationToken ct)
+    {
         using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!response.IsSuccessStatusCode)
         {

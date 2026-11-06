@@ -31,12 +31,15 @@ internal static class MlInputBuilder
     /// <summary>Telemetry arrives every 5 minutes (ADR #185), so a complete hour has 12 windows.</summary>
     private const double WindowsPerHour = 12;
 
-    /// <summary>Forecast hours the service can use: it requires a temperature and all three irradiance components.</summary>
+    /// <summary>The first <see cref="MaxWeatherHours"/> usable forecast hours, in time order.</summary>
     public static IReadOnlyList<MlWeatherHour> WeatherHours(IEnumerable<ForecastHour> forecast) =>
+        UsableWeatherHours(forecast).Take(MaxWeatherHours).ToList();
+
+    /// <summary>All forecast hours the service can use, in time order (callers split them into requests of at most 168).</summary>
+    public static IReadOnlyList<MlWeatherHour> UsableWeatherHours(IEnumerable<ForecastHour> forecast) =>
         forecast
             .Where(f => f is { TemperatureC: not null, GhiWm2: not null, DniWm2: not null, DhiWm2: not null })
             .OrderBy(f => f.ForecastTime)
-            .Take(MaxWeatherHours)
             .Select(f => new MlWeatherHour(
                 new DateTimeOffset(DateTime.SpecifyKind(f.ForecastTime, DateTimeKind.Utc)).AddHours(-1),
                 f.GhiWm2!.Value,

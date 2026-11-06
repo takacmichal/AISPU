@@ -21,6 +21,21 @@ public sealed record MlAnalysisResponse(
     int TicketsSupplemented,
     DateTimeOffset AnalyzedAt);
 
+/// <summary>Outcome of a prediction for a past period (backfilled weather); no detection runs and no alarm or ticket is created.</summary>
+/// <param name="InstallationId">Installation of the predictions.</param>
+/// <param name="From">First day of the period, UTC.</param>
+/// <param name="To">Last day of the period, UTC (inclusive).</param>
+/// <param name="ModelVersion">Model of the predictions; null when nothing was predicted.</param>
+/// <param name="WeatherHours">Hours of stored weather the prediction used.</param>
+/// <param name="PredictedHours">Hours predicted and stored in this run.</param>
+public sealed record PastPredictionResponse(
+    Guid InstallationId,
+    DateOnly From,
+    DateOnly To,
+    string? ModelVersion,
+    int WeatherHours,
+    int PredictedHours);
+
 /// <summary>Underproduction alarms of an installation, newest first, at most 100.</summary>
 public sealed record UnderproductionAlarmListResponse(IReadOnlyList<UnderproductionAlarmResponse> Items);
 

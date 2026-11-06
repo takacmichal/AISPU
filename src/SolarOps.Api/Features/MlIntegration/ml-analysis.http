@@ -15,3 +15,13 @@ Authorization: Bearer {{token}}
 ### Stored underproduction alarms of one installation, newest first
 GET {{baseUrl}}/api/installations/{{installationId}}/underproduction-alarms
 Authorization: Bearer {{token}}
+
+### Predict a past period from the backfilled weather (Admin, Operator). No detection, no alarms, no tickets. At most 31 days.
+POST {{baseUrl}}/api/installations/{{installationId}}/analysis/past
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "from": "2026-10-01",
+  "to": "2026-10-30"
+}

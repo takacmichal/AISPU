@@ -18,6 +18,10 @@ public sealed class WeatherOptions
     [Required]
     public string BaseUrl { get; set; } = "https://api.open-meteo.com/v1/forecast";
 
+    /// <summary>Historical (archive) API endpoint used by the backfill of past hours (ADR-180: ERA5 archive).</summary>
+    [Required]
+    public string ArchiveBaseUrl { get; set; } = "https://archive-api.open-meteo.com/v1/archive";
+
     /// <summary>Optional paid-plan API key; empty for the free tier.</summary>
     public string? ApiKey { get; set; }
 
