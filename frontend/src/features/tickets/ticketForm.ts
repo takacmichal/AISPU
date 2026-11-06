@@ -45,7 +45,8 @@ export function validateFiles(files: readonly File[]): string[] {
   return messages
 }
 
-function toBase64(file: File): Promise<string> {
+/** File content as base64 without the data URL prefix (the API expects plain base64). */
+export function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(new Error(T.create.readFailed(file.name)))
