@@ -15,7 +15,7 @@ function render(roles = ['Admin'], route = '/installations') {
 describe('InstallationListPage', () => {
   it('shows a loading state, then rows with state badge and customer name', async () => {
     stubFetch(({ path }) => {
-      if (path === '/api/installations') return json([installation({ state: 'Mounting' })])
+      if (path === '/api/installations/paged') return json([installation({ state: 'Mounting' })])
       if (path === '/api/customers') return json(customers)
     })
     render()
@@ -27,20 +27,20 @@ describe('InstallationListPage', () => {
   })
 
   it('shows the empty state', async () => {
-    stubFetch(({ path }) => (path === '/api/installations' ? json([]) : undefined))
+    stubFetch(({ path }) => (path === '/api/installations/paged' ? json([]) : undefined))
     render()
     expect(await screen.findByText('Zatiaľ nie sú evidované žiadne inštalácie.')).toBeInTheDocument()
   })
 
   it('shows an error when the list fails', async () => {
-    stubFetch(({ path }) => (path === '/api/installations' ? new Response(null, { status: 500 }) : undefined))
+    stubFetch(({ path }) => (path === '/api/installations/paged' ? new Response(null, { status: 500 }) : undefined))
     render()
     expect(await screen.findByText('Zoznam inštalácií sa nepodarilo načítať.')).toBeInTheDocument()
   })
 
   it('filters by state and search on the client and keeps both in the URL', async () => {
     stubFetch(({ path }) =>
-      path === '/api/installations' ? json([installation(), installation({ id: 'i2', name: 'FVE Trnava', state: 'Mounting' })]) : undefined,
+      path === '/api/installations/paged' ? json([installation(), installation({ id: 'i2', name: 'FVE Trnava', state: 'Mounting' })]) : undefined,
     )
     const { router } = render()
     await screen.findByText('FVE Nitra')
@@ -54,7 +54,7 @@ describe('InstallationListPage', () => {
 
   it('has phase tabs with counts', async () => {
     stubFetch(({ path }) =>
-      path === '/api/installations'
+      path === '/api/installations/paged'
         ? json([
             installation(),
             installation({ id: 'i2', name: 'FVE Trnava', state: 'InspectionPassed' }),
@@ -76,9 +76,9 @@ describe('InstallationListPage', () => {
     expect(router.state.location.search).toContain('phase=operation')
   })
 
-  it('pages the list on the client', async () => {
+  it('requests pages from the server', async () => {
     const many = Array.from({ length: 25 }, (_, i) => installation({ id: `i${i}`, name: `FVE ${String(i).padStart(2, '0')}` }))
-    stubFetch(({ path }) => (path === '/api/installations' ? json(many) : undefined))
+    stubFetch(({ path }) => (path === '/api/installations/paged' ? json(many) : undefined))
     render()
     await screen.findByText('FVE 00')
     expect(screen.queryByText('FVE 24')).not.toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('InstallationListPage', () => {
   })
 
   it('offers "my installations" only to technicians', async () => {
-    stubFetch(({ path }) => (path === '/api/installations' ? json([]) : undefined))
+    stubFetch(({ path }) => (path === '/api/installations/paged' ? json([]) : undefined))
     const { unmount } = render(['Admin'])
     await screen.findByText('Zatiaľ nie sú evidované žiadne inštalácie.')
     expect(screen.queryByLabelText('Len moje inštalácie')).not.toBeInTheDocument()

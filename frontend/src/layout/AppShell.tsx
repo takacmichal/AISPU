@@ -23,7 +23,7 @@ const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigat
 export function AppShell() {
   const { session, roles, signOut } = useAuth()
   const { pathname } = useLocation()
-  const navigate = useNavigate()
+  const navigateTo = useNavigate()
   const trail = breadcrumbs(pathname)
   const mainRef = useRef<HTMLElement>(null)
   const email = session?.email ?? ''
@@ -187,14 +187,7 @@ export function AppShell() {
         </main>
       </div>
       {quickJump && (
-        <QuickJump
-          items={menuItems(roles)}
-          onClose={() => setQuickJump(false)}
-          onSelect={(path) => {
-            setQuickJump(false)
-            navigate(path)
-          }}
-        />
+        <QuickJump items={menuItems(roles)} onClose={() => setQuickJump(false)} onSelect={navigateTo} />
       )}
     </div>
   )

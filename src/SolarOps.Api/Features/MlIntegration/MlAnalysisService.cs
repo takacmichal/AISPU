@@ -16,6 +16,9 @@ public interface IMlAnalysisService
     /// <summary>Predicts from the stored forecast, stores the result, runs the detection and stores its alarms.</summary>
     Task<MlAnalysisResponse> RunAsync(Guid installationId, CancellationToken ct);
 
+    /// <summary>Predicts the hours of a past period from the stored weather and stores them. No detection, no alarms, no tickets.</summary>
+    Task<PastPredictionResponse> RunPastAsync(Guid installationId, HistoricalPeriod period, CancellationToken ct);
+
     /// <summary>Stored alarms of a visible installation, newest first; 404 for a missing or foreign one.</summary>
     Task<UnderproductionAlarmListResponse> ListAlarmsAsync(Guid installationId, CancellationToken ct);
 
@@ -57,6 +60,49 @@ internal sealed class MlAnalysisService(
             detection.TicketsCreated,
             detection.TicketsSupplemented,
             now);
+    }
+
+    public async Task<PastPredictionResponse> RunPastAsync(Guid installationId, HistoricalPeriod period, CancellationToken ct)
+    {
+        var plant = await LoadPlantAsync(installationId, ct);
+        var now = timeProvider.GetUtcNow();
+        var from = period.From!.Value;
+        var to = period.To!.Value;
+
+        // Hours [from 00:00, to+1 00:00) are labelled by their end (ADR #189): the labels in (from 00:00, to+1 00:00].
+        var windowStart = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var windowEnd = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var forecast = await db.Set<WeatherForecast>()
+            .AsNoTracking()
+            .Where(f => f.InstallationId == installationId && f.ForecastTime > windowStart && f.ForecastTime <= windowEnd)
+            .Select(f => new ForecastHour(
+                f.ForecastTime,
+                f.ShortwaveRadiationWm2,
+                f.DirectNormalIrradianceWm2,
+                f.DiffuseRadiationWm2,
+                f.CloudCoverPercent,
+                f.TemperatureC,
+                f.WindSpeedMs))
+            .ToListAsync(ct);
+
+        var weather = MlInputBuilder.UsableWeatherHours(forecast);
+        if (weather.Count == 0)
+        {
+            throw new DomainException("There is no stored weather for the period. Run the weather backfill first.");
+        }
+
+        // The service accepts at most 168 hours per request; each chunk is stored before the next call.
+        string? modelVersion = null;
+        var predicted = 0;
+        foreach (var chunk in weather.Chunk(MlInputBuilder.MaxWeatherHours))
+        {
+            var response = await ml.PredictAsync(new MlPredictionRequest(installationId, plant.Plant, chunk), ct);
+            await ReplacePredictionsAsync(installationId, response, chunk, now, ct);
+            modelVersion = response.ModelVersion;
+            predicted += response.Predictions.Count;
+        }
+
+        return new PastPredictionResponse(installationId, from, to, modelVersion, weather.Count, predicted);
     }
 
     public async Task<UnderproductionAlarmListResponse> ListAlarmsAsync(Guid installationId, CancellationToken ct)
@@ -157,9 +203,12 @@ internal sealed class MlAnalysisService(
     /// <summary>Null when there is no usable forecast yet; the detection still runs over the predictions stored earlier.</summary>
     private async Task<MlPredictionResponse?> PredictAsync(Guid installationId, PlantParameters plant, DateTimeOffset now, CancellationToken ct)
     {
+        // Only the recent and upcoming hours: the backfilled history is older and is predicted by RunPastAsync.
+        // The lookback covers the forecast, which starts at 00:00 UTC of the current day.
+        var earliest = now.UtcDateTime.AddHours(-options.Value.DetectionLookbackHours);
         var forecast = await db.Set<WeatherForecast>()
             .AsNoTracking()
-            .Where(f => f.InstallationId == installationId)
+            .Where(f => f.InstallationId == installationId && f.ForecastTime >= earliest)
             .Select(f => new ForecastHour(
                 f.ForecastTime,
                 f.ShortwaveRadiationWm2,

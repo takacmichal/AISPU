@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/weather/backfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Store past hourly weather from the archive
+         * @description Fetches the Open-Meteo archive (ERA5) for the days from..to (UTC, inclusive, at most 31 days, to before today) for every installation with coordinates and stores the hours like the forecast. Idempotent: rerunning replaces the same hours. Synchronous; returns the totals and one item per installation. Stores no predictions and creates no alarms or tickets.
+         */
+        post: operations["BackfillWeather"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -1399,6 +1419,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/installations/{installationId}/analysis/past": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Predict production for a past period from the stored weather
+         * @description Predicts the hours of the days from..to (UTC, inclusive, at most 31 days) from the weather stored by the backfill and stores the predictions, overwriting the same hours. Runs no detection: creates no alarms and no tickets. 409 when the period has no stored weather, 503 when the ML service is unavailable, 502 when it returns an unusable answer.
+         */
+        post: operations["RunInstallationPastPrediction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/installations/{installationId}/underproduction-alarms": {
         parameters: {
             query?: never;
@@ -1411,6 +1451,26 @@ export interface paths {
          * @description Stored results of the last analyses, newest first, at most 100; the ML service is not called. A customer sees only its own installations (another one is 404).
          */
         get: operations["ListUnderproductionAlarms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notifications for the current user
+         * @description Newest first.
+         */
+        get: operations["ListNotifications"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2947,6 +3007,16 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /**
+         * @description A range of whole UTC days in the past, both ends inclusive. At most int HistoricalPeriod.MaxDays days per call; the last day
+         *     must be before today (UTC) because the archive is filled with a delay.
+         */
+        HistoricalPeriod: {
+            /** Format: date */
+            from: null | string;
+            /** Format: date */
+            to: null | string;
+        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -3111,6 +3181,31 @@ export interface components {
              */
             analyzedAt: string;
         };
+        /** @description One item of the notification list. The frontend builds nothing itself: string NotificationItemResponse.Link is the route to open. */
+        NotificationItemResponse: {
+            /** @description Deterministic per (kind, entity, state), e.g. `ticket:{ticketId}:{state}`; the frontend remembers seen ids. */
+            id: string;
+            /** @description `ticket` or `connection_request`. */
+            kind: components["schemas"]["NotificationKind"];
+            /** @description Slovak text for the user. */
+            title: string;
+            /**
+             * Format: date-time
+             * @description Time the entity entered the state (UTC).
+             */
+            createdAt: string;
+            /** @description Frontend route, `/tickets/{id}` or `/connection-requests/{id}`. */
+            link: string;
+        };
+        /**
+         * @description Kind of a notification; serialized as `ticket` or `connection_request`.
+         * @enum {unknown}
+         */
+        NotificationKind: "ticket" | "connection_request";
+        /** @description Response of `GET /api/notifications`: at most 50 items, newest first. */
+        NotificationListResponse: {
+            items: components["schemas"]["NotificationItemResponse"][];
+        };
         /** @description A string with its installed panels. long PanelStringResponse.TotalPowerW is the sum of their rated power, computed on read. */
         PanelStringResponse: {
             /** Format: uuid */
@@ -3127,6 +3222,36 @@ export interface components {
             /** Format: int64 */
             totalPowerW: number | string;
             panels: components["schemas"]["StringPanelResponse"][];
+        };
+        /** @description Outcome of a prediction for a past period (backfilled weather); no detection runs and no alarm or ticket is created. */
+        PastPredictionResponse: {
+            /**
+             * Format: uuid
+             * @description Installation of the predictions.
+             */
+            installationId: string;
+            /**
+             * Format: date
+             * @description First day of the period, UTC.
+             */
+            from: string;
+            /**
+             * Format: date
+             * @description Last day of the period, UTC (inclusive).
+             */
+            to: string;
+            /** @description Model of the predictions; null when nothing was predicted. */
+            modelVersion: null | string;
+            /**
+             * Format: int32
+             * @description Hours of stored weather the prediction used.
+             */
+            weatherHours: number | string;
+            /**
+             * Format: int32
+             * @description Hours predicted and stored in this run.
+             */
+            predictedHours: number | string;
         };
         /** @description Payload of `POST /api/tickets/{id}/visits` (story #125): when the assigned technician comes. */
         PlanVisitRequest: {
@@ -4289,6 +4414,46 @@ export interface components {
             materials: components["schemas"]["VisitMaterialResponse"][];
             deviceReplacements: components["schemas"]["VisitDeviceReplacementResponse"][];
         };
+        /** @description Outcome of the backfill for one installation. */
+        WeatherBackfillItem: {
+            /**
+             * Format: uuid
+             * @description Installation of the item.
+             */
+            installationId: string;
+            /** @description Updated: hours stored; Skipped: no coordinates or no complete hour in the archive; Failed: the API failed. */
+            status: components["schemas"]["WeatherBackfillStatus"];
+            /**
+             * Format: int32
+             * @description Hours stored for the installation.
+             */
+            rowsStored: number | string;
+            /**
+             * Format: int32
+             * @description Hours of the period left out because the archive had no complete values for them.
+             */
+            skippedHours: number | string;
+        };
+        /** @description Outcome of one backfill run; the totals follow the log line of the daily refresh. */
+        WeatherBackfillResult: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            installations: number | string;
+            /** Format: int32 */
+            succeeded: number | string;
+            /** Format: int32 */
+            skipped: number | string;
+            /** Format: int32 */
+            failed: number | string;
+            /** Format: int32 */
+            rowsStored: number | string;
+            items: components["schemas"]["WeatherBackfillItem"][];
+        };
+        /** @enum {unknown} */
+        WeatherBackfillStatus: "Updated" | "Skipped" | "Failed";
         YieldEstimateResponse: {
             /** Format: double */
             annualKwh: number | string;
@@ -4382,6 +4547,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": string[];
+                };
+            };
+        };
+    };
+    BackfillWeather: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoricalPeriod"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeatherBackfillResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -7767,6 +7965,77 @@ export interface operations {
             };
         };
     };
+    RunInstallationPastPrediction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoricalPeriod"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PastPredictionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListUnderproductionAlarms: {
         parameters: {
             query?: never;
@@ -7794,6 +8063,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationListResponse"];
                 };
             };
         };

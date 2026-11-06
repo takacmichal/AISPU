@@ -1,0 +1,7 @@
+# Notification bell for the current user. Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+
+### List notifications (newest first, at most 50)
+GET {{baseUrl}}/api/notifications
+Authorization: Bearer {{token}}

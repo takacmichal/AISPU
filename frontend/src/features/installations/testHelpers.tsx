@@ -34,7 +34,21 @@ export function stubFetch(handler: (call: Call) => Response | Promise<Response> 
         body: init.body ? JSON.parse(String(init.body)) : undefined,
       }
       calls.push(call)
-      return (await handler(call)) ?? new Response(null, { status: 404 })
+      const response = (await handler(call)) ?? new Response(null, { status: 404 })
+      if (call.path === '/api/installations/paged' && response.ok) {
+        const body: unknown = await response.clone().json()
+        if (Array.isArray(body)) {
+          const params = new URLSearchParams(call.search)
+          const state = params.get('state')
+          const q = params.get('q')?.toLowerCase() ?? ''
+          const filtered = body.filter((item) => (!state || (item as { state?: string }).state === state) && (!q || String((item as { name?: string }).name ?? '').toLowerCase().includes(q)))
+          const page = Number(params.get('page') ?? 1)
+          const pageSize = Number(params.get('pageSize') ?? 20)
+          const statusCounts = Object.fromEntries([...new Set(body.map((item) => (item as { state: string }).state))].map((item) => [item, body.filter((row) => (row as { state: string }).state === item).length]))
+          return new Response(JSON.stringify({ items: filtered.slice((page - 1) * pageSize, page * pageSize), page, pageSize, totalCount: filtered.length, statusCounts }), { headers: { 'Content-Type': 'application/json' } })
+        }
+      }
+      return response
     }),
   )
   return calls

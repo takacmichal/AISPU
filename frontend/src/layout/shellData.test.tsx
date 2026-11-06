@@ -53,13 +53,8 @@ describe('sidebar data', () => {
 
   it('shows today production and the number of plants in operation, without a made-up target', async () => {
     mockApi({
-      'GET /api/installations': json([
-        { id: 'i1', state: 'HandedOver' },
-        { id: 'i2', state: 'Commissioned' },
-        { id: 'i3', state: 'Mounting' },
-      ]),
-      'GET /api/installations/i1/production': json({ points: [] }),
-      'GET /api/installations/i2/production': json({ points: [] }),
+      'GET /api/production/summary': json({ points: [], installationCount: 2 }),
+      'GET /api/installations/paged': json({ items: [], page: 1, pageSize: 1, totalCount: 2, statusCounts: { Commissioned: 1, HandedOver: 1 } }),
     })
     renderWithAuth(<SideProductionCard live />)
 

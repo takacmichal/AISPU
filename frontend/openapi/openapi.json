@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5085/"
+      "url": "http://localhost:5080/"
     }
   ],
   "paths": {
@@ -131,6 +131,48 @@
                   "items": {
                     "type": "string"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/weather/backfill": {
+      "post": {
+        "tags": [
+          "Weather"
+        ],
+        "summary": "Store past hourly weather from the archive",
+        "description": "Fetches the Open-Meteo archive (ERA5) for the days from..to (UTC, inclusive, at most 31 days, to before today) for every installation with coordinates and stores the hours like the forecast. Idempotent: rerunning replaces the same hours. Synchronous; returns the totals and one item per installation. Stores no predictions and creates no alarms or tickets.",
+        "operationId": "BackfillWeather",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalPeriod"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherBackfillResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -4958,6 +5000,99 @@
         }
       }
     },
+    "/api/installations/{installationId}/analysis/past": {
+      "post": {
+        "tags": [
+          "ML analysis"
+        ],
+        "summary": "Predict production for a past period from the stored weather",
+        "description": "Predicts the hours of the days from..to (UTC, inclusive, at most 31 days) from the weather stored by the backfill and stores the predictions, overwriting the same hours. Runs no detection: creates no alarms and no tickets. 409 when the period has no stored weather, 503 when the ML service is unavailable, 502 when it returns an unusable answer.",
+        "operationId": "RunInstallationPastPrediction",
+        "parameters": [
+          {
+            "name": "installationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalPeriod"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PastPredictionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/installations/{installationId}/underproduction-alarms": {
       "get": {
         "tags": [
@@ -4994,6 +5129,28 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List notifications for the current user",
+        "description": "Newest first.",
+        "operationId": "ListNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
                 }
               }
             }
@@ -10585,6 +10742,30 @@
           }
         }
       },
+      "HistoricalPeriod": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "A range of whole UTC days in the past, both ends inclusive. At most int HistoricalPeriod.MaxDays days per call; the last day\nmust be before today (UTC) because the archive is filled with a delay."
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -11115,6 +11296,62 @@
         },
         "description": "Outcome of one analysis of an installation (#376)."
       },
+      "NotificationItemResponse": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "createdAt",
+          "link"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Deterministic per (kind, entity, state), e.g. `ticket:{ticketId}:{state}`; the frontend remembers seen ids."
+          },
+          "kind": {
+            "description": "`ticket` or `connection_request`.",
+            "$ref": "#/components/schemas/NotificationKind"
+          },
+          "title": {
+            "type": "string",
+            "description": "Slovak text for the user."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Time the entity entered the state (UTC).",
+            "format": "date-time"
+          },
+          "link": {
+            "type": "string",
+            "description": "Frontend route, `/tickets/{id}` or `/connection-requests/{id}`."
+          }
+        },
+        "description": "One item of the notification list. The frontend builds nothing itself: string NotificationItemResponse.Link is the route to open."
+      },
+      "NotificationKind": {
+        "enum": [
+          "ticket",
+          "connection_request"
+        ],
+        "description": "Kind of a notification; serialized as `ticket` or `connection_request`."
+      },
+      "NotificationListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItemResponse"
+            }
+          }
+        },
+        "description": "Response of `GET /api/notifications`: at most 50 items, newest first."
+      },
       "PanelStringResponse": {
         "required": [
           "id",
@@ -11183,6 +11420,60 @@
           }
         },
         "description": "A string with its installed panels. long PanelStringResponse.TotalPowerW is the sum of their rated power, computed on read."
+      },
+      "PastPredictionResponse": {
+        "required": [
+          "installationId",
+          "from",
+          "to",
+          "modelVersion",
+          "weatherHours",
+          "predictedHours"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "description": "Installation of the predictions.",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "string",
+            "description": "First day of the period, UTC.",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "description": "Last day of the period, UTC (inclusive).",
+            "format": "date"
+          },
+          "modelVersion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Model of the predictions; null when nothing was predicted."
+          },
+          "weatherHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours of stored weather the prediction used.",
+            "format": "int32"
+          },
+          "predictedHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours predicted and stored in this run.",
+            "format": "int32"
+          }
+        },
+        "description": "Outcome of a prediction for a past period (backfilled weather); no detection runs and no alarm or ticket is created."
       },
       "PlanVisitRequest": {
         "required": [
@@ -14813,6 +15104,122 @@
           }
         }
       },
+      "WeatherBackfillItem": {
+        "required": [
+          "installationId",
+          "status",
+          "rowsStored",
+          "skippedHours"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "description": "Installation of the item.",
+            "format": "uuid"
+          },
+          "status": {
+            "description": "Updated: hours stored; Skipped: no coordinates or no complete hour in the archive; Failed: the API failed.",
+            "$ref": "#/components/schemas/WeatherBackfillStatus"
+          },
+          "rowsStored": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours stored for the installation.",
+            "format": "int32"
+          },
+          "skippedHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours of the period left out because the archive had no complete values for them.",
+            "format": "int32"
+          }
+        },
+        "description": "Outcome of the backfill for one installation."
+      },
+      "WeatherBackfillResult": {
+        "required": [
+          "from",
+          "to",
+          "installations",
+          "succeeded",
+          "skipped",
+          "failed",
+          "rowsStored",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "installations": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "succeeded": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "skipped": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rowsStored": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeatherBackfillItem"
+            }
+          }
+        },
+        "description": "Outcome of one backfill run; the totals follow the log line of the daily refresh."
+      },
+      "WeatherBackfillStatus": {
+        "enum": [
+          "Updated",
+          "Skipped",
+          "Failed"
+        ]
+      },
       "YieldEstimateResponse": {
         "required": [
           "annualKwh",
@@ -14855,6 +15262,9 @@
       "name": "Roles"
     },
     {
+      "name": "Weather"
+    },
+    {
       "name": "Auth"
     },
     {
@@ -14886,6 +15296,9 @@
     },
     {
       "name": "Strings"
+    },
+    {
+      "name": "Notifications"
     },
     {
       "name": "Quotes"

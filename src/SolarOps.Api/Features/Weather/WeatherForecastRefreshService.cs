@@ -170,9 +170,12 @@ internal sealed class WeatherForecastRefreshService(
         CancellationToken ct)
     {
         var fetchedAt = timeProvider.GetUtcNow().UtcDateTime;
+        // The forecast batch starts at 00:00 UTC of its day and the previous batch at most RefreshIntervalHours + 24 h earlier.
+        // Older rows are history stored by the backfill and are kept.
+        var replaceFrom = fetchedAt.Date.AddHours(-(options.Value.RefreshIntervalHours + 24));
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.Set<WeatherForecast>()
-            .Where(f => f.InstallationId == installationId)
+            .Where(f => f.InstallationId == installationId && f.ForecastTime >= replaceFrom)
             .ExecuteDeleteAsync(ct);
         // ExecuteDelete bypasses the change tracker; detach any rows tracked by a previous run in this scope.
         db.ChangeTracker.Clear();
