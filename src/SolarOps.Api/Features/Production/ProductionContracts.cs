@@ -230,6 +230,25 @@ public sealed record ProductionResponse(
     double? PeakPowerKw,
     IReadOnlyList<ProductionPointResponse> Points);
 
+/// <summary>Production of all installations visible to the caller for a period. Points exist only for buckets with data.</summary>
+/// <param name="From">Start of the period, UTC (inclusive).</param>
+/// <param name="To">End of the period, UTC (exclusive).</param>
+/// <param name="Granularity">Bucket size.</param>
+/// <param name="TimeZone">IANA time zone of day and month buckets.</param>
+/// <param name="InstallationCount">Number of installations the caller may see (also those without data).</param>
+/// <param name="TotalEnergyKwh">Sum of the energy of all points.</param>
+/// <param name="PeakPowerKw">Highest summed AC power of all visible installations in the period; null without data.</param>
+/// <param name="Points">Buckets with data, oldest first; power and energy are summed over all visible installations.</param>
+public sealed record ProductionSummaryResponse(
+    DateTimeOffset From,
+    DateTimeOffset To,
+    ProductionGranularity Granularity,
+    string TimeZone,
+    int InstallationCount,
+    double TotalEnergyKwh,
+    double? PeakPowerKw,
+    IReadOnlyList<ProductionPointResponse> Points);
+
 /// <param name="PeriodStart">Start of the bucket (UTC instant; day and month buckets start at local midnight).</param>
 /// <param name="EnergyKwh">Energy fed in by the inverters in the bucket (from the totalWh counters).</param>
 /// <param name="PeakPowerKw">Highest AC power of the installation in the bucket.</param>

@@ -5,6 +5,18 @@
 @token = paste-access-token
 @installationId = 00000000-0000-0000-0000-000000000000
 
+### Production of all visible installations (staff: whole fleet, customer: own installations), hourly for one day
+GET {{baseUrl}}/api/production/summary?from=2026-06-21&to=2026-06-22
+Authorization: Bearer {{token}}
+
+### Fleet production per day for a month
+GET {{baseUrl}}/api/production/summary?from=2026-06-01&to=2026-07-01&granularity=day
+Authorization: Bearer {{token}}
+
+### Invalid granularity -> 400 with key "granularity"
+GET {{baseUrl}}/api/production/summary?from=2026-06-01&to=2026-07-01&granularity=week
+Authorization: Bearer {{token}}
+
 ### Hourly production for one day (default granularity hour)
 GET {{baseUrl}}/api/installations/{{installationId}}/production?from=2026-06-21&to=2026-06-22
 Authorization: Bearer {{token}}

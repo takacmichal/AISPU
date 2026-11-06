@@ -25,6 +25,17 @@ public sealed class ProductionModule : IModule
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/production/summary", GetSummary)
+            .WithTags("Production")
+            .WithName("GetProductionSummary")
+            .WithSummary("Production of all visible installations for a period")
+            .WithDescription(PeriodDescription + " Limits: fiveMinutes 31 days, hour 366 days, day and month 3660 days. " +
+                "Power and energy are summed over the inverters of all installations the caller may see (staff: all, customer: own); " +
+                "peakPowerKw is the highest summed power of a window. installationCount counts the visible installations, " +
+                "also those without data. No installation or no data gives empty points, totalEnergyKwh 0 and peakPowerKw null.")
+            .WithValidation<ProductionQuery>()
+            .RequireAuthorization(AuthorizationPolicies.ProductionRead);
+
         var group = endpoints.MapGroup("/api/installations/{installationId:guid}/production").WithTags("Production");
 
         group.MapGet("/", Get)
@@ -55,6 +66,10 @@ public sealed class ProductionModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(AuthorizationPolicies.ProductionRead);
     }
+
+    internal static async Task<Ok<ProductionSummaryResponse>> GetSummary(
+        [AsParameters] ProductionQuery query, IProductionService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.GetSummaryAsync(query.ToPeriod(), ct));
 
     internal static async Task<Ok<ProductionResponse>> Get(
         Guid installationId, [AsParameters] ProductionQuery query, IProductionService service, CancellationToken ct) =>

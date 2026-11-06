@@ -4,6 +4,7 @@ using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Persistence;
+using SolarOps.Api.Infrastructure.Querying;
 
 namespace SolarOps.Api.Features.Tickets;
 
@@ -143,6 +144,12 @@ internal sealed class TicketService(
         }
 
         var total = await tickets.CountAsync(ct);
+        var skip = new PageQuery(Page: query.Page, PageSize: query.PageSize).Skip;
+        if (skip >= total)
+        {
+            return new TicketListResponse([], query.Page, query.PageSize, total);
+        }
+
         var descending = direction == "desc";
 
         // Priority is stored as text, so it is ranked explicitly; "desc" puts High first.
@@ -159,7 +166,7 @@ internal sealed class TicketService(
 
         var items = await ordered
             .ThenBy(x => x.Id)
-            .Skip((query.Page - 1) * query.PageSize)
+            .Skip(skip)
             .Take(query.PageSize)
             .Select(x => new TicketListItem(
                 x.Id, x.InstallationId, x.CustomerId, x.Title, x.Priority, x.Origin, x.State, x.CreatedAt, x.UpdatedAt))

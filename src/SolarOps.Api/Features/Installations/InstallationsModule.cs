@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
+using SolarOps.Api.Infrastructure.Querying;
 using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Installations;
@@ -23,6 +24,15 @@ public sealed class InstallationsModule : IModule
             .WithSummary("List installations")
             .WithDescription("Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician), monitoringEnabled (plants in operation, #92).")
             .ProducesValidationProblem()
+            .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
+
+        group.MapGet("/paged", ListPaged)
+            .WithName("ListInstallationsPaged")
+            .WithSummary("List installations with paging, search and state counts")
+            .WithDescription("Filters: state, customerId, technicianId (assigned technician), q (installation name, supply point name or address, customer name; case-insensitive substring). "
+                + "sortBy = createdAt | updatedAt | name | state | scheduledStart | plannedPowerKwp, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). "
+                + "statusCounts holds the installations per state for the current q, customerId and technicianId (the state filter is ignored). A customer sees only its own installations.")
+            .WithValidation<PageQuery>()
             .RequireAuthorization(AuthorizationPolicies.InstallationsRead);
 
         group.MapGet("/technicians", ListTechnicians)
@@ -93,6 +103,11 @@ public sealed class InstallationsModule : IModule
         var query = new InstallationQuery(ParseState(state), customerId, contractId, supplyPointId, assignedToMe, monitoringEnabled);
         return TypedResults.Ok(await service.ListAsync(query, ct));
     }
+
+    internal static async Task<Ok<InstallationPageResponse>> ListPaged(
+        [AsParameters] PageQuery page, IInstallationService service, CancellationToken ct,
+        string? state = null, Guid? customerId = null, Guid? technicianId = null) =>
+        TypedResults.Ok(await service.ListPagedAsync(page, state, customerId, technicianId, ct));
 
     internal static async Task<Ok<IReadOnlyList<TechnicianResponse>>> ListTechnicians(IInstallationService service, CancellationToken ct) =>
         TypedResults.Ok(await service.ListTechniciansAsync(ct));

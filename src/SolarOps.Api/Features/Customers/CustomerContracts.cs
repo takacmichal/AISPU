@@ -103,12 +103,65 @@ public sealed record CreateCustomerRequest : CustomerRequest;
 /// <summary>Payload for <c>PUT /api/customers/{id}</c> (full replacement of the editable data).</summary>
 public sealed record UpdateCustomerRequest : CustomerRequest;
 
-/// <summary>Page of customers returned by <c>GET /api/customers</c>.</summary>
+/// <summary>
+/// Page of customers returned by <c>GET /api/customers</c>. <c>StatusCounts</c> holds the customers per status
+/// (all values present, 0 when none) for the current <c>q</c> and <c>type</c> filters; the <c>status</c> filter is
+/// ignored so the status segments stay stable.
+/// </summary>
 public sealed record CustomerListResponse(
-    IReadOnlyList<CustomerResponse> Items,
+    IReadOnlyList<CustomerListItemResponse> Items,
     int Page,
     int PageSize,
-    int TotalCount);
+    int TotalCount,
+    IReadOnlyDictionary<string, int> StatusCounts);
+
+/// <summary>
+/// Customer in a list: the customer data plus list summaries. <c>SupplyPointCount</c> is the number of supply points
+/// (odberné miesta); <c>LastActivityAt</c> is the latest of the customer's own update and the newest update of its
+/// quotes, installations and tickets.
+/// </summary>
+public sealed record CustomerListItemResponse(
+    Guid Id,
+    CustomerType Type,
+    CustomerStatus Status,
+    string DisplayName,
+    string? FirstName,
+    string? LastName,
+    string? CompanyName,
+    string? Ico,
+    string? Dic,
+    string? IcDph,
+    string Email,
+    string? Phone,
+    AddressDto Address,
+    string? Note,
+    Guid? UserId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    int SupplyPointCount,
+    DateTimeOffset LastActivityAt)
+{
+    public static CustomerListItemResponse From(Customer c, int supplyPointCount, DateTimeOffset lastActivityAt) => new(
+        c.Id,
+        c.Type,
+        c.Status,
+        c.DisplayName,
+        c.FirstName,
+        c.LastName,
+        c.CompanyName,
+        c.Ico,
+        c.Dic,
+        c.IcDph,
+        c.Email,
+        c.Phone,
+        AddressDto.FromDomain(c.Address),
+        c.Note,
+        c.UserId,
+        c.CreatedAt,
+        c.UpdatedAt,
+        supplyPointCount,
+        lastActivityAt);
+}
 
 /// <summary>Customer returned by the API.</summary>
 public sealed record CustomerResponse(

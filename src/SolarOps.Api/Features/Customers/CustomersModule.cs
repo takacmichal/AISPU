@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
+using SolarOps.Api.Infrastructure.Querying;
 using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.Customers;
@@ -28,8 +29,10 @@ public sealed class CustomersModule : IModule
         group.MapGet("/", ListAsync)
             .WithName("ListCustomers")
             .WithSummary("List customers")
-            .WithDescription("Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).")
-            .ProducesValidationProblem()
+            .WithDescription("Filters: q (name, company, e-mail, phone and IČO, case-insensitive substring), type = Person | Company, status = Active | Archived. "
+                + "Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100). "
+                + "statusCounts holds the customers per status for the current q and type (the status filter is ignored); every item carries supplyPointCount and lastActivityAt.")
+            .WithValidation<PageQuery>()
             .RequireAuthorization(AuthorizationPolicies.CustomersRead);
 
         group.MapGet("/{id:guid}", GetAsync)
@@ -68,8 +71,8 @@ public sealed class CustomersModule : IModule
     }
 
     internal static async Task<Ok<CustomerListResponse>> ListAsync(
-        ICustomerService service, CancellationToken ct, string? q = null, int page = 1, int pageSize = 20, string? sortBy = null, string? sortDir = null) =>
-        TypedResults.Ok(await service.ListAsync(q, page, pageSize, sortBy, sortDir, ct));
+        [AsParameters] PageQuery page, ICustomerService service, CancellationToken ct, string? type = null, string? status = null) =>
+        TypedResults.Ok(await service.ListAsync(page, type, status, ct));
 
     internal static async Task<Ok<CustomerResponse>> GetAsync(Guid id, ICustomerService service, CancellationToken ct) =>
         TypedResults.Ok(await service.GetAsync(id, ct));

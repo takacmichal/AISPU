@@ -64,7 +64,7 @@ public sealed record VisitMaterialRequest
     [Required, MaxLength(ServiceVisitMaterial.NameMaxLength)]
     public string? Name { get; init; }
 
-    [Required, Range(typeof(decimal), "0.001", "100000")]
+    [Required, Range(typeof(decimal), "0.001", "100000", ParseLimitsInInvariantCulture = true)]
     public decimal? Quantity { get; init; }
 
     [MaxLength(ServiceVisitMaterial.UnitMaxLength)]

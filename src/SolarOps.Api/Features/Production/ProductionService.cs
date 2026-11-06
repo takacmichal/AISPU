@@ -11,6 +11,9 @@ public interface IProductionService
 {
     Task<ProductionResponse> GetAsync(Guid installationId, ProductionPeriod period, CancellationToken ct);
 
+    /// <summary>Production summed over the inverters of all installations the caller may see.</summary>
+    Task<ProductionSummaryResponse> GetSummaryAsync(ProductionPeriod period, CancellationToken ct);
+
     Task<ProductionComparisonResponse> CompareAsync(Guid installationId, ProductionPeriod period, CancellationToken ct);
 
     /// <summary>
@@ -43,9 +46,42 @@ internal sealed class ProductionService(AppDbContext db, ICustomerScope customer
             period.TimeZoneId,
             ProductionCsv.Kilo(buckets.Sum(b => b.EnergyWh)),
             buckets.Count == 0 ? null : ProductionCsv.Kilo(buckets.Max(b => b.PeakPowerW)),
-            buckets.Select(b => new ProductionPointResponse(
-                    Utc(b.PeriodStart), ProductionCsv.Kilo(b.EnergyWh), ProductionCsv.Kilo(b.PeakPowerW), b.SampleCount))
-                .ToList());
+            buckets.Select(ToPoint).ToList());
+    }
+
+    public async Task<ProductionSummaryResponse> GetSummaryAsync(ProductionPeriod period, CancellationToken ct)
+    {
+        var scope = await customerScope.GetAsync(ct);
+        var installations = db.Set<Installation>().AsNoTracking();
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            installations = installations.Where(x => x.CustomerId == own);
+        }
+
+        var installationCount = await installations.CountAsync(ct);
+        var devices = installationCount == 0
+            ? []
+            : await db.Set<InstallationDevice>()
+                .AsNoTracking()
+                .Where(d => d.Type == DeviceType.Inverter && installations.Any(i => i.Id == d.InstallationId))
+                .Select(d => d.Id)
+                .ToArrayAsync(ct);
+
+        // Buckets() groups the 5-minute windows by window_start over all given devices, so with the inverters of every
+        // visible installation each window holds the power and energy of the whole fleet, and the bucket peak is the
+        // highest whole-fleet power (not a sum of per-installation peaks).
+        var buckets = devices.Length == 0 ? [] : await Buckets(devices, period).ToListAsync(ct);
+
+        return new ProductionSummaryResponse(
+            period.From,
+            period.To,
+            period.Granularity,
+            period.TimeZoneId,
+            installationCount,
+            ProductionCsv.Kilo(buckets.Sum(b => b.EnergyWh)),
+            buckets.Count == 0 ? null : ProductionCsv.Kilo(buckets.Max(b => b.PeakPowerW)),
+            buckets.Select(ToPoint).ToList());
     }
 
     public async Task<ProductionComparisonResponse> CompareAsync(Guid installationId, ProductionPeriod period, CancellationToken ct)
@@ -161,6 +197,9 @@ internal sealed class ProductionService(AppDbContext db, ICustomerScope customer
 
         return db.Database.SqlQuery<ProductionBucket>(sql);
     }
+
+    private static ProductionPointResponse ToPoint(ProductionBucket bucket) => new(
+        Utc(bucket.PeriodStart), ProductionCsv.Kilo(bucket.EnergyWh), ProductionCsv.Kilo(bucket.PeakPowerW), bucket.SampleCount);
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 

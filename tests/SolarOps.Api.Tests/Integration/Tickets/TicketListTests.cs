@@ -111,6 +111,21 @@ public sealed class TicketListTests : IDisposable
         Assert.Equal(2, second.Page);
     }
 
+    [Theory]
+    [InlineData(1073741825)]
+    [InlineData(int.MaxValue)]
+    public async Task Paging_LargePage_ReturnsEmptyWithTotal(int pageNumber)
+    {
+        await SeedAsync();
+
+        var page = await ListAsync($"?page={pageNumber}&pageSize=20");
+
+        Assert.Empty(page.Items);
+        Assert.Equal(pageNumber, page.Page);
+        Assert.Equal(20, page.PageSize);
+        Assert.Equal(4, page.TotalCount);
+    }
+
     [Fact]
     public async Task SortByPriority_RanksHighMediumLow_NotAlphabetically()
     {

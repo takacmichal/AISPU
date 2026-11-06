@@ -133,3 +133,14 @@ public sealed record QuoteStateChangeResponse(
     public static QuoteStateChangeResponse FromEntity(QuoteStateChange c) =>
         new(c.FromStatus, c.ToStatus, c.ChangedBy, c.ChangedAt, c.Note);
 }
+
+/// <summary>
+/// Page of quotes returned by <c>GET /api/quotes/paged</c>. <c>StatusCounts</c> holds the quotes per <see cref="QuoteStatus"/>
+/// (all values present) for the current <c>q</c> and <c>customerId</c> filters; the <c>status</c> filter is ignored.
+/// </summary>
+public sealed record QuotePageResponse(
+    IReadOnlyList<QuoteResponse> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    IReadOnlyDictionary<string, int> StatusCounts);

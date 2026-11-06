@@ -192,3 +192,11 @@ Authorization: Bearer {{token}}
 ### Delete an empty string (409 when it still has panels)
 DELETE {{baseUrl}}/api/installations/{{installationId}}/strings/{{stringId}}
 Authorization: Bearer {{token}}
+
+### Paged list with search, state filter and per-state counts (statusCounts); customers see only their own
+GET {{baseUrl}}/api/installations/paged?q=nitra&state=Planned&page=1&pageSize=20&sortBy=createdAt&sortDir=desc
+Authorization: Bearer {{token}}
+
+### Paged list of the installations of one technician, sorted by planned power
+GET {{baseUrl}}/api/installations/paged?technicianId=0199f0a0-0000-7000-8000-000000000004&sortBy=plannedPowerKwp&sortDir=desc
+Authorization: Bearer {{token}}

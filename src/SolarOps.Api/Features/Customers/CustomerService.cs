@@ -1,7 +1,13 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using SolarOps.Api.Features.Installations;
+using SolarOps.Api.Features.Quotes;
+using SolarOps.Api.Features.SupplyPoints;
+using SolarOps.Api.Features.Tickets;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Persistence;
+using SolarOps.Api.Infrastructure.Querying;
 
 namespace SolarOps.Api.Features.Customers;
 
@@ -11,7 +17,8 @@ public interface ICustomerService
 
     Task<CustomerResponse> GetAsync(Guid id, CancellationToken ct);
 
-    Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, string? sortBy, string? sortDir, CancellationToken ct);
+    /// <summary>Lists customers; <paramref name="type"/> and <paramref name="status"/> are enum names (400 when unknown).</summary>
+    Task<CustomerListResponse> ListAsync(PageQuery page, string? type, string? status, CancellationToken ct);
 
     Task<CustomerResponse> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken ct);
 
@@ -40,69 +47,84 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
         return CustomerResponse.FromEntity(customer);
     }
 
-    public const int MaxPageSize = 100;
-
-    public async Task<CustomerListResponse> ListAsync(string? q, int page, int pageSize, string? sortBy, string? sortDir, CancellationToken ct)
+    private static readonly Dictionary<string, Expression<Func<Customer, object>>> SortMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        var errors = new Dictionary<string, string[]>();
-        if (page < 1)
-        {
-            errors["page"] = ["Page must be at least 1."];
-        }
+        ["name"] = c => c.SortName,
+        ["email"] = c => c.Email,
+        ["createdAt"] = c => c.CreatedAt,
+    };
 
-        if (pageSize is < 1 or > MaxPageSize)
-        {
-            errors["pageSize"] = [$"PageSize must be between 1 and {MaxPageSize}."];
-        }
-
-        var sortKey = (sortBy ?? "name").ToLowerInvariant();
-        if (sortKey is not ("name" or "email" or "createdat"))
-        {
-            errors["sortBy"] = ["SortBy must be one of: name, email, createdAt."];
-        }
-
-        var direction = (sortDir ?? "asc").ToLowerInvariant();
-        if (direction is not ("asc" or "desc"))
-        {
-            errors["sortDir"] = ["SortDir must be asc or desc."];
-        }
-
-        if (errors.Count > 0)
-        {
-            throw new RequestValidationException(errors);
-        }
+    public async Task<CustomerListResponse> ListAsync(PageQuery page, string? type, string? status, CancellationToken ct)
+    {
+        var typeFilter = EnumFilter.Parse<CustomerType>(type, "type");
+        var statusFilter = EnumFilter.Parse<CustomerStatus>(status, "status");
 
         var query = db.Set<Customer>().AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(q))
+        if (page.SearchTerm is { } term)
         {
-            var pattern = $"%{EscapeLike(q.Trim())}%";
-            query = query.Where(c =>
-                EF.Functions.ILike(c.SortName, pattern, "\\")
-                || EF.Functions.ILike(c.FirstName + " " + c.LastName, pattern, "\\")
-                || EF.Functions.ILike(c.Email, pattern, "\\")
-                || (c.Phone != null && EF.Functions.ILike(c.Phone, pattern, "\\"))
-                || (c.Ico != null && EF.Functions.ILike(c.Ico, pattern, "\\")));
+            query = query.Where(CustomerSearch.Matches(SqlLike.Contains(term)));
         }
 
-        var total = await query.CountAsync(ct);
-        var descending = direction == "desc";
-        var ordered = sortKey switch
+        if (typeFilter is { } t)
         {
-            "email" => descending ? query.OrderByDescending(c => c.Email) : query.OrderBy(c => c.Email),
-            "createdat" => descending ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt),
-            _ => descending ? query.OrderByDescending(c => c.SortName) : query.OrderBy(c => c.SortName),
-        };
-        var customers = await ordered
-            .ThenBy(c => c.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
+            query = query.Where(c => c.Type == t);
+        }
 
-        return new CustomerListResponse(customers.ConvertAll(CustomerResponse.FromEntity), page, pageSize, total);
+        // Segment counts ignore the status filter, so the segments do not change when one is selected.
+        var sorted = query.ApplySort(page, SortMap, c => c.Id, "name");
+        var statusCounts = await query.CountByAsync(c => c.Status, ct);
+
+        if (statusFilter is { } s)
+        {
+            sorted = sorted.Where(c => c.Status == s);
+        }
+
+        var customers = await sorted.ToPagedAsync(page, ct);
+        var summaries = await LoadSummariesAsync(customers.Items.Select(c => c.Id).ToList(), ct);
+        var items = customers.Items.Select(c =>
+        {
+            var (supplyPoints, lastActivity) = summaries.GetValueOrDefault(c.Id);
+            return CustomerListItemResponse.From(c, supplyPoints, lastActivity is { } l && l > c.UpdatedAt ? l : c.UpdatedAt);
+        }).ToList();
+
+        return new CustomerListResponse(items, customers.Page, customers.PageSize, customers.TotalCount, statusCounts);
     }
 
-    private static string EscapeLike(string value) =>
-        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+    /// <summary>Supply point count and newest quote/installation/ticket update for a page of customers, in two grouped queries.</summary>
+    private async Task<Dictionary<Guid, (int SupplyPoints, DateTimeOffset? LastActivity)>> LoadSummariesAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, (int SupplyPoints, DateTimeOffset? LastActivity)>();
+        if (ids.Count == 0)
+        {
+            return result;
+        }
+
+        var supplyPoints = await db.Set<SupplyPoint>().AsNoTracking()
+            .Where(x => ids.Contains(x.CustomerId))
+            .GroupBy(x => x.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        var activity = await db.Set<Quote>().AsNoTracking().Where(x => ids.Contains(x.CustomerId)).Select(x => new { x.CustomerId, x.UpdatedAt })
+            .Concat(db.Set<Installation>().AsNoTracking().Where(x => ids.Contains(x.CustomerId)).Select(x => new { x.CustomerId, x.UpdatedAt }))
+            .Concat(db.Set<ServiceTicket>().AsNoTracking().Where(x => ids.Contains(x.CustomerId)).Select(x => new { x.CustomerId, x.UpdatedAt }))
+            .GroupBy(x => x.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Last = (DateTimeOffset?)g.Max(x => x.UpdatedAt) })
+            .ToListAsync(ct);
+
+        foreach (var row in supplyPoints)
+        {
+            result[row.CustomerId] = (row.Count, null);
+        }
+
+        foreach (var row in activity)
+        {
+            result[row.CustomerId] = (result.GetValueOrDefault(row.CustomerId).SupplyPoints, row.Last);
+        }
+
+        return result;
+    }
 
     public async Task<CustomerResponse> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken ct)
     {
