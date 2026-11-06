@@ -148,3 +148,74 @@
   gap: var(--spacing-12);
   align-items: start;
 }
+
+/* ---------- Checklist, revízia a odovzdanie (#246, #247) ---------- */
+.checklist,
+.revision-list {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: var(--spacing-16) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist__step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.checklist__step label {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: center;
+  gap: var(--spacing-8);
+  color: var(--color-text-body);
+}
+
+.checklist__step input,
+.installation-workflow__choice input {
+  width: auto;
+}
+
+.checklist__meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.revision-list__item {
+  padding: var(--spacing-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-subtle);
+}
+
+.revision-list__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-8);
+}
+
+.revision-list__head button {
+  margin-left: auto;
+}
+
+.installation-workflow__choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  margin: 0 0 var(--spacing-16);
+  padding: 0;
+  border: 0;
+}
+
+.installation-workflow__choice label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}

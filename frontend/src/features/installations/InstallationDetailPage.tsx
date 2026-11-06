@@ -22,6 +22,8 @@ const OverviewTab = lazy(() => import('./tabs/OverviewTab'))
 const DevicesTab = lazy(() => import('./tabs/DevicesTab'))
 const PlanTab = lazy(() => import('./tabs/PlanTab'))
 const StringsTab = lazy(() => import('./tabs/StringsTab'))
+const ChecklistTab = lazy(() => import('./tabs/ChecklistTab'))
+const RevisionTab = lazy(() => import('./tabs/RevisionTab'))
 
 type Installation = components['schemas']['InstallationResponse']
 type Detail = components['schemas']['InstallationDetailResponse']
@@ -34,12 +36,12 @@ export interface InstallationDetailPageProps {
   renderConnection?: (installation: Installation) => ReactNode
 }
 
-const TAB_KEYS = ['overview', 'devices', 'strings', 'plan', 'connection'] as const
+const TAB_KEYS = ['overview', 'devices', 'strings', 'plan', 'checklist', 'revision', 'connection'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 /**
  * `/installations/:id` (wireframe "Detail inštalácie"): header with the main action, the 6-step workflow,
- * and tabs Prehľad / Zariadenia / Stringy / Plán / Pripojenie.
+ * and tabs Prehľad / Zariadenia / Stringy / Plán / Checklist / Revízia a odovzdanie / Pripojenie.
  */
 export default function InstallationDetailPage({ renderConnection }: InstallationDetailPageProps) {
   const { id = '' } = useParams()
@@ -116,6 +118,13 @@ export default function InstallationDetailPage({ renderConnection }: Installatio
   const blocked = action?.target === 'Mounting' && needsPlan
   const onlyDedicated =
     canField && !action && installation.allowedTransitions.some((t) => DEDICATED_TARGETS.includes(t))
+  // The revision result and commissioning have their own forms in the "Revízia a odovzdanie" tab.
+  const dedicated = !onlyDedicated
+    ? null
+    : installation.allowedTransitions.includes('Commissioned')
+      ? { label: T.detail.commission, note: T.detail.commissionStep }
+      : { label: T.detail.recordRevision, note: T.detail.revisionStep }
+  const showChecklistHint = canField && installation.state === 'Mounting'
 
   const subtitle = [
     customer.data,
@@ -149,6 +158,11 @@ export default function InstallationDetailPage({ renderConnection }: Installatio
                 {action.rework ? T.detail.rework : T.detail.next}
               </button>
             )}
+            {dedicated && (
+              <button type="button" className="btn btn--primary" onClick={() => openTab('revision')}>
+                {dedicated.label}
+              </button>
+            )}
           </>
         }
       />
@@ -168,9 +182,17 @@ export default function InstallationDetailPage({ renderConnection }: Installatio
             {T.detail.mountingBlocked}
           </p>
         )}
-        {onlyDedicated && (
+        {dedicated && (
           <p role="note" className="installation-card__note">
-            {T.detail.dedicatedStep}
+            {dedicated.note}
+          </p>
+        )}
+        {showChecklistHint && (
+          <p className="installation-card__note">
+            {T.detail.checklistHint}{' '}
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => openTab('checklist')}>
+              {T.detail.openChecklist}
+            </button>
           </p>
         )}
       </article>
@@ -198,6 +220,8 @@ export default function InstallationDetailPage({ renderConnection }: Installatio
           {active === 'devices' && <DevicesTab installationId={id} canField={canField} initialType={params.get('type') ?? ''} />}
           {active === 'strings' && <StringsTab installationId={id} />}
           {active === 'plan' && <PlanTab detail={detail} canPlan={canPlan} onChange={setDetail} />}
+          {active === 'checklist' && <ChecklistTab installationId={id} canField={canField} />}
+          {active === 'revision' && <RevisionTab detail={detail} canField={canField} onChange={setDetail} />}
           {active === 'connection' &&
             (renderConnection ? (
               renderConnection(installation)
