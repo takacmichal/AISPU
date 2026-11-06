@@ -18,7 +18,7 @@ import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../
 import { ConnectionStepper } from '../connection/ConnectionStepper'
 import './contracts.css'
 import { parseAmount } from './amount'
-import { fetchContractPdf, PdfUnavailableError } from './pdf'
+import { fetchContractPdf } from './pdf'
 import { AUDIT_ACTION_LABELS, CONTRACT_STATUS_LABELS, CONTRACT_TEXTS as T, DEPOSIT_STATUS_LABELS } from './texts'
 
 type Contract = components['schemas']['ContractResponse']
@@ -203,13 +203,9 @@ type PdfState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ready'; url: string }
-  | { kind: 'unavailable' }
   | { kind: 'error'; message: string }
 
-/**
- * PDF preview (iframe) and download. The endpoint may not exist on the server yet (PR #341); then the buttons are
- * disabled with a hint instead of failing.
- */
+/** PDF preview (iframe) and download; a failure shows the server's reason and the preview can be tried again. */
 function PdfSection({ contractId, number }: { contractId: string; number: string }) {
   const [state, setState] = useState<PdfState>({ kind: 'idle' })
   const urlRef = useRef<string | null>(null)
@@ -229,16 +225,15 @@ function PdfSection({ contractId, number }: { contractId: string; number: string
       urlRef.current = URL.createObjectURL(blob)
       setState({ kind: 'ready', url: urlRef.current })
     } catch (error) {
-      setState(error instanceof PdfUnavailableError ? { kind: 'unavailable' } : { kind: 'error', message: userMessage(error) })
+      setState({ kind: 'error', message: userMessage(error) })
     }
   }
 
-  const unavailable = state.kind === 'unavailable'
   return (
     <div className="contract-section">
       <h3>{T.pdf.title}</h3>
       <div className="btn-row">
-        <button type="button" className="btn btn--ghost" disabled={unavailable || state.kind === 'loading'} onClick={load}>
+        <button type="button" className="btn btn--ghost" disabled={state.kind === 'loading'} onClick={load}>
           {state.kind === 'loading' ? T.pdf.loading : T.pdf.preview}
         </button>
         {state.kind === 'ready' ? (
@@ -251,7 +246,6 @@ function PdfSection({ contractId, number }: { contractId: string; number: string
           </button>
         )}
       </div>
-      {unavailable && <p className="contract-hint">{T.pdf.unavailable}</p>}
       {state.kind === 'error' && (
         <p role="alert" className="form-error">
           {T.pdf.failed} {state.message}

@@ -190,13 +190,39 @@ describe('ContractDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Stiahnuť PDF' })).toHaveAttribute('download', 'zmluva-Z-2026-0001.pdf')
   })
 
-  it('disables the PDF buttons with a hint when the server has no PDF endpoint', async () => {
+  it('shows the server error when the PDF fails and lets the user try again', async () => {
     const user = userEvent.setup()
-    mockApi({ contract: contract() }, (key) => (key.startsWith('POST') && key.includes('/pdf') ? new Response(null, { status: 404 }) : undefined))
+    URL.createObjectURL = vi.fn(() => 'blob:pdf')
+    URL.revokeObjectURL = vi.fn()
+    let failures = 0
+    mockApi({ contract: contract() }, (key) => {
+      if (!(key.startsWith('POST') && key.includes('/pdf'))) return undefined
+      failures += 1
+      if (failures === 1) return new Response(null, { status: 404 })
+      return new Response('%PDF', { status: 200, headers: { 'Content-Type': 'application/pdf' } })
+    })
     renderPage()
     await user.click(await screen.findByRole('button', { name: 'Zobraziť náhľad PDF' }))
-    expect(await screen.findByText(/zatiaľ nie je na serveri dostupné/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Zobraziť náhľad PDF' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Stiahnuť PDF' })).toBeDisabled()
+    expect(await screen.findByRole('alert')).toHaveTextContent('PDF zmluvy sa nepodarilo vygenerovať.')
+    expect(screen.queryByText(/zatiaľ nie je na serveri dostupné/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Zobraziť náhľad PDF' }))
+    expect(await screen.findByTitle('Náhľad PDF zmluvy')).toHaveAttribute('src', 'blob:pdf')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the reason from the server when the PDF cannot be generated', async () => {
+    const user = userEvent.setup()
+    mockApi({ contract: contract() }, (key) =>
+      key.startsWith('POST') && key.includes('/pdf')
+        ? new Response(JSON.stringify({ status: 409, title: 'Conflict', detail: 'Zmluva ešte nemá všetky údaje.' }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/problem+json' },
+          })
+        : undefined,
+    )
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: 'Zobraziť náhľad PDF' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Zmluva ešte nemá všetky údaje.')
   })
 })
