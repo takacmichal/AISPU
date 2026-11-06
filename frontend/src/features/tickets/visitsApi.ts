@@ -133,6 +133,12 @@ export function getMyVisits(from: Date, to: Date, signal?: AbortSignal): Promise
   return request<TechnicianCalendar>(`/api/technicians/me/visits?${params.toString()}`, { signal })
 }
 
+/** Visits of any technician starting in [from, to) (planner roles: Admin, Operator). */
+export function getTechnicianVisits(technicianId: string, from: Date, to: Date, signal?: AbortSignal): Promise<TechnicianCalendar> {
+  const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
+  return request<TechnicianCalendar>(`/api/technicians/${technicianId}/visits?${params.toString()}`, { signal })
+}
+
 export const technicianName = (t: Pick<Technician, 'userName' | 'email' | 'id'>) => t.userName || t.email || t.id.slice(0, 8)
 
 /** The visit the ticket is about now: the active one, otherwise the latest planned or done. */
