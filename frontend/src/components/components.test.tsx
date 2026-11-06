@@ -48,6 +48,14 @@ describe('DataTable', () => {
     expect(onPageChange).toHaveBeenNthCalledWith(2, 1)
   })
 
+  it('labels every cell with its column header for the phone card layout', () => {
+    render(table())
+    const cell = screen.getAllByRole('cell')[0]
+    expect(cell).toHaveAttribute('data-label', 'Meno')
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getAllByRole('row').length).toBeGreaterThan(1)
+  })
+
   it('disables paging at the edges', () => {
     render(table({ page: 1, totalCount: 5 }))
     expect(screen.getByRole('button', { name: 'Predchádzajúca' })).toBeDisabled()
