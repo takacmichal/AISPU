@@ -1,17 +1,21 @@
+/** "1 elektráreň", "2 elektrárne", "5 elektrární". */
+export function plants(n: number): string {
+  return `${n} ${n === 1 ? 'elektráreň' : n >= 2 && n <= 4 ? 'elektrárne' : 'elektrární'}`
+}
+
 /** Slovak UI strings of the dashboard (Prehľad) kept in one place for review. */
 export const DASHBOARD_TEXT = {
   title: 'Dashboard',
   subtitle: (date: string) => `Prehľad za dnes · ${date}`,
   export: 'Exportovať',
   newQuote: 'Nová ponuka',
-  mock: 'Ukážkové dáta',
-  production: { label: 'Výroba dnes', detail: (count: number, time: string) => `${count} inštalácií · stav k ${time}` },
+  production: { label: 'Výroba dnes', detail: (count: number, time: string) => `${plants(count)} v prevádzke · stav k ${time}` },
   alarms: {
     label: 'Aktívne alarmy',
     fresh: (n: number) => `${n} nový`,
     detail: (c: number, w: number, i: number) => `${c} kritický · ${w} varovania · ${i} info`,
   },
-  tickets: { label: 'Otvorené tikety', detail: (n: number) => `${n} po termíne SLA` },
+  tickets: { label: 'Otvorené tikety', detail: (n: number) => `${n} ${n === 1 ? 'čaká' : 'čakajú'} na triáž` },
   quotes: { label: 'Ponuky čakajú na odpoveď', detail: (value: string) => `hodnota ${value} s DPH` },
   kpiRegion: 'Kľúčové ukazovatele',
   kpiLoading: 'Načítavam ukazovateľ…',

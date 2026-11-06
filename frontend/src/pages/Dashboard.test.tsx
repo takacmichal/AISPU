@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthContext'
 import { json, makeQuote, mockApi, problem } from '../features/quotes/testUtils'
+import { toDateString } from '../features/monitoring/periods'
 import Dashboard from './Dashboard'
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString()
@@ -54,20 +55,70 @@ describe('Dashboard', () => {
     expect(screen.getByRole('link', { name: '+ Nová ponuka' })).toHaveAttribute('href', '/quotes')
   })
 
-  it('falls back to sample data (marked) where there is no backend data', async () => {
+  it('shows real zeros and empty states when there is no data (no sample data)', async () => {
     mockApi({
       'GET /api/installations': json([]),
       'GET /api/quotes': json([]),
       'GET /api/tickets': json({ items: [], page: 1, pageSize: 100, totalCount: 0 }),
+      'GET /api/underproduction-alarms': json({ items: [] }),
     })
     renderDashboard('Admin')
 
-    expect(await within(kpis()).findByText(/^1\s284$/)).toBeInTheDocument()
-    expect(within(card('Aktívne alarmy')).getByText('5')).toBeInTheDocument()
-    expect(within(card('Otvorené tikety')).getByText('18')).toBeInTheDocument()
-    expect(within(card('Ponuky čakajú na odpoveď')).getByText('7')).toBeInTheDocument()
-    expect(screen.getAllByText('Ukážkové dáta').length).toBeGreaterThanOrEqual(4)
-    expect(await screen.findByText('Chyba izolácie striedača')).toBeInTheDocument()
+    await waitFor(() => expect(within(card('Výroba dnes')).getByText('0')).toBeInTheDocument())
+    expect(within(card('Výroba dnes')).getByText(/0 elektrární v prevádzke/)).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('0')).toBeInTheDocument()
+    expect(within(card('Otvorené tikety')).getByText('0')).toBeInTheDocument()
+    expect(await within(card('Ponuky čakajú na odpoveď')).findByText('0')).toBeInTheDocument()
+    expect(screen.queryByText('Ukážkové dáta')).not.toBeInTheDocument()
+    expect(screen.queryByText(/SLA/)).not.toBeInTheDocument()
+    expect(await screen.findByText('Žiadne otvorené hlásenia.')).toBeInTheDocument()
+    expect(await screen.findByText('Zatiaľ nie sú žiadne elektrárne v prevádzke.')).toBeInTheDocument()
+  })
+
+  it('sums today production of plants in operation only', async () => {
+    const today = toDateString(new Date())
+    const production = {
+      installationId: 'i1',
+      from: today,
+      to: today,
+      granularity: 'day',
+      timeZone: 'Europe/Bratislava',
+      totalEnergyKwh: 42,
+      peakPowerKw: 5,
+      points: [{ periodStart: `${today}T00:00:00+01:00`, energyKwh: 42, peakPowerKw: 5, sampleCount: 100 }],
+    }
+    const fetch = mockApi({
+      'GET /api/installations': json([
+        { id: 'i1', name: 'FVE Nitra', state: 'Commissioned' },
+        { id: 'i2', name: 'FVE Trnava', state: 'Planned' },
+      ]),
+      'GET /api/installations/i1/production': json(production),
+      'GET /api/quotes': json([]),
+      'GET /api/tickets': json({ items: [], page: 1, pageSize: 100, totalCount: 0 }),
+      'GET /api/underproduction-alarms': json({ items: [] }),
+    })
+    renderDashboard('Admin')
+
+    await waitFor(() => expect(within(card('Výroba dnes')).getByText('42')).toBeInTheDocument())
+    expect(within(card('Výroba dnes')).getByText(/1 elektráreň v prevádzke/)).toBeInTheDocument()
+    expect(fetch.mock.calls.some(([url]) => String(url).includes('/api/installations/i2/production'))).toBe(false)
+  })
+
+  it('shows how many open tickets wait for triage', async () => {
+    mockApi({
+      'GET /api/installations': json([]),
+      'GET /api/tickets': json({
+        items: [ticket({ id: 'a', origin: 'Manual' }), ticket({ id: 'b', origin: 'Manual', state: 'Triaged' })],
+        page: 1,
+        pageSize: 100,
+        totalCount: 2,
+      }),
+      'GET /api/underproduction-alarms': json({ items: [] }),
+    })
+    renderDashboard('Operator')
+
+    await waitFor(() => expect(within(card('Otvorené tikety')).getByText('2')).toBeInTheDocument())
+    expect(within(card('Otvorené tikety')).getByText('1 čaká na triáž')).toBeInTheDocument()
   })
 
   it('uses real quotes and tickets when the API has them', async () => {
@@ -98,7 +149,7 @@ describe('Dashboard', () => {
       ticketPriority: 'High',
     }
 
-    it('count as alarms, win over sample data and open the monitoring of the installation', async () => {
+    it('count as alarms and open the monitoring of the installation', async () => {
       const fetch = mockApi({
         'GET /api/installations': json([]),
         'GET /api/quotes': json([]),
@@ -109,7 +160,6 @@ describe('Dashboard', () => {
 
       const link = await screen.findByRole('link', { name: 'Podvýroba: FVE Nitra' })
       expect(link).toHaveAttribute('href', '/monitoring?installation=i1')
-      expect(screen.queryByText('Chyba izolácie striedača')).not.toBeInTheDocument()
       expect(within(card('Aktívne alarmy')).getByText('1')).toBeInTheDocument()
       expect(within(card('Aktívne alarmy')).queryByText('Ukážkové dáta')).not.toBeInTheDocument()
       expect(fetch.mock.calls.some(([url]) => String(url).includes('/api/underproduction-alarms?ongoing=true'))).toBe(true)
@@ -153,12 +203,18 @@ describe('Dashboard', () => {
     expect(paths).not.toContain('/api/customers')
   })
 
-  it('keeps working when an API fails (sample data instead of an error)', async () => {
-    mockApi({ 'GET /api/installations': problem(500, 'boom'), 'GET /api/quotes': problem(500, 'boom'), 'GET /api/tickets': problem(500, 'boom') })
+  it('shows an error in the KPI cards when an API fails (no sample data)', async () => {
+    mockApi({
+      'GET /api/installations': problem(500, 'boom'),
+      'GET /api/quotes': problem(500, 'boom'),
+      'GET /api/tickets': problem(500, 'boom'),
+      'GET /api/underproduction-alarms': json({ items: [] }),
+    })
     renderDashboard('Admin')
 
-    expect(await within(kpis()).findByText(/^1\s284$/)).toBeInTheDocument()
-    expect(screen.queryByText('Údaje sa nepodarilo načítať.')).not.toBeInTheDocument()
+    await waitFor(() => expect(within(kpis()).getAllByText('Údaje sa nepodarilo načítať.')).toHaveLength(4))
+    expect(screen.queryByText(/1\s284/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Ukážkové dáta')).not.toBeInTheDocument()
   })
 
   it('shows the customer portal home to customers', () => {

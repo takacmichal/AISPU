@@ -1,31 +1,28 @@
 import { api } from '../api/client'
 import { useLoad } from '../components/useLoad'
-import { MOCK_NAV_COUNTS } from '../features/dashboard/mock'
+import { CLOSED } from '../features/dashboard/alarms'
+import { listTickets } from '../features/tickets/ticketsApi'
 
 let cached: Record<string, number> = {}
 
 /**
- * Counters shown next to sidebar items; sample numbers when the API has nothing to count yet.
+ * Counters shown next to sidebar items: customers, open quotes and open tickets from the API. A count whose request
+ * fails is left out, so the sidebar never shows a made-up number.
  * Loaded only while `enabled` (on the dashboard); on other pages the last values are reused without new requests. */
 export function useNavCounts(enabled: boolean): Record<string, number> {
   const { data } = useLoad<Record<string, number>>(async (signal) => {
     if (!enabled) return cached
-    try {
-      const [customers, quotes] = await Promise.all([
-        api.GET('/api/customers', { params: { query: { page: 1, pageSize: 1 } }, signal }),
-        api.GET('/api/quotes', { signal }),
-      ])
-      const customerCount = Number(customers.data?.totalCount ?? 0)
-      const openQuotes = (quotes.data ?? []).filter((q) => q.status === 'Draft' || q.status === 'Sent').length
-      return (cached = {
-        '/customers': customerCount || MOCK_NAV_COUNTS['/customers'],
-        '/quotes': openQuotes || MOCK_NAV_COUNTS['/quotes'],
-        '/tickets': MOCK_NAV_COUNTS['/tickets'],
-      })
-    } catch (error) {
-      if (signal.aborted) throw error
-      return (cached = MOCK_NAV_COUNTS)
-    }
+    const [customers, quotes, tickets] = await Promise.allSettled([
+      api.GET('/api/customers', { params: { query: { page: 1, pageSize: 1 } }, signal }).then(({ data }) => data ?? Promise.reject()),
+      api.GET('/api/quotes', { signal }).then(({ data }) => data ?? Promise.reject()),
+      listTickets({ pageSize: 100 }, signal),
+    ])
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+    const counts: Record<string, number> = {}
+    if (customers.status === 'fulfilled') counts['/customers'] = Number(customers.value.totalCount)
+    if (quotes.status === 'fulfilled') counts['/quotes'] = quotes.value.filter((q) => q.status === 'Draft' || q.status === 'Sent').length
+    if (tickets.status === 'fulfilled') counts['/tickets'] = tickets.value.items.filter((t) => !CLOSED.has(t.state)).length
+    return (cached = counts)
   }, 'nav-counts' + (enabled ? '|live' : '|cached'))
   return data ?? {}
 }
