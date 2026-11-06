@@ -25,6 +25,7 @@ import {
   VISIT_STATE_LABELS,
   VISIT_STATE_TONES,
 } from './messages'
+import { ConfirmationCard } from './ConfirmationCard'
 import { PriorityBadge, StateBadge } from './TicketBadges'
 import './tickets.css'
 import {
@@ -184,6 +185,8 @@ export default function TicketDetailPage() {
             <h4 className="ticket-card__subtitle">{T.detail.attachments}</h4>
             <Attachments items={ticket.attachments} />
           </article>
+
+          {isCustomer && ticket.state === 'Closed' && <ConfirmationCard ticketId={ticket.id} onReopened={refreshAll} />}
 
           <VisitsCard
             ticket={ticket}
