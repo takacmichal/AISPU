@@ -12,8 +12,11 @@ namespace SolarOps.Api.Features.Tickets;
 /// </summary>
 public sealed class TicketsModule : IModule
 {
-    public void AddServices(IServiceCollection services, IConfiguration configuration) =>
+    public void AddServices(IServiceCollection services, IConfiguration configuration)
+    {
         services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IAnomalyTicketService, AnomalyTicketService>();
+    }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {

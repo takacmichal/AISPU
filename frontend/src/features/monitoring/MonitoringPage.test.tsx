@@ -6,6 +6,7 @@ import { installation, json, problem, renderRoute, stubFetch, type Call } from '
 import MonitoringPage from './MonitoringPage'
 
 afterEach(() => {
+  alarms = []
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -38,6 +39,33 @@ const comparison = (available: boolean) => ({
   })),
 })
 
+const alarm = (over: Record<string, unknown> = {}) => ({
+  id: 'a1',
+  installationId: 'i1',
+  installationName: 'FVE Nitra',
+  start: '2026-06-21T10:00:00Z',
+  end: null,
+  detectedAt: '2026-06-21T11:00:00Z',
+  lastUnderproductionAt: '2026-06-21T14:00:00Z',
+  ongoing: true,
+  severity: 'High',
+  ticketPriority: 'High',
+  medianRatio: 0.4,
+  minRatio: 0.3,
+  underproducingHours: 5,
+  validHours: 5,
+  durationHours: 5,
+  expectedKwh: 20,
+  actualKwh: 8,
+  estimatedLostKwh: 12,
+  reasonCode: 'sustained_underproduction',
+  reason: 'Výroba je trvalo nižšia ako predikcia.',
+  updatedAt: '2026-06-21T15:00:00Z',
+  ticketId: null,
+  ...over,
+})
+let alarms: ReturnType<typeof alarm>[] = []
+
 function handler(over: (call: Call) => Response | undefined = () => undefined, predicted = false) {
   return (call: Call) => {
     const custom = over(call)
@@ -45,6 +73,7 @@ function handler(over: (call: Call) => Response | undefined = () => undefined, p
     if (call.path === '/api/installations') return json([installation()])
     if (call.path === '/api/installations/i1/production') return json(production)
     if (call.path === '/api/installations/i1/production/comparison') return json(comparison(predicted))
+    if (call.path === '/api/installations/i1/underproduction-alarms') return json({ items: alarms })
   }
 }
 
@@ -169,12 +198,6 @@ describe('MonitoringPage', () => {
     expect(await screen.findByText('Neplatné obdobie.')).toBeInTheDocument()
   })
 
-  it('shows the anomalies placeholder while the API is disabled', async () => {
-    stubFetch(handler())
-    render()
-    expect(await screen.findByText('Pripravuje sa')).toBeInTheDocument()
-  })
-
   it('shows an empty state without installations', async () => {
     stubFetch((c) => (c.path === '/api/installations' ? json([]) : undefined))
     render()
@@ -187,5 +210,129 @@ describe('monitoring navigation', () => {
     const visible = (role: string) => menuItems([role]).some((i) => i.path === '/monitoring')
     for (const role of ['Admin', 'Operator', 'Technician', 'Designer']) expect(visible(role)).toBe(true)
     for (const role of ['Sales', 'Customer']) expect(visible(role)).toBe(false)
+  })
+  describe('underproduction alarms', () => {
+    const section = async () => within((await screen.findByRole('heading', { name: 'Alarmy podvýroby' })).closest('section') as HTMLElement)
+
+    it('tells when an installation has no alarms', async () => {
+      stubFetch(handler())
+      render()
+      expect(await (await section()).findByText('Táto elektráreň nemá žiadne alarmy podvýroby.')).toBeInTheDocument()
+    })
+
+    it('marks severity and state with text, and filters by the URL without losing the list', async () => {
+      alarms = [alarm(), alarm({ id: 'a2', severity: 'Low', ongoing: false, end: '2026-06-22T10:00:00Z', medianRatio: 0.8 })]
+      stubFetch(handler())
+      render()
+      const list = await section()
+      expect(await list.findByText('40 %')).toBeInTheDocument()
+      expect(list.getByText('80 %')).toBeInTheDocument()
+      const row = within(list.getByText('40 %').closest('tr') as HTMLElement)
+      expect(row.getByText('Vysoká')).toHaveClass('badge--error')
+      expect(row.getByText('Prebieha')).toHaveClass('badge--attention')
+
+      await userEvent.selectOptions(list.getByRole('combobox', { name: 'Závažnosť' }), 'High')
+      expect(list.queryByText('80 %')).not.toBeInTheDocument()
+      expect(list.getByText('40 %')).toBeInTheDocument()
+
+      await userEvent.selectOptions(list.getByRole('combobox', { name: 'Stav' }), 'ended')
+      expect(await list.findByText('Zvoleným filtrom nezodpovedá žiadny alarm.')).toBeInTheDocument()
+    })
+
+    it('restores the filters from the URL', async () => {
+      alarms = [alarm(), alarm({ id: 'a2', severity: 'Low', medianRatio: 0.8 })]
+      stubFetch(handler())
+      render(['Admin'], '/monitoring?alarmSeverity=Low')
+      const list = await section()
+      expect(await list.findByText('80 %')).toBeInTheDocument()
+      expect(list.queryByText('40 %')).not.toBeInTheDocument()
+    })
+
+    it('opens the detail with the reason, context chart and a prefilled ticket', async () => {
+      alarms = [alarm()]
+      const calls = stubFetch(handler(() => undefined, true))
+      render(['Operator'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).getByText('Výroba je trvalo nižšia ako predikcia.')).toBeInTheDocument()
+      expect(within(dialog).getByText('12 kWh')).toBeInTheDocument()
+      await waitFor(() => expect(calls.some((c) => c.path.endsWith('/comparison') && c.search.includes('from=2026-06-21T03'))).toBe(true))
+      const ticket = within(dialog).getByRole('link', { name: 'Vytvoriť servisný tiket' })
+      expect(ticket.getAttribute('href')).toContain('installationId=i1')
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Zavrieť' }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('links an alarm to its ticket instead of offering a new one', async () => {
+      alarms = [alarm({ ticketId: 't9' })]
+      stubFetch(handler())
+      render(['Operator'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).getByRole('link', { name: 'Otvoriť servisný tiket' })).toHaveAttribute('href', '/tickets/t9')
+      expect(within(dialog).queryByRole('link', { name: 'Vytvoriť servisný tiket' })).not.toBeInTheDocument()
+    })
+
+    it('hides the ticket of an alarm from a role that cannot open tickets', async () => {
+      alarms = [alarm({ ticketId: 't9' })]
+      stubFetch(handler())
+      render(['Designer'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).queryByRole('link', { name: 'Otvoriť servisný tiket' })).not.toBeInTheDocument()
+    })
+
+    it('hides the ticket link from a role that cannot create tickets', async () => {
+      alarms = [alarm()]
+      stubFetch(handler())
+      render(['Designer'])
+      await userEvent.click(await (await section()).findByText('40 %'))
+      const dialog = await screen.findByRole('dialog', { name: 'Detail alarmu' })
+      expect(within(dialog).queryByRole('link', { name: 'Vytvoriť servisný tiket' })).not.toBeInTheDocument()
+    })
+
+    it('offers the analysis only to Admin and Operator', async () => {
+      stubFetch(handler())
+      render(['Technician'])
+      await section()
+      expect(screen.queryByRole('button', { name: 'Spustiť analýzu' })).not.toBeInTheDocument()
+    })
+
+    it('runs the analysis, reports it and loads the alarms again', async () => {
+      const calls = stubFetch(
+        handler((call) => {
+          if (call.method === 'POST' && call.path === '/api/installations/i1/analysis') {
+            alarms = [alarm()]
+            return json({ installationId: 'i1', modelVersion: 'm1', predictedHours: 48, alarms: 1, ongoingAlarms: 1, ticketsCreated: 1, ticketsSupplemented: 0, analyzedAt: '2026-06-21T15:00:00Z' })
+          }
+        }),
+      )
+      render(['Operator'])
+      const list = await section()
+      await userEvent.click(await list.findByRole('button', { name: 'Spustiť analýzu' }))
+      expect(await screen.findByText('Analýza dokončená: predikcia na 48 h, nájdené alarmy: 1, nové tikety: 1.')).toBeInTheDocument()
+      expect(await (await section()).findByText('40 %')).toBeInTheDocument()
+      expect(calls.filter((c) => c.path === '/api/installations/i1/analysis')).toHaveLength(1)
+    })
+
+    it('shows the server message when the ML service is unavailable and keeps the list', async () => {
+      alarms = [alarm()]
+      stubFetch(handler((call) => (call.method === 'POST' ? problem(503, 'x') : undefined)))
+      render(['Admin'])
+      const list = await section()
+      await list.findByText('40 %')
+      await userEvent.click(list.getByRole('button', { name: 'Spustiť analýzu' }))
+      await waitFor(() => expect(list.getByRole('button', { name: 'Spustiť analýzu' })).toBeEnabled())
+      expect(await screen.findByText(/Služba predikcie je teraz nedostupná/)).toBeInTheDocument()
+      expect(list.getByText('40 %')).toBeInTheDocument()
+    })
+
+    it('offers a retry when the alarms cannot be loaded', async () => {
+      stubFetch(handler((call) => (call.path.endsWith('/underproduction-alarms') ? problem(500, 'x') : undefined)))
+      render()
+      const list = await section()
+      expect(await list.findByText('Alarmy sa nepodarilo načítať.')).toBeInTheDocument()
+      expect(list.getByRole('button', { name: 'Skúsiť znova' })).toBeInTheDocument()
+    })
   })
 })

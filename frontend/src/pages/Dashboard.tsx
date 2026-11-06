@@ -5,7 +5,8 @@ import { EmptyState } from '../components/EmptyState'
 import { KpiCard } from '../components/KpiCard'
 import { PageHeader } from '../components/PageHeader'
 import { Skeleton } from '../components/Skeleton'
-import { useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
+import { UpdatedIndicator } from '../components/UpdatedIndicator'
+import { useOngoingAlarms, useQuoteSummary, useTicketSummary, useTodayProduction } from '../features/dashboard/data'
 import { ProductionBarsCard } from '../features/dashboard/ProductionBarsCard'
 import { RecentAlarmsCard } from '../features/dashboard/RecentAlarmsCard'
 import PortalHome from '../features/portal/PortalHome'
@@ -36,6 +37,14 @@ function DateLine() {
   return <>{T.subtitle(text)}</>
 }
 
+/** Oldest of the loads that finished, so the indicator never claims more than every card has. */
+function latestUpdate(times: (Date | null)[]): Date | null {
+  const done = times.filter((t): t is Date => t !== null)
+  return done.length === 0 ? null : new Date(Math.min(...done.map((t) => t.getTime())))
+}
+
+const countBy = (alarms: readonly { ticketPriority: string }[], priority: string) => alarms.filter((a) => a.ticketPriority === priority).length
+
 function Mock({ on }: { on: boolean }) {
   return on ? <span className="mock-tag">{T.mock}</span> : null
 }
@@ -49,6 +58,9 @@ export default function Dashboard() {
   const production = useTodayProduction(true, canMonitor)
   const tickets = useTicketSummary(canTickets)
   const quotes = useQuoteSummary(canQuotes)
+  // The alarms link to monitoring, so only roles that can open it see them.
+  const alarms = useOngoingAlarms(canMonitor && canTickets)
+  const ongoing = alarms.data ?? []
   const installations = useLoad(
     async (signal) => (canMonitor ? ((await api.GET('/api/installations', { signal })).data ?? []) : []),
     `dashboard-installations|${canMonitor}`,
@@ -99,6 +111,15 @@ export default function Dashboard() {
           </>
         }
       />
+      <UpdatedIndicator
+        updatedAt={latestUpdate([production.updatedAt, tickets.updatedAt, quotes.updatedAt])}
+        refreshError={production.refreshError || tickets.refreshError || quotes.refreshError}
+        onRetry={() => {
+          production.refresh()
+          tickets.refresh()
+          quotes.refresh()
+        }}
+      />
 
       <div className="kpi-grid" role="group" aria-label={T.kpiRegion}>
         {canMonitor && (
@@ -128,15 +149,19 @@ export default function Dashboard() {
             {t ? (
               <KpiCard
                 icon={<BellIcon />}
-                trend={t.fresh > 0 ? { text: T.alarms.fresh(t.fresh), tone: 'neutral' } : undefined}
-                value={t.critical + t.warning + t.info}
+                trend={!ongoing.length && t.fresh > 0 ? { text: T.alarms.fresh(t.fresh), tone: 'neutral' } : undefined}
+                value={ongoing.length || t.critical + t.warning + t.info}
                 label={T.alarms.label}
-                href="/tickets"
+                href={ongoing.length ? '/monitoring' : '/tickets'}
                 detail={
-                  <>
-                    {T.alarms.detail(t.critical, t.warning, t.info)}
-                    <Mock on={t.mock} />
-                  </>
+                  ongoing.length ? (
+                    T.alarms.detail(countBy(ongoing, 'High'), countBy(ongoing, 'Medium'), countBy(ongoing, 'Low'))
+                  ) : (
+                    <>
+                      {T.alarms.detail(t.critical, t.warning, t.info)}
+                      <Mock on={t.mock} />
+                    </>
+                  )
                 }
               />
             ) : (
@@ -188,7 +213,7 @@ export default function Dashboard() {
 
       <div className="dashboard__grid">
         {canMonitor && !installations.loading && <ProductionBarsCard installationIds={(installations.data ?? []).map((i) => i.id)} />}
-        {canTickets && <RecentAlarmsCard summary={tickets.loading ? undefined : tickets.data} />}
+        {canTickets && <RecentAlarmsCard summary={tickets.loading ? undefined : tickets.data} alarms={ongoing} />}
       </div>
     </section>
   )

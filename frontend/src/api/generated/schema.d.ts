@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/underproduction-alarms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Underproduction alarms of all installations
+         * @description Stored results of the last analyses, newest first, at most 100; light enough for the dashboard to poll every minute (ADR #222), the ML service is not called. severity: Low, Medium, High. ongoing: true or false. A customer gets only the alarms of its own installations.
+         */
+        get: operations["ListAllUnderproductionAlarms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -226,7 +246,7 @@ export interface paths {
         };
         /**
          * List connection requests
-         * @description Filters: installationId, customerId, state. Newest first. A customer sees only its own requests.
+         * @description Filters: installationId, customerId, state, overdue (true: submitted requests past the proposal deadline). Newest first. A customer sees only its own requests.
          */
         get: operations["ListConnectionRequests"];
         put?: never;
@@ -251,11 +271,165 @@ export interface paths {
         /** Get a connection request with its attachments */
         get: operations["GetConnectionRequest"];
         /**
-         * Replace the EIC, power, breaker and attachments of a Draft request
-         * @description Only a request in state Draft can be edited; anything else gives 409. The installation stays the same.
+         * Replace the EIC, power, breaker and attachments of a Draft or InfoRequested request
+         * @description Only a request in state Draft or InfoRequested can be edited; anything else gives 409. The installation stays the same.
          */
         put: operations["UpdateConnectionRequest"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the request to the distributor (Draft to Submitted)
+         * @description Starts the proposal deadline: 10 working days for a small source, 30 calendar days for a larger one (configurable, section ConnectionRequest). The response carries proposalDueDate, proposalRemainingDays and proposalOverdue.
+         */
+        post: operations["SubmitConnectionRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/resubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the completed request again (InfoRequested to Submitted)
+         * @description Restarts the proposal deadline. Correct the request first with PUT.
+         */
+        post: operations["ResubmitConnectionRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/review-conditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that the technical conditions of the offered contract were checked (ContractOffered) */
+        post: operations["ReviewConnectionRequestConditions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/send-contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record that the contract was sent to the customer (ContractOffered)
+         * @description The conditions must be reviewed first, otherwise 409. Sending the notification is not part of this story (#130).
+         */
+        post: operations["SendConnectionContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/customer-signed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the customer's signature (ContractOffered to ContractSigned)
+         * @description The contract must have been sent to the customer, otherwise 409.
+         */
+        post: operations["MarkConnectionContractSigned"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/submit-signed-contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the signed contract to the distributor (ContractSigned to ContractSubmitted) */
+        post: operations["SubmitSignedConnectionContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Simulate the distributor's answer to a submitted request (mock, #87)
+         * @description Body: decision (Approve, RequestInfo, Reject) and note (required for RequestInfo and Reject). Submitted moves to ContractOffered, InfoRequested or Rejected, the same transition a real answer would cause; any other state gives 409. Available in every environment except Production unless ConnectionRequest:Simulator:Enabled says otherwise (then 404).
+         */
+        post: operations["SimulateDistributorDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connection-requests/{id}/conclude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Simulate that the distributor concluded the contract (ContractSubmitted to Concluded, mock, #87)
+         * @description Same availability as the decision endpoint.
+         */
+        post: operations["SimulateDistributorConclusion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -380,6 +554,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/contracts/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the contract as a PDF (application/pdf)
+         * @description Parties, items and totals of the contract; Slovak, A4. Generated from the current data on each call, nothing is stored.
+         */
+        post: operations["GenerateContractPdf"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/customers": {
         parameters: {
             query?: never;
@@ -448,6 +642,67 @@ export interface paths {
         /** Reactivate an archived customer */
         post: operations["ReactivateCustomer"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List API keys of an installation (metadata only) */
+        get: operations["ListInstallationApiKeys"];
+        put?: never;
+        /**
+         * Issue the API key of an installation
+         * @description The plaintext key is in the response only once. An installation has one active key: 409 when it already has one (use rotate).
+         */
+        post: operations["IssueInstallationApiKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/api-keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke the active API key and issue a new one
+         * @description Also renews access after a revocation. The old key stops working immediately.
+         */
+        post: operations["RotateInstallationApiKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/api-keys/{keyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke an API key
+         * @description The key keeps its record (history) but stops working. 409 when it is already revoked.
+         */
+        delete: operations["RevokeInstallationApiKey"];
         options?: never;
         head?: never;
         patch?: never;
@@ -574,6 +829,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/designs/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the design (InDesign → Approved); the newest saved version becomes the approved one
+         * @description 409 when the design is not InDesign or has no saved configuration version. The approver is recorded in the response (approval).
+         */
+        post: operations["ApproveFveDesign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/designs/{id}/rework": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the design back to the designer (InDesign/Approved → InDesign)
+         * @description Withdraws an existing approval. Draft and Sent quotes built from the design are marked as needing recalculation.
+         */
+        post: operations["ReworkFveDesign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/designs/{id}/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Draft quote from the approved design
+         * @description Lines are the panels and the inverter of the approved version, priced as saved in that version. 409 when the design is not Approved or its customer is archived; 400 when the customer does not exist.
+         */
+        post: operations["CreateQuoteFromFveDesign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/designs/{id}/versions/{number}": {
         parameters: {
             query?: never;
@@ -672,6 +987,155 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/installations/{id}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assembly checklist: template steps with their state */
+        get: operations["GetInstallationChecklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/checklist/{stepCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a checklist step done or not done, with an optional note
+         * @description Only while the installation is Mounting, otherwise 409. Unknown step code gives 404. Each change stores who and when.
+         */
+        put: operations["UpdateInstallationChecklistStep"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/revision-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Revision reports of an installation (metadata, oldest first) */
+        get: operations["ListInstallationRevisionReports"];
+        put?: never;
+        /**
+         * Record the revision report with its file (state Inspection)
+         * @description Passed moves the installation to InspectionPassed, Failed to InspectionFailed (repairs, then rework to Mounting). File as base64: PDF, PNG or JPEG up to 5 MB, the content must match the type.
+         */
+        post: operations["RecordInstallationRevisionReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/revision-reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Revision report metadata */
+        get: operations["GetInstallationRevisionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/revision-reports/{reportId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the revision report file (the download is recorded) */
+        get: operations["DownloadInstallationRevisionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/commission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Put the plant into operation with the acceptance protocol and turn monitoring on
+         * @description Requires state InspectionPassed with a still valid revision and an approved connection request, otherwise 409.
+         */
+        post: operations["CommissionInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/documentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Documentation package: revision report, acceptance protocol, devices and download log
+         * @description Available from commissioning on, before that 409.
+         */
+        get: operations["GetInstallationDocumentation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{id}/documentation/handover-protocol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the hand-over protocol PDF with the device list (the download is recorded) */
+        get: operations["DownloadInstallationHandoverProtocol"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/installations": {
         parameters: {
             query?: never;
@@ -681,12 +1145,29 @@ export interface paths {
         };
         /**
          * List installations
-         * @description Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician).
+         * @description Filters: state, customerId, contractId, supplyPointId, assignedToMe (installations of the current technician), monitoringEnabled (plants in operation, #92).
          */
         get: operations["ListInstallations"];
         put?: never;
         /** Create an installation for a contract and supply point (state Planned) */
         post: operations["CreateInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/technicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users with role Technician that can be assigned to installations */
+        get: operations["ListInstallationTechnicians"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -719,7 +1200,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set the planned mounting window */
+        /**
+         * Set the planned mounting window
+         * @description Requires an approved connection request (409), dates must not be in the past (400) and assigned technicians must be free in the window (409).
+         */
         put: operations["ScheduleInstallation"];
         post?: never;
         delete?: never;
@@ -736,7 +1220,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Replace the assigned technicians (users with role Technician) */
+        /**
+         * Replace the assigned technicians (users with role Technician)
+         * @description A technician already planned on another installation in an overlapping window gives 409.
+         */
         put: operations["AssignInstallationTechnicians"];
         post?: never;
         delete?: never;
@@ -756,9 +1243,176 @@ export interface paths {
         put?: never;
         /**
          * Change the installation state
-         * @description Only transitions listed in allowedTransitions are accepted, otherwise 409. Mounting requires a schedule and at least one technician.
+         * @description Only transitions listed in allowedTransitions are accepted, otherwise 409. Mounting requires a schedule and at least one technician, MountingDone a complete checklist. InspectionPassed/InspectionFailed are set by a revision report and Commissioned by /commission.
          */
         post: operations["TransitionInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/strings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Panel layout: strings with panels and their summed power
+         * @description Strings ordered by number, each with its installed panels and the sum of their rated power (computed on read), plus installed panels not yet assigned to any string.
+         */
+        get: operations["GetInstallationStringLayout"];
+        put?: never;
+        /**
+         * Define a string (number as in telemetry, optional MPPT input)
+         * @description 409 when the number is already used in the installation or the installation has been handed over.
+         */
+        post: operations["CreateInstallationString"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/strings/{stringId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a string with its panels */
+        get: operations["GetInstallationString"];
+        /** Change number, name or MPPT input of a string */
+        put: operations["UpdateInstallationString"];
+        post?: never;
+        /**
+         * Delete an empty string
+         * @description 409 when the string still has panels.
+         */
+        delete: operations["DeleteInstallationString"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/strings/{stringId}/panels/{deviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Place an installed panel into the string (moves it from another string)
+         * @description A panel belongs to exactly one string. 409 for a replaced device or a device that is not a panel.
+         */
+        put: operations["AssignPanelToString"];
+        post?: never;
+        /** Take a panel out of the string */
+        delete: operations["RemovePanelFromString"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the ML prediction and underproduction detection
+         * @description Predicts production from the stored weather forecast, then evaluates the finished hours with the detection of ADR #194 and stores both results. Repeating the call overwrites the predictions of the same hours and updates the same alarms. An ongoing alarm creates a service ticket with origin AnomalyDetected, or an internal comment on an open ticket of the installation. 503 when the ML service is unavailable, 502 when it returns an unusable answer; the data stored earlier stays available.
+         */
+        post: operations["RunInstallationAnalysis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/underproduction-alarms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Underproduction alarms of an installation
+         * @description Stored results of the last analyses, newest first, at most 100; the ML service is not called. A customer sees only its own installations (another one is 404).
+         */
+        get: operations["ListUnderproductionAlarms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/production": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Production of an installation for a period
+         * @description from/to: ISO 8601 with Z or an offset (encode + as %2B), or a date meaning local midnight in timeZone; the period is [from, to). granularity: fiveMinutes, hour (default), day, month. timeZone: IANA id for day and month buckets, default Europe/Bratislava. A reading belongs to the bucket of its window start (timestamp - intervalSec); energy comes from the totalWh counters, peak power is the highest sum of the inverters' AC power. Only buckets with data are returned; an empty period gives an empty list. A customer sees only its own installations (another one is 404). Limits: fiveMinutes 31 days, hour 366 days, day and month 3660 days.
+         */
+        get: operations["GetInstallationProduction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/production/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Actual production compared with the prediction
+         * @description from/to: ISO 8601 with Z or an offset (encode + as %2B), or a date meaning local midnight in timeZone; the period is [from, to). granularity: fiveMinutes, hour (default), day, month. timeZone: IANA id for day and month buckets, default Europe/Bratislava. A reading belongs to the bucket of its window start (timestamp - intervalSec); energy comes from the totalWh counters, peak power is the highest sum of the inverters' AC power. Only buckets with data are returned; an empty period gives an empty list. A customer sees only its own installations (another one is 404). Granularity hour, day or month (predictions are hourly). Pairs of actual and predicted energy per bucket, with predictions stored by the analysis of the installation (#376). Without a stored prediction predictedEnergyKwh, deviationKwh and ratio are null and predictionAvailable is false.
+         */
+        get: operations["CompareInstallationProduction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/installations/{installationId}/production/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export production as CSV
+         * @description from/to: ISO 8601 with Z or an offset (encode + as %2B), or a date meaning local midnight in timeZone; the period is [from, to). granularity: fiveMinutes, hour (default), day, month. timeZone: IANA id for day and month buckets, default Europe/Bratislava. A reading belongs to the bucket of its window start (timestamp - intervalSec); energy comes from the totalWh counters, peak power is the highest sum of the inverters' AC power. Only buckets with data are returned; an empty period gives an empty list. A customer sees only its own installations (another one is 404). text/csv (UTF-8) with a header row, streamed. separator: semicolon (default, decimal comma for Slovak Excel), comma or tab (decimal point). Limits: fiveMinutes 366 days, other granularities 3660 days.
+         */
+        get: operations["ExportInstallationProduction"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -940,6 +1594,428 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/telemetry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest a batch of inverter measurements
+         * @description Contract: ADR #185 (schemaVersion 1.0, 1 to 288 readings on the 5-minute UTC grid). The batch is atomic: any invalid reading gives 400 (keys like readings[3].timestamp) and nothing is stored. Idempotent by (deviceId, timestamp): already stored readings are ignored and counted in 'duplicates'. Authentication: installation API key in the X-Api-Key header (#96); missing, unknown or revoked key = 401, installationId different from the key's installation = 403. 404 for an unknown installation.
+         */
+        post: operations["IngestTelemetry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tickets with combinable filters and paging
+         * @description Filters: state, priority, origin, installationId. Paging: page (default 1), pageSize (default 20, max 100). sortBy = createdAt | updatedAt | priority, sortDir = asc | desc (default createdAt desc). A customer sees only its own tickets.
+         */
+        get: operations["ListTickets"];
+        put?: never;
+        /**
+         * Report a fault for an installation (state New)
+         * @description A customer may report only for its own installation (origin CustomerReport, priority Medium); staff create Manual tickets and may set the priority. At most 5 attachments (JPEG, PNG or PDF, base64) of 5 MB.
+         */
+        post: operations["CreateTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a ticket with attachment metadata and allowed transitions */
+        get: operations["GetTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the priority of a new ticket (New to Triaged) */
+        put: operations["TriageTicket"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a ticket to another state
+         * @description Allowed: New→Triaged→RemoteDiagnosis→Resolved→Closed, Verified→Resolved. VisitScheduled, OnSite and Verified are set by visits (#36, #37) and give 409 here, as does any edge outside the automaton. The user and time of every transition are stored in the history.
+         */
+        post: operations["TransitionTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * State change history, oldest first (read-only)
+         * @description Customers do not see the internal notes of the transitions.
+         */
+        get: operations["GetTicketHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comments, oldest first; a customer sees only public ones */
+        get: operations["ListTicketComments"];
+        put?: never;
+        /**
+         * Add a comment; isPublic = true makes it visible to the customer
+         * @description Comments cannot be edited or deleted.
+         */
+        post: operations["AddTicketComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download one attachment of a ticket */
+        get: operations["DownloadTicketAttachment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/technician": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign a technician to the ticket (user with role Technician)
+         * @description Possible in states Triaged, RemoteDiagnosis and VisitScheduled; the technician cannot change while a visit is active.
+         */
+        put: operations["AssignTicketTechnician"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visits of a ticket with the assigned technician
+         * @description A customer sees only its own tickets, without the technician and the internal findings.
+         */
+        get: operations["ListTicketVisits"];
+        put?: never;
+        /**
+         * Plan a visit of the assigned technician (RemoteDiagnosis to VisitScheduled)
+         * @description Start and estimated duration (15 to 720 minutes). 409 when no technician is assigned, the ticket is in another state or the technician has an overlapping Planned or InProgress visit.
+         */
+        post: operations["PlanTicketVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The technician verifies that production is restored (OnSite to Verified)
+         * @description Requires a written service protocol. A technician may verify only own tickets.
+         */
+        post: operations["VerifyTicketProduction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve and close the ticket (Verified or RemoteDiagnosis to Resolved to Closed)
+         * @description A ticket with a visit needs its service protocol, otherwise 409.
+         */
+        post: operations["CloseTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The customer confirms that the fault is fixed (closed ticket) */
+        post: operations["ConfirmTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tickets/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The customer reopens a closed ticket within 7 days (back to RemoteDiagnosis) */
+        post: operations["ReopenTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a visit with protocol, reschedule log, material and replaced devices */
+        get: operations["GetVisit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the date of a planned visit with a reason */
+        put: operations["RescheduleVisit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The technician arrived (visit InProgress, ticket OnSite) */
+        post: operations["StartVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write the service protocol: cause, findings, work done, arrival and departure (visit Done)
+         * @description Written once; the protocol cannot be changed afterwards (409).
+         */
+        post: operations["ReportVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the list of used material of the visit
+         * @description Possible while the technician is on site, before the ticket is verified.
+         */
+        put: operations["ReplaceVisitMaterials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/visits/{id}/device-replacements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a panel or inverter of the installation during the visit
+         * @description Uses the device replacement of the installation (old device stays in history, serial number validated and unique) and links it to the visit.
+         */
+        post: operations["ReplaceVisitDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/technicians/me/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visit calendar of the current technician for a period
+         * @description Query from and to (ISO 8601, at most 92 days); visits starting in [from, to) ordered by time, with address and customer contact.
+         */
+        get: operations["GetMyVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/technicians/{technicianId}/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Visit calendar of any technician for a period (planners) */
+        get: operations["GetTechnicianVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users": {
         parameters: {
             query?: never;
@@ -1028,6 +2104,29 @@ export interface components {
             /** @description ISO 3166-1 alpha-2 country code; defaults to "SK". */
             country?: null | string;
         };
+        /** @description Payload of `POST /api/tickets/{id}/comments`. */
+        AddTicketCommentRequest: {
+            body: null | string;
+            /** @description True when the customer may read the comment; default false (internal note). */
+            isPublic?: boolean;
+        };
+        /** @description Who approved the design, when, and which configuration version was approved. */
+        ApprovalResponse: {
+            /** Format: uuid */
+            approvedBy: string;
+            /** Format: date-time */
+            approvedAt: string;
+            /** Format: int32 */
+            versionNumber: number | string;
+        };
+        /** @description Payload of `PUT /api/tickets/{id}/technician` (story #124). */
+        AssignTechnicianRequest: {
+            /**
+             * Format: uuid
+             * @description User with the role Technician.
+             */
+            technicianId: null | string;
+        };
         /** @description Replaces the set of technicians (user ids with role Technician) assigned to an installation. */
         AssignTechniciansRequest: {
             technicianIds: null | string[];
@@ -1062,6 +2161,63 @@ export interface components {
             createdAt: string;
             hasContent: boolean;
             downloadUrl: null | string;
+        };
+        CalendarCustomer: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            phone: null | string;
+            email: string;
+        };
+        /** @description One visit in a technician's calendar with the address and the contact of the customer (story #126). */
+        CalendarVisit: {
+            /** Format: uuid */
+            visitId: string;
+            /** Format: uuid */
+            ticketId: string;
+            ticketTitle: string;
+            priority: components["schemas"]["ServiceTicketPriority"];
+            ticketState: components["schemas"]["ServiceTicketState"];
+            state: components["schemas"]["ServiceVisitState"];
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            /** Format: int32 */
+            estimatedMinutes: number | string;
+            /** Format: uuid */
+            installationId: string;
+            installationName: null | string;
+            address: null | components["schemas"]["PostalAddress"];
+            customer: null | components["schemas"]["CalendarCustomer"];
+        };
+        /** @description Payload of `POST /api/tickets/{id}/close`. */
+        CloseTicketRequest: {
+            /** @description Internal note stored in the history; not shown to the customer. */
+            note?: null | string;
+        };
+        /** @description Commissioning data printed in the hand-over protocol. */
+        CommissioningProtocolResponse: {
+            /** Format: date */
+            commissionedOn: string;
+            acceptedBy: string;
+            note: null | string;
+            /** Format: uuid */
+            commissionedBy: string;
+            monitoringEnabled: boolean;
+            /** Format: date-time */
+            monitoringEnabledAt: null | string;
+        };
+        /** @description Acceptance protocol (preberací protokol) of commissioning (#92). */
+        CommissionInstallationRequest: {
+            /**
+             * Format: date
+             * @description Day the plant was put into operation; must not be in the future.
+             */
+            commissionedOn: null | string;
+            /** @description Person who took the plant over on the customer's side. */
+            acceptedBy: null | string;
+            note?: null | string;
         };
         CompatibilityResponse: {
             isCompatible: boolean;
@@ -1103,12 +2259,19 @@ export interface components {
             /** Format: uuid */
             inverterId: null | string;
         };
+        /** @description Payload of `POST /api/tickets/{id}/confirm`. */
+        ConfirmTicketRequest: {
+            comment?: null | string;
+        };
         /**
          * @description Kind of a document attached to a connection request (ADR #217, list of attachments).
          * @enum {unknown}
          */
         ConnectionRequestAttachmentKind: "SingleLineDiagram" | "OwnerConsent" | "Datasheet" | "SwitchboardPhoto" | "PowerOfAttorney" | "CadastreExtract";
-        /** @description Connection request with its attachments. */
+        /**
+         * @description Connection request with its attachments and deadline. `ProposalRemainingDays` (calendar days, negative when late) and
+         *     `ProposalOverdue` are set only while the request waits for the distributor (state `Submitted`).
+         */
         ConnectionRequestResponse: {
             /** Format: uuid */
             id: string;
@@ -1130,9 +2293,25 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: date-time */
+            submittedAt: null | string;
+            /** Format: date */
+            proposalDueDate: null | string;
+            /** Format: int32 */
+            proposalRemainingDays: null | number | string;
+            proposalOverdue: boolean;
+            /** Format: date-time */
+            decidedAt: null | string;
+            decisionNote: null | string;
+            /** Format: date-time */
+            conditionsReviewedAt: null | string;
+            /** Format: date-time */
+            contractSentAt: null | string;
         };
         /**
-         * @description Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). Only `Draft` is produced by #85; the rest follows with #86 and #87.
+         * @description Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). #85 produces `Draft`; #86 adds
+         *     `Submitted`, `InfoRequested`, `Rejected`, `ContractOffered` ("schválená"), `ContractSigned` and
+         *     `ContractSubmitted`; `Concluded` is the distributor's final act (#87).
          * @enum {unknown}
          */
         ConnectionRequestState: "Draft" | "Submitted" | "InfoRequested" | "Rejected" | "ContractOffered" | "ContractSigned" | "ContractSubmitted" | "Concluded";
@@ -1326,6 +2505,19 @@ export interface components {
             vatRatePercent?: null | number | string;
             note?: null | string;
         };
+        CreateStringRequest: {
+            /**
+             * Format: int32
+             * @description String number as the inverter reports it in telemetry (`strings[].id`); unique within the installation.
+             */
+            number: null | number | string;
+            name?: null | string;
+            /**
+             * Format: int32
+             * @description MPPT input of the inverter the string is wired to.
+             */
+            mpptInput?: null | number | string;
+        };
         CreateSupplyPointRequest: {
             /** @description Optional label, e.g. "Rodinný dom". */
             name?: null | string;
@@ -1337,6 +2529,15 @@ export interface components {
              * @description Rated current of the main circuit breaker in amperes (1-1000).
              */
             mainBreakerAmps: null | number | string;
+        };
+        /** @description Payload of `POST /api/tickets`: a fault report for an installation (state `New`). */
+        CreateTicketRequest: {
+            /** Format: uuid */
+            installationId: null | string;
+            title: null | string;
+            description: null | string;
+            priority?: null | components["schemas"]["ServiceTicketPriority"];
+            attachments?: null | components["schemas"]["TicketAttachmentRequest"][];
         };
         /** @description Page of customers returned by `GET /api/customers`. */
         CustomerListResponse: {
@@ -1392,6 +2593,22 @@ export interface components {
             compatibility: components["schemas"]["CompatibilityResponse"];
             estimate: null | components["schemas"]["YieldEstimateResponse"];
         };
+        /** @description Metadata of an API key; the key itself is never returned again after it was issued. */
+        DeviceApiKeyResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            active: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: string;
+            /** Format: date-time */
+            revokedAt: null | string;
+            /** Format: uuid */
+            revokedBy: null | string;
+        };
         /** @description Result of a replacement: the device taken out and the one installed in its place. */
         DeviceReplacementResponse: {
             replaced: components["schemas"]["DeviceResponse"];
@@ -1422,14 +2639,43 @@ export interface components {
             replacedByDeviceId: null | string;
             /** Format: uuid */
             replacesDeviceId: null | string;
+            /** Format: uuid */
+            stringId: null | string;
         };
         /** @enum {unknown} */
         DeviceStatus: "Installed" | "Replaced";
         /**
-         * @description Kind of a traced device (#83). Strings and panel layout are a separate story (#84).
+         * @description Kind of a traced device (#83). Strings and panel layout: PanelString (#84).
          * @enum {unknown}
          */
         DeviceType: "Panel" | "Inverter";
+        /** @enum {unknown} */
+        DistributorDecision: "Approve" | "RequestInfo" | "Reject" | null;
+        /** @description Payload of the distributor simulator: the decision and, for `RequestInfo` and `Reject`, a note. */
+        DistributorDecisionRequest: {
+            decision: null | components["schemas"]["DistributorDecision"];
+            /** @description What is missing or why the request was refused; required for `RequestInfo` and `Reject`. */
+            note?: null | string;
+        };
+        /** @description Installed device as listed in the documentation package. */
+        DocumentationDeviceResponse: {
+            type: components["schemas"]["DeviceType"];
+            serialNumber: string;
+            manufacturer: string;
+            model: string;
+            /** Format: int32 */
+            powerW: number | string;
+        };
+        /** @description One recorded download of a document. */
+        DocumentDownloadResponse: {
+            kind: components["schemas"]["InstallationDocumentKind"];
+            /** Format: uuid */
+            documentId: null | string;
+            /** Format: uuid */
+            downloadedBy: string;
+            /** Format: date-time */
+            downloadedAt: string;
+        };
         /** @description Request for a password reset link. */
         ForgotPasswordRequest: {
             email: string;
@@ -1453,6 +2699,8 @@ export interface components {
             annualConsumptionKwh: null | number | string;
             consumptionProfile: null | components["schemas"]["ConsumptionProfile"];
             roofPlanes: components["schemas"]["RoofPlaneResponse"][];
+            approval: null | components["schemas"]["ApprovalResponse"];
+            lastRework: null | components["schemas"]["ReworkResponse"];
             /** Format: uuid */
             createdBy: string;
             /** Format: date-time */
@@ -1519,11 +2767,50 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        /** @description Assembly checklist of an installation (#90). `Editable` is true only while mounting. */
+        ChecklistResponse: {
+            /** Format: uuid */
+            installationId: string;
+            editable: boolean;
+            complete: boolean;
+            missingRequiredSteps: string[];
+            steps: components["schemas"]["ChecklistStepResponse"][];
+        };
+        /** @description One step of the checklist: template data plus the stored state. */
+        ChecklistStepResponse: {
+            code: string;
+            /** Format: int32 */
+            position: number | string;
+            title: string;
+            required: boolean;
+            done: boolean;
+            note: null | string;
+            /** Format: uuid */
+            changedBy: null | string;
+            /** Format: date-time */
+            changedAt: null | string;
+        };
         /** @description Installation detail including its state history. */
         InstallationDetailResponse: {
             installation: components["schemas"]["InstallationResponse"];
             stateHistory: components["schemas"]["InstallationStateChangeResponse"][];
         };
+        /** @description Documentation package for the customer (#93): revision, acceptance protocol, devices and download log. */
+        InstallationDocumentationResponse: {
+            /** Format: uuid */
+            installationId: string;
+            installationName: string;
+            state: components["schemas"]["InstallationState"];
+            protocol: components["schemas"]["CommissioningProtocolResponse"];
+            revisionReport: components["schemas"]["RevisionReportResponse"];
+            devices: components["schemas"]["DocumentationDeviceResponse"][];
+            downloads: components["schemas"]["DocumentDownloadResponse"][];
+        };
+        /**
+         * @description Documents of the hand-over package (#93) that can be downloaded.
+         * @enum {unknown}
+         */
+        InstallationDocumentKind: "RevisionReport" | "HandoverProtocol";
         /** @description Installation as returned in lists. */
         InstallationResponse: {
             /** Format: uuid */
@@ -1551,6 +2838,14 @@ export interface components {
             updatedAt: string;
             /** Format: date-time */
             stateChangedAt: string;
+            lastRevisionResult: null | components["schemas"]["RevisionResult"];
+            /** Format: date */
+            lastRevisionValidUntil: null | string;
+            /** Format: date */
+            commissionedOn: null | string;
+            monitoringEnabled: boolean;
+            /** Format: date-time */
+            monitoringEnabledAt: null | string;
         };
         /**
          * @description Lifecycle of an installation (BPMN #65, #66; mapping #69).
@@ -1572,6 +2867,16 @@ export interface components {
             targetState: null | components["schemas"]["InstallationState"];
             note?: null | string;
         };
+        /** @description A newly issued key. `apiKey` is the only time the plaintext is available: store it safely. */
+        IssuedDeviceApiKeyResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            apiKey: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         /** @description E-mail and password login. */
         LoginRequest: {
             email: string;
@@ -1581,6 +2886,86 @@ export interface components {
         MarkInfeasibleRequest: {
             reason: null | string;
         };
+        /** @description Outcome of one analysis of an installation (#376). */
+        MlAnalysisResponse: {
+            /**
+             * Format: uuid
+             * @description Analysed installation.
+             */
+            installationId: string;
+            /** @description Model of the new predictions; null when there was no usable forecast to predict from. */
+            modelVersion: null | string;
+            /**
+             * Format: int32
+             * @description Number of hours predicted and stored in this run.
+             */
+            predictedHours: number | string;
+            /**
+             * Format: int32
+             * @description Number of alarms the detection reported in this run.
+             */
+            alarms: number | string;
+            /**
+             * Format: int32
+             * @description How many of them are still ongoing.
+             */
+            ongoingAlarms: number | string;
+            /**
+             * Format: int32
+             * @description Service tickets created from alarms in this run (#33).
+             */
+            ticketsCreated: number | string;
+            /**
+             * Format: int32
+             * @description Alarms recorded on an already open ticket of the installation instead of a duplicate.
+             */
+            ticketsSupplemented: number | string;
+            /**
+             * Format: date-time
+             * @description Time of the run, UTC.
+             */
+            analyzedAt: string;
+        };
+        /** @description A string with its installed panels. long PanelStringResponse.TotalPowerW is the sum of their rated power, computed on read. */
+        PanelStringResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            /** Format: int32 */
+            number: number | string;
+            name: null | string;
+            /** Format: int32 */
+            mpptInput: null | number | string;
+            /** Format: int32 */
+            panelCount: number | string;
+            /** Format: int64 */
+            totalPowerW: number | string;
+            panels: components["schemas"]["StringPanelResponse"][];
+        };
+        /** @description Payload of `POST /api/tickets/{id}/visits` (story #125): when the assigned technician comes. */
+        PlanVisitRequest: {
+            /** Format: date-time */
+            start: null | string;
+            /**
+             * Format: int32
+             * @description Estimated duration in minutes.
+             */
+            estimatedMinutes: null | number | string;
+        };
+        /**
+         * @description Postal address value object (EF owned type). Used by Customer and by supply points;
+         *     other modules may reuse it for their own addresses.
+         */
+        PostalAddress: {
+            /** @description Street and house number, e.g. "Hlavná 12". */
+            street: string;
+            city: string;
+            /** @description Postal code (PSČ), e.g. "811 01". */
+            postalCode: string;
+            /** @description ISO 3166-1 alpha-2 country code, default "SK". */
+            country?: null | string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -1588,6 +2973,132 @@ export interface components {
             status?: null | number | string;
             detail?: null | string;
             instance?: null | string;
+        };
+        ProductionComparisonPointResponse: {
+            /**
+             * Format: date-time
+             * @description Start of the bucket (UTC instant).
+             */
+            periodStart: string;
+            /**
+             * Format: double
+             * @description Null when there is no measurement in the bucket (missing data is not zero production).
+             */
+            actualEnergyKwh: null | number | string;
+            /**
+             * Format: double
+             * @description Null when there is no prediction for the bucket.
+             */
+            predictedEnergyKwh: null | number | string;
+            /**
+             * Format: double
+             * @description Actual minus predicted; null when one of them is missing.
+             */
+            deviationKwh: null | number | string;
+            /**
+             * Format: double
+             * @description Actual / predicted (ADR #194 compares it with 0.85); null when one is missing or the prediction is 0.
+             */
+            ratio: null | number | string;
+        };
+        /** @description Actual vs. predicted production (#101). */
+        ProductionComparisonResponse: {
+            /**
+             * Format: uuid
+             * @description Installation the production belongs to.
+             */
+            installationId: string;
+            /**
+             * Format: date-time
+             * @description Start of the period, UTC (inclusive).
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description End of the period, UTC (exclusive).
+             */
+            to: string;
+            /** @description Bucket size. */
+            granularity: components["schemas"]["ProductionGranularity"];
+            /** @description IANA time zone of day and month buckets. */
+            timeZone: string;
+            /** @description False when there is no prediction for the period (no model or no stored prediction yet). */
+            predictionAvailable: boolean;
+            /** @description Version of the model that produced the prediction; null without a prediction. */
+            modelVersion: null | string;
+            /**
+             * Format: double
+             * @description Measured energy in the period.
+             */
+            actualEnergyKwh: number | string;
+            /**
+             * Format: double
+             * @description Predicted energy in the period; null without a prediction.
+             */
+            predictedEnergyKwh: null | number | string;
+            /** @description Buckets with a measurement or a prediction, oldest first. */
+            points: components["schemas"]["ProductionComparisonPointResponse"][];
+        };
+        /**
+         * @description Size of one aggregation bucket.
+         * @enum {unknown}
+         */
+        ProductionGranularity: "FiveMinutes" | "Hour" | "Day" | "Month";
+        ProductionPointResponse: {
+            /**
+             * Format: date-time
+             * @description Start of the bucket (UTC instant; day and month buckets start at local midnight).
+             */
+            periodStart: string;
+            /**
+             * Format: double
+             * @description Energy fed in by the inverters in the bucket (from the totalWh counters).
+             */
+            energyKwh: number | string;
+            /**
+             * Format: double
+             * @description Highest AC power of the installation in the bucket.
+             */
+            peakPowerKw: number | string;
+            /**
+             * Format: int32
+             * @description Number of 5-minute (measurement) windows with data; shows gaps in the data.
+             */
+            sampleCount: number | string;
+        };
+        /** @description Production of an installation for a period (#100). Points exist only for buckets with data. */
+        ProductionResponse: {
+            /**
+             * Format: uuid
+             * @description Installation the production belongs to.
+             */
+            installationId: string;
+            /**
+             * Format: date-time
+             * @description Start of the period, UTC (inclusive).
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description End of the period, UTC (exclusive).
+             */
+            to: string;
+            /** @description Bucket size. */
+            granularity: components["schemas"]["ProductionGranularity"];
+            /** @description IANA time zone of day and month buckets. */
+            timeZone: string;
+            /**
+             * Format: double
+             * @description Sum of the energy of all points.
+             */
+            totalEnergyKwh: number | string;
+            /**
+             * Format: double
+             * @description Highest installation AC power (sum of its inverters) in the period; null without data.
+             */
+            peakPowerKw: null | number | string;
+            /** @description Buckets with data, oldest first. */
+            points: components["schemas"]["ProductionPointResponse"][];
         };
         QuoteLineRequest: {
             /** Format: uuid */
@@ -1643,6 +3154,11 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: uuid */
+            designId: null | string;
+            /** Format: int32 */
+            designVersionNumber: null | number | string;
+            needsRecalculation: boolean;
         };
         QuoteStateChangeResponse: {
             fromStatus: null | components["schemas"]["QuoteStatus"];
@@ -1671,6 +3187,28 @@ export interface components {
              */
             paidOn?: null | string;
         };
+        /** @description Revision report with its file as base64 (#91). Allowed files: PDF, PNG, JPEG up to 5 MB. */
+        RecordRevisionReportRequest: {
+            /**
+             * Format: date
+             * @description Day of the revision; must not be in the future.
+             */
+            inspectedOn: null | string;
+            /** @description Name of the revision technician (revízny technik). */
+            inspectorName: null | string;
+            inspectorCertificateNumber?: null | string;
+            result: null | components["schemas"]["RevisionResult"];
+            /**
+             * Format: date
+             * @description Validity of the revision; required and after DateOnly? RecordRevisionReportRequest.InspectedOn for a passed revision.
+             */
+            validUntil?: null | string;
+            /** @description Defects found; required for a failed revision. */
+            findings?: null | string;
+            fileName: null | string;
+            contentType: null | string;
+            contentBase64: null | string;
+        };
         /** @description Refresh token presented to `/api/auth/refresh` or `/api/auth/logout`. */
         RefreshTokenRequest: {
             refreshToken: string;
@@ -1680,6 +3218,10 @@ export interface components {
             email: string;
             /** @description Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit). */
             password: string;
+        };
+        /** @description Payload of `POST /api/tickets/{id}/reopen`. */
+        ReopenTicketRequest: {
+            reason: null | string;
         };
         /** @description The device that takes the place of an installed one; it has the same type. */
         ReplaceDeviceRequest: {
@@ -1695,6 +3237,10 @@ export interface components {
              */
             powerW: null | number | string;
         };
+        /** @description Payload of `PUT /api/visits/{id}/materials`: replaces the whole list of used material (story #128). */
+        ReplaceVisitMaterialsRequest: {
+            materials: null | components["schemas"]["VisitMaterialRequest"][];
+        };
         /** @description Sets a new password with the token from the reset link. */
         ResetPasswordRequest: {
             email: string;
@@ -1702,6 +3248,55 @@ export interface components {
             token: string;
             /** @description Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit). */
             newPassword: string;
+        };
+        /** @description Payload of `PUT /api/visits/{id}/schedule`: a new date with the reason of the change. */
+        RescheduleVisitRequest: {
+            /** Format: date-time */
+            start: null | string;
+            /** Format: int32 */
+            estimatedMinutes: null | number | string;
+            reason: null | string;
+        };
+        /** @description Revision report metadata; the file itself is downloaded separately. */
+        RevisionReportResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            /** Format: date */
+            inspectedOn: string;
+            inspectorName: string;
+            inspectorCertificateNumber: null | string;
+            result: components["schemas"]["RevisionResult"];
+            /** Format: date */
+            validUntil: null | string;
+            findings: null | string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number | string;
+            sha256: string;
+            /** Format: uuid */
+            recordedBy: string;
+            /** Format: date-time */
+            recordedAt: string;
+        };
+        /**
+         * @description Outcome of the revision (odborná prehliadka a skúška) of a PV plant (#91).
+         * @enum {unknown}
+         */
+        RevisionResult: "Passed" | "Failed";
+        /** @description Reason why the design does not satisfy yet and goes back to the designer. */
+        ReworkDesignRequest: {
+            reason: null | string;
+        };
+        /** @description Last request to rework the design. */
+        ReworkResponse: {
+            reason: string;
+            /** Format: uuid */
+            requestedBy: null | string;
+            /** Format: date-time */
+            requestedAt: null | string;
         };
         /** @description One roof surface. Orientation (azimuth) and tilt are mandatory. */
         RoofPlaneRequest: {
@@ -1754,6 +3349,27 @@ export interface components {
             validityDays?: null | number | string;
             note?: null | string;
         };
+        /**
+         * @description Where a ticket came from (mapping #69). Story #122: the origin tells manual and automatic tickets apart.
+         * @enum {unknown}
+         */
+        ServiceTicketOrigin: "CustomerReport" | "Manual" | "AnomalyDetected";
+        /**
+         * @description Priority of a ticket; the levels match the severity of an under-production event (ADR #194).
+         * @enum {unknown}
+         */
+        ServiceTicketPriority: "Low" | "Medium" | "High";
+        /**
+         * @description Lifecycle of a service ticket (mapping #69, BPMN #67 and #68). Story #121 names five states (Nový, Pridelený,
+         *     V riešení, Vyriešený, Uzavretý); the mapping document is the source of truth and splits them along the BPMN tasks.
+         * @enum {unknown}
+         */
+        ServiceTicketState: "New" | "Triaged" | "RemoteDiagnosis" | "VisitScheduled" | "OnSite" | "Verified" | "Resolved" | "Closed";
+        /**
+         * @description Lifecycle of a technician visit (mapping #69).
+         * @enum {unknown}
+         */
+        ServiceVisitState: "Planned" | "InProgress" | "Done" | "Cancelled";
         /** @description Payload for `PUT /api/users/{id}/roles`: the complete set of roles the user should have. */
         SetUserRolesRequest: {
             /** @description Role names (case-insensitive), at least one. Roles missing from the list are removed. */
@@ -1792,6 +3408,27 @@ export interface components {
             /** Format: date-time */
             surveyedAt: null | string;
         };
+        /** @description Whole layout of an installation: strings ordered by number and installed panels not yet assigned to any string. */
+        StringLayoutResponse: {
+            /** Format: uuid */
+            installationId: string;
+            strings: components["schemas"]["PanelStringResponse"][];
+            unassignedPanels: components["schemas"]["StringPanelResponse"][];
+            /** Format: int64 */
+            assignedPowerW: number | string;
+            /** Format: int64 */
+            totalPanelPowerW: number | string;
+        };
+        /** @description A panel placed in a string. */
+        StringPanelResponse: {
+            /** Format: uuid */
+            id: string;
+            serialNumber: string;
+            manufacturer: string;
+            model: string;
+            /** Format: int32 */
+            powerW: number | string;
+        };
         /** @description Supply point returned by the API. */
         SupplyPointResponse: {
             /** Format: uuid */
@@ -1816,6 +3453,231 @@ export interface components {
             /** Format: date-time */
             serverTime: string;
         };
+        TechnicianCalendarResponse: {
+            /** Format: uuid */
+            technicianId: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            visits: components["schemas"]["CalendarVisit"][];
+        };
+        /** @description User with role Technician that a planner can assign (#89). */
+        TechnicianResponse: {
+            /** Format: uuid */
+            id: string;
+            userName: null | string;
+            email: null | string;
+        };
+        /**
+         * @description Ingest batch of inverter measurements (contract of ADR #185, `schemaVersion` 1.0).
+         *     Status, source and timestamps are strings on purpose: an invalid value then yields a 400 that names the field
+         *     instead of a bare deserialization error. Validation of the nested readings is done here because the
+         *     DataAnnotations filter does not descend into collections; error keys look like `readings[3].timestamp`.
+         */
+        TelemetryBatchRequest: {
+            schemaVersion?: null | string;
+            /** Format: uuid */
+            installationId?: null | string;
+            /** @description When the batch was sent, ISO 8601 UTC (suffix Z). */
+            sentAt?: null | string;
+            /** @description `simulator` or `gateway`. */
+            source?: null | string;
+            /** @description 1 to 288 readings. */
+            readings?: null | components["schemas"]["TelemetryReadingRequest"][];
+        };
+        /** @description Result of an ingest: how many readings were new and how many were duplicates (ignored). */
+        TelemetryIngestResponse: {
+            /** Format: int32 */
+            received: number | string;
+            /** Format: int32 */
+            stored: number | string;
+            /** Format: int32 */
+            duplicates: number | string;
+        };
+        /** @description One measurement of an inverter (`deviceId` is the id of an inverter registered in the installation). */
+        TelemetryReadingRequest: {
+            /** Format: uuid */
+            deviceId?: null | string;
+            /** @description End of the averaging window, UTC, 5-minute grid (minutes divisible by 5, seconds 0). */
+            timestamp?: null | string;
+            /**
+             * Format: int32
+             * @description Length of the averaging window in seconds (1 to 3600), 300 by default.
+             */
+            intervalSec?: null | number | string;
+            /** @description SunSpec state: OFF, SLEEPING, STARTING, MPPT, THROTTLED, SHUTTING_DOWN, FAULT, STANDBY. */
+            status?: null | string;
+            /** Format: int32 */
+            vendorStatusCode?: null | number | string;
+            /** @description Active event names, e.g. GROUND_FAULT (A-Z, 0-9, underscore; unique). */
+            events?: null | string[];
+            /** Format: double */
+            acPowerW?: null | number | string;
+            /** Format: double */
+            dcPowerW?: null | number | string;
+            /** Format: double */
+            acVoltageV?: null | number | string;
+            /** Format: double */
+            acCurrentA?: null | number | string;
+            /** Format: double */
+            gridFrequencyHz?: null | number | string;
+            /** Format: double */
+            temperatureC?: null | number | string;
+            /**
+             * Format: double
+             * @description Lifetime produced energy in Wh, monotonic counter.
+             */
+            totalEnergyWh?: null | number | string;
+            /**
+             * Format: double
+             * @description Optional device-reported energy since local midnight; informative only.
+             */
+            dayEnergyWh?: null | number | string;
+            strings?: null | components["schemas"]["TelemetryStringRequest"][];
+        };
+        /** @description Values of one DC input (MPPT / string), SunSpec model 160. */
+        TelemetryStringRequest: {
+            /** Format: int32 */
+            index?: null | number | string;
+            /** Format: double */
+            voltageV?: null | number | string;
+            /** Format: double */
+            currentA?: null | number | string;
+            /** Format: double */
+            powerW?: null | number | string;
+        };
+        TicketAssignmentResponse: {
+            /** Format: uuid */
+            ticketId: string;
+            /** Format: uuid */
+            technicianId: string;
+            /** Format: uuid */
+            assignedBy: string;
+            /** Format: date-time */
+            assignedAt: string;
+        };
+        /** @description A photo or document sent with a new ticket as base64. */
+        TicketAttachmentRequest: {
+            fileName: null | string;
+            /** @description One of `image/jpeg`, `image/png`, `application/pdf`. */
+            contentType: null | string;
+            /** @description Base64 content; at most long ServiceTicket.MaxAttachmentBytes before encoding. */
+            contentBase64: null | string;
+        };
+        /** @description Attachment metadata; the content is downloaded from string TicketAttachmentResponse.DownloadUrl. */
+        TicketAttachmentResponse: {
+            /** Format: uuid */
+            id: string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number | string;
+            /** Format: date-time */
+            createdAt: string;
+            downloadUrl: string;
+        };
+        TicketCommentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            authorId: string;
+            body: string;
+            isPublic: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * @description Decision of the customer after the ticket was closed (story #129).
+         * @enum {unknown}
+         */
+        TicketConfirmationDecision: "Confirmed" | "Reopened";
+        TicketConfirmationResponse: {
+            /** Format: uuid */
+            ticketId: string;
+            decision: components["schemas"]["TicketConfirmationDecision"];
+            comment: null | string;
+            /** Format: date-time */
+            decidedAt: string;
+            ticketState: components["schemas"]["ServiceTicketState"];
+        };
+        /** @description One row of the ticket list. */
+        TicketListItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            /** Format: uuid */
+            customerId: string;
+            title: string;
+            priority: components["schemas"]["ServiceTicketPriority"];
+            origin: components["schemas"]["ServiceTicketOrigin"];
+            state: components["schemas"]["ServiceTicketState"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Page of tickets returned by `GET /api/tickets`. */
+        TicketListResponse: {
+            items: components["schemas"]["TicketListItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        /** @description Ticket detail returned by the API. */
+        TicketResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            installationId: string;
+            /** Format: uuid */
+            customerId: string;
+            title: string;
+            description: string;
+            priority: components["schemas"]["ServiceTicketPriority"];
+            origin: components["schemas"]["ServiceTicketOrigin"];
+            state: components["schemas"]["ServiceTicketState"];
+            allowedTransitions: components["schemas"]["ServiceTicketState"][];
+            attachments: components["schemas"]["TicketAttachmentResponse"][];
+            /** Format: uuid */
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description History entry. string? TicketStateChangeResponse.Note is null for customers (internal note). */
+        TicketStateChangeResponse: {
+            /** Format: uuid */
+            id: string;
+            fromState: null | components["schemas"]["ServiceTicketState"];
+            toState: components["schemas"]["ServiceTicketState"];
+            /** Format: uuid */
+            changedBy: string;
+            /** Format: date-time */
+            changedAt: string;
+            note: null | string;
+        };
+        /** @description State of a ticket after verify or close. */
+        TicketStateResponse: {
+            /** Format: uuid */
+            ticketId: string;
+            state: components["schemas"]["ServiceTicketState"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Visits of one ticket and its assigned technician (null for customers). */
+        TicketVisitsResponse: {
+            /** Format: uuid */
+            ticketId: string;
+            /** Format: uuid */
+            assignedTechnicianId: null | string;
+            visits: components["schemas"]["VisitResponse"][];
+        };
         /**
          * @description Tokens returned after login (and refresh). The access token is a JWT for the `Authorization: Bearer` header;
          *     the refresh token is opaque, single-use and valid for 7 days.
@@ -1831,6 +3693,121 @@ export interface components {
             /** @description Opaque refresh token; keep it out of persistent storage. */
             refreshToken: string;
         };
+        /** @description Payload of `POST /api/tickets/{id}/transition`. */
+        TransitionTicketRequest: {
+            state: null | components["schemas"]["ServiceTicketState"];
+            /** @description Internal note stored in the history; not shown to the customer. */
+            note?: null | string;
+        };
+        /** @description Payload of `PUT /api/tickets/{id}/triage`: decide the priority of a new ticket. */
+        TriageTicketRequest: {
+            priority: null | components["schemas"]["ServiceTicketPriority"];
+            note?: null | string;
+        };
+        /** @description Underproduction alarms of an installation, newest first, at most 100. */
+        UnderproductionAlarmListResponse: {
+            items: components["schemas"]["UnderproductionAlarmResponse"][];
+        };
+        /** @description Underproduction event (ADR #194). Hours are labelled by their end, as the detection reports them. */
+        UnderproductionAlarmResponse: {
+            /**
+             * Format: uuid
+             * @description Stable for the same installation and start.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description Installation of the alarm.
+             */
+            installationId: string;
+            /** @description Name of the installation. */
+            installationName: string;
+            /**
+             * Format: date-time
+             * @description End of the first underproducing hour, UTC.
+             */
+            start: string;
+            /**
+             * Format: date-time
+             * @description End of the event; null while it is ongoing.
+             */
+            end: null | string;
+            /**
+             * Format: date-time
+             * @description End of the hour that confirmed the event.
+             */
+            detectedAt: string;
+            /**
+             * Format: date-time
+             * @description End of the last underproducing hour.
+             */
+            lastUnderproductionAt: string;
+            /** @description True until production recovers. */
+            ongoing: boolean;
+            /** @description Severity by the ratio and duration. */
+            severity: components["schemas"]["UnderproductionSeverity"];
+            /** @description Priority of the service ticket: by the detection, raised by a large loss. */
+            ticketPriority: components["schemas"]["ServiceTicketPriority"];
+            /**
+             * Format: double
+             * @description Median of actual / expected power in the event.
+             */
+            medianRatio: number | string;
+            /**
+             * Format: double
+             * @description Lowest actual / expected power in the event.
+             */
+            minRatio: number | string;
+            /**
+             * Format: int32
+             * @description Hours below the threshold.
+             */
+            underproducingHours: number | string;
+            /**
+             * Format: int32
+             * @description Hours the rule could evaluate.
+             */
+            validHours: number | string;
+            /**
+             * Format: double
+             * @description Length of the event.
+             */
+            durationHours: number | string;
+            /**
+             * Format: double
+             * @description Expected energy in the event.
+             */
+            expectedKwh: number | string;
+            /**
+             * Format: double
+             * @description Produced energy in the event.
+             */
+            actualKwh: number | string;
+            /**
+             * Format: double
+             * @description Estimated loss.
+             */
+            estimatedLostKwh: number | string;
+            /** @description Machine-readable reason. */
+            reasonCode: string;
+            /** @description Reason for people. */
+            reason: string;
+            /**
+             * Format: date-time
+             * @description Last time an analysis reported this alarm.
+             */
+            updatedAt: string;
+            /**
+             * Format: uuid
+             * @description Service ticket handling the alarm; null when it has none (an ended event gets none).
+             */
+            ticketId: null | string;
+        };
+        /**
+         * @description Severity of an underproduction event (ADR #194).
+         * @enum {unknown}
+         */
+        UnderproductionSeverity: "Low" | "Medium" | "High";
         UpdateComponentRequest: {
             type: null | components["schemas"]["ComponentType"];
             /** @description Catalog code (SKU); unique, case-insensitive. */
@@ -1894,12 +3871,30 @@ export interface components {
             consumptionProfile: null | components["schemas"]["ConsumptionProfile"];
             roofPlanes: null | components["schemas"]["RoofPlaneRequest"][];
         };
+        /** @description Marks a checklist step done or not done (#90). */
+        UpdateChecklistStepRequest: {
+            done: null | boolean;
+            note?: null | string;
+        };
         /** @description Payload for updating descriptive fields of an installation. */
         UpdateInstallationRequest: {
             name: null | string;
             /** Format: double */
             plannedPowerKwp?: null | number | string;
             note?: null | string;
+        };
+        UpdateStringRequest: {
+            /**
+             * Format: int32
+             * @description String number as the inverter reports it in telemetry (`strings[].id`); unique within the installation.
+             */
+            number: null | number | string;
+            name?: null | string;
+            /**
+             * Format: int32
+             * @description MPPT input of the inverter the string is wired to.
+             */
+            mpptInput?: null | number | string;
         };
         UpdateSupplyPointRequest: {
             /** @description Optional label, e.g. "Rodinný dom". */
@@ -1937,6 +3932,106 @@ export interface components {
             email: string;
             roles: string[];
         };
+        /**
+         * @description Cause found on site; the code list of the service protocol (story #127). NoFaultFound feeds the false-alarm statistics (#129).
+         * @enum {unknown}
+         */
+        VisitCause: "InverterFault" | "PanelFault" | "WiringFault" | "GridIssue" | "Shading" | "Monitoring" | "NoFaultFound" | "Other";
+        /** @description Payload of `POST /api/visits/{id}/device-replacements`: a device of the ticket's installation replaced during the visit. */
+        VisitDeviceReplacementRequest: {
+            /** Format: uuid */
+            deviceId: null | string;
+            replacement: null | components["schemas"]["ReplaceDeviceRequest"];
+        };
+        VisitDeviceReplacementResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            oldDeviceId: string;
+            /** Format: uuid */
+            newDeviceId: string;
+            reason: string;
+            /** Format: uuid */
+            replacedBy: string;
+            /** Format: date-time */
+            replacedAt: string;
+        };
+        /** @description Result of recording a used-material list. */
+        VisitDeviceReplacementResult: {
+            link: components["schemas"]["VisitDeviceReplacementResponse"];
+            replaced: components["schemas"]["DeviceResponse"];
+            replacement: components["schemas"]["DeviceResponse"];
+        };
+        VisitMaterialRequest: {
+            name: null | string;
+            /** Format: double */
+            quantity: null | number | string;
+            unit?: null | string;
+        };
+        VisitMaterialResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: double */
+            quantity: number | string;
+            unit: string;
+        };
+        /** @description Payload of `POST /api/visits/{id}/report`: the service protocol (story #127). */
+        VisitReportRequest: {
+            cause: null | components["schemas"]["VisitCause"];
+            findings: null | string;
+            workDone: null | string;
+            /** Format: date-time */
+            arrivedAt: null | string;
+            /** Format: date-time */
+            departedAt: null | string;
+        };
+        /** @description Service protocol of a visit; string? VisitReportResponse.Findings is internal and null for customers. */
+        VisitReportResponse: {
+            cause: components["schemas"]["VisitCause"];
+            findings: null | string;
+            workDone: string;
+            /** Format: date-time */
+            arrivedAt: string;
+            /** Format: date-time */
+            departedAt: string;
+            /** Format: uuid */
+            reportedBy: string;
+            /** Format: date-time */
+            reportedAt: string;
+        };
+        VisitRescheduleResponse: {
+            /** Format: date-time */
+            previousStart: string;
+            /** Format: date-time */
+            previousEnd: string;
+            reason: string;
+            /** Format: uuid */
+            changedBy: string;
+            /** Format: date-time */
+            changedAt: string;
+        };
+        VisitResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ticketId: string;
+            /** Format: uuid */
+            technicianId: null | string;
+            state: components["schemas"]["ServiceVisitState"];
+            /** Format: date-time */
+            plannedStart: string;
+            /** Format: date-time */
+            plannedEnd: string;
+            /** Format: int32 */
+            estimatedMinutes: number | string;
+            /** Format: date-time */
+            startedAt: null | string;
+            report: null | components["schemas"]["VisitReportResponse"];
+            reschedules: components["schemas"]["VisitRescheduleResponse"][];
+            materials: components["schemas"]["VisitMaterialResponse"][];
+            deviceReplacements: components["schemas"]["VisitDeviceReplacementResponse"][];
+        };
         YieldEstimateResponse: {
             /** Format: double */
             annualKwh: number | string;
@@ -1962,6 +4057,29 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ListAllUnderproductionAlarms: {
+        parameters: {
+            query?: {
+                severity?: components["schemas"]["UnderproductionSeverity"];
+                ongoing?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnderproductionAlarmListResponse"];
+                };
+            };
+        };
+    };
     ListRoles: {
         parameters: {
             query?: never;
@@ -2053,6 +4171,15 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -2428,6 +4555,7 @@ export interface operations {
                 installationId?: string;
                 customerId?: string;
                 state?: components["schemas"]["ConnectionRequestState"];
+                overdue?: boolean;
             };
             header?: never;
             path?: never;
@@ -2559,6 +4687,339 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SubmitConnectionRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ResubmitConnectionRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReviewConnectionRequestConditions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SendConnectionContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    MarkConnectionContractSigned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SubmitSignedConnectionContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SimulateDistributorDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DistributorDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SimulateDistributorConclusion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRequestResponse"];
                 };
             };
             /** @description Not Found */
@@ -2838,6 +5299,35 @@ export interface operations {
             };
         };
     };
+    GenerateContractPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListCustomers: {
         parameters: {
             query?: {
@@ -3057,6 +5547,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListInstallationApiKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceApiKeyResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    IssueInstallationApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedDeviceApiKeyResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RotateInstallationApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedDeviceApiKeyResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeInstallationApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceApiKeyResponse"];
                 };
             };
             /** @description Not Found */
@@ -3355,6 +5997,148 @@ export interface operations {
             };
         };
     };
+    ApproveFveDesign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FveDesignResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReworkFveDesign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReworkDesignRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FveDesignResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateQuoteFromFveDesign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetFveDesignVersion: {
         parameters: {
             query?: never;
@@ -3592,6 +6376,361 @@ export interface operations {
             };
         };
     };
+    GetInstallationChecklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateInstallationChecklistStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                stepCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateChecklistStepRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListInstallationRevisionReports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionReportResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordInstallationRevisionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordRevisionReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInstallationRevisionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionReportResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DownloadInstallationRevisionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CommissionInstallation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommissionInstallationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationDetailResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInstallationDocumentation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationDocumentationResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DownloadInstallationHandoverProtocol: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListInstallations: {
         parameters: {
             query?: {
@@ -3600,6 +6739,7 @@ export interface operations {
                 contractId?: string;
                 supplyPointId?: string;
                 assignedToMe?: boolean;
+                monitoringEnabled?: boolean;
             };
             header?: never;
             path?: never;
@@ -3665,6 +6805,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListInstallationTechnicians: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicianResponse"][];
                 };
             };
         };
@@ -3903,6 +7063,533 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInstallationStringLayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StringLayoutResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateInstallationString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStringRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanelStringResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInstallationString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                stringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanelStringResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateInstallationString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                stringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStringRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanelStringResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteInstallationString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                stringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AssignPanelToString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                stringId: string;
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanelStringResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemovePanelFromString: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+                stringId: string;
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RunInstallationAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MlAnalysisResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListUnderproductionAlarms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnderproductionAlarmListResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInstallationProduction: {
+        parameters: {
+            query?: {
+                /** @description Start of the period (inclusive). */
+                From?: string;
+                /** @description End of the period (exclusive). */
+                To?: string;
+                /** @description `fiveMinutes`, `hour` (default), `day` or `month`. */
+                Granularity?: string;
+                /** @description IANA time zone for day and month buckets and date-only bounds; default Europe/Bratislava. */
+                TimeZone?: string;
+            };
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CompareInstallationProduction: {
+        parameters: {
+            query?: {
+                /** @description Start of the period (inclusive). */
+                From?: string;
+                /** @description End of the period (exclusive). */
+                To?: string;
+                /** @description `fiveMinutes`, `hour` (default), `day` or `month`. */
+                Granularity?: string;
+                /** @description IANA time zone for day and month buckets and date-only bounds; default Europe/Bratislava. */
+                TimeZone?: string;
+            };
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionComparisonResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ExportInstallationProduction: {
+        parameters: {
+            query?: {
+                /** @description `semicolon` (default, decimal comma for Slovak Excel), `comma` or `tab` (decimal point). */
+                Separator?: string;
+                /** @description Start of the period (inclusive). */
+                From?: string;
+                /** @description End of the period (exclusive). */
+                To?: string;
+                /** @description `fiveMinutes`, `hour` (default), `day` or `month`. */
+                Granularity?: string;
+                /** @description IANA time zone for day and month buckets and date-only bounds; default Europe/Bratislava. */
+                TimeZone?: string;
+            };
+            header?: never;
+            path: {
+                installationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4405,6 +8092,1088 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemInfoResponse"];
+                };
+            };
+        };
+    };
+    IngestTelemetry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelemetryBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryIngestResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTickets: {
+        parameters: {
+            query?: {
+                state?: components["schemas"]["ServiceTicketState"];
+                priority?: components["schemas"]["ServiceTicketPriority"];
+                origin?: components["schemas"]["ServiceTicketOrigin"];
+                installationId?: string;
+                page?: number | string;
+                pageSize?: number | string;
+                sortBy?: string;
+                sortDir?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    TriageTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TriageTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    TransitionTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTicketHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketStateChangeResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTicketComments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketCommentResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddTicketComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddTicketCommentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketCommentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DownloadTicketAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AssignTicketTechnician: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTechnicianRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketAssignmentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTicketVisits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketVisitsResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PlanTicketVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanVisitRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    VerifyTicketProduction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketStateResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CloseTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketStateResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketConfirmationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReopenTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketConfirmationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RescheduleVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleVisitRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    StartVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReportVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisitReportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReplaceVisitMaterials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceVisitMaterialsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReplaceVisitDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisitDeviceReplacementRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitDeviceReplacementResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyVisits: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicianCalendarResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTechnicianVisits: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                technicianId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechnicianCalendarResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
