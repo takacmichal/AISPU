@@ -9,6 +9,9 @@ What it does (idempotent, safe to run repeatedly):
   3. Re-creates the demo data through the public API (so business rules and numbering apply).
   4. Prints a structural fingerprint (no ids/timestamps) of the demo data, so two runs can be diffed.
 
+Accounts: Admin (DEMO_EMAIL), Sales, Designer, Operator, two technicians and the customer portal account of Novak
+(see ROLE_ACCOUNTS, PORTAL_EMAIL); docs/frontend-prechod.md walks through the frontend with them.
+
 Demo scope (11 customers, each with one supply point):
   - Novak: commissioned installation, closed remote ticket.
   - Kovacova: live demo start (design request only).
@@ -58,6 +61,14 @@ PASSWORD = os.environ.get("DEMO_PASSWORD", "DemoPass12345")
 TECH_EMAIL = "technik@demo.solarops.local"
 TECH2_EMAIL = "technik2@demo.solarops.local"
 TECH_PASSWORD = os.environ.get("DEMO_TECH_PASSWORD", "DemoTech12345")
+# One account per remaining role for the walkthrough (docs/frontend-prechod.md); all use DEMO_PASSWORD.
+ROLE_ACCOUNTS = {
+    "obchod@demo.solarops.local": ["Sales"],
+    "projektant@demo.solarops.local": ["Designer"],
+    "operator@demo.solarops.local": ["Operator"],
+}
+# Customer portal account of Jan Novak (the same e-mail as the customer record).
+PORTAL_EMAIL = "novak@demo.solarops.local"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "[::1]"}
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_DOMAIN = "demo.solarops.local"
@@ -128,6 +139,11 @@ DELETE FROM service_tickets WHERE customer_id IN (SELECT id FROM demo_customers)
   OR installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM connection_requests WHERE customer_id IN (SELECT id FROM demo_customers)
   OR installation_id IN (SELECT id FROM demo_installations);
+-- Telemetry, device API keys and strings reference the installation or its devices (not cascaded).
+DELETE FROM telemetry_readings WHERE device_id IN
+  (SELECT id FROM installation_devices WHERE installation_id IN (SELECT id FROM demo_installations));
+DELETE FROM device_api_keys WHERE installation_id IN (SELECT id FROM demo_installations);
+DELETE FROM panel_strings WHERE installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM installation_devices WHERE installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM installations WHERE id IN (SELECT id FROM demo_installations);
 DELETE FROM contracts WHERE customer_id IN (SELECT id FROM demo_customers);
@@ -177,13 +193,17 @@ def address(street: str, city: str, postal: str) -> dict:
     return {"street": street, "city": city, "postalCode": postal, "country": "SK"}
 
 
-def ensure_technician(email: str = TECH_EMAIL) -> str:
-    """Technician account (not removed by the reset, so this step is find-or-create)."""
-    api("POST", "/api/auth/register", {"email": email, "password": TECH_PASSWORD}, expect=(201, 409))
+def ensure_user(email: str, password: str, roles: list[str]) -> str:
+    """Login account with the given roles (accounts are not removed by the reset, so this is find-or-create)."""
+    api("POST", "/api/auth/register", {"email": email, "password": password}, expect=(201, 409))
     users = api("GET", f"/api/users?q={email}")["items"]
     user = next(u for u in users if u["email"].lower() == email)
-    api("PUT", f"/api/users/{user['id']}/roles", {"roles": ["Technician"]})
+    api("PUT", f"/api/users/{user['id']}/roles", {"roles": roles})
     return user["id"]
+
+
+def ensure_technician(email: str = TECH_EMAIL) -> str:
+    return ensure_user(email, TECH_PASSWORD, ["Technician"])
 
 
 def eic_code(number: int) -> str:
@@ -211,19 +231,26 @@ def seed() -> dict:
     component("labor", "Labor", "DEMO-LAB-INST", "Montaz FVE, hodina (demo)", None, None, 55.0)
 
     # Customers + supply points
-    def customer(key: str, first: str, last: str, city: str, street: str, postal: str, phone: str, eic: str, amps: int):
+    # Accounts for the other roles and the customer portal (Novak sees only his own plant and tickets)
+    for email, roles in ROLE_ACCOUNTS.items():
+        ensure_user(email, PASSWORD, roles)
+    portal_user = ensure_user(PORTAL_EMAIL, PASSWORD, ["Customer"])
+
+    def customer(key: str, first: str, last: str, city: str, street: str, postal: str, phone: str, eic: str, amps: int,
+                 user_id: str | None = None):
         c = api("POST", "/api/customers", {
             "type": "Person", "firstName": first, "lastName": last,
             "email": f"{last.lower()}@{DEMO_DOMAIN}", "phone": phone,
             "address": address(street, city, postal),
-            "note": "Demo data (reset-demo.py)"})
+            "note": "Demo data (reset-demo.py)", "userId": user_id})
         sp = api("POST", f"/api/customers/{c['id']}/supply-points", {
             "name": "Rodinny dom", "eicCode": eic, "address": address(street, city, postal),
             "mainBreakerAmps": amps})
         ids[f"{key}_customer"] = c["id"]
         ids[f"{key}_supply"] = sp["id"]
 
-    customer("novak", "Jan", "Novak", "Nitra", "Hviezdoslavova 12", "949 01", "+421 905 111 222", "24ZDEMO00000001A", 25)
+    customer("novak", "Jan", "Novak", "Nitra", "Hviezdoslavova 12", "949 01", "+421 905 111 222", "24ZDEMO00000001A", 25,
+             user_id=portal_user)
     customer("kovacova", "Maria", "Kovacova", "Zilina", "Kuzmanyho 5", "010 01", "+421 905 333 444", "24ZDEMO00000002B", 25)
     customer("horvath", "Peter", "Horvath", "Kosice", "Hlavna 40", "040 01", "+421 905 555 666", "24ZDEMO00000003C", 32)
     customer("hudak", "Tomas", "Hudak", "Bratislava", "Mlynska 14", "821 08", "+421 905 700 101", eic_code(4), 25)
