@@ -2,14 +2,33 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { detailOf, device, json, problem, renderRoute, stubFetch, type Call } from '../installations/testHelpers'
-import MyPlantDetailPage, { type MyPlantDetailPageProps } from './MyPlantDetailPage'
+import MyPlantDetailPage from './MyPlantDetailPage'
 import { connectionRequest } from './testUtils'
 
 afterEach(() => vi.unstubAllGlobals())
 
-function render(route = '/my-plants/i1', props: MyPlantDetailPageProps = {}) {
-  return renderRoute(<MyPlantDetailPage {...props} />, route, '/my-plants/:id', ['Customer'])
+function render(route = '/my-plants/i1') {
+  return renderRoute(<MyPlantDetailPage />, route, '/my-plants/:id', ['Customer'])
 }
+
+const production = (points: { periodStart: string; energyKwh: number }[]) => ({
+  installationId: 'i1',
+  from: '2026-10-08',
+  to: '2026-11-07',
+  granularity: 'day',
+  timeZone: 'Europe/Bratislava',
+  totalEnergyKwh: points.reduce((s, p) => s + p.energyKwh, 0),
+  peakPowerKw: 6.1,
+  points: points.map((p) => ({ ...p, peakPowerKw: 6.1, sampleCount: 288 })),
+})
+
+const twoDays = () =>
+  json(
+    production([
+      { periodStart: '2026-11-05T00:00:00+01:00', energyKwh: 30.4 },
+      { periodStart: '2026-11-06T00:00:00+01:00', energyKwh: 41.6 },
+    ]),
+  )
 
 const handedOver = () => ({
   ...detailOf({ state: 'HandedOver', note: 'Interná poznámka technika', technicianIds: ['t1'] }),
@@ -23,6 +42,7 @@ const handedOver = () => ({
 function handler(over: Partial<Record<string, () => Response>> = {}) {
   return (call: Call) => {
     if (call.path === '/api/installations/i1') return over.detail?.() ?? json(handedOver())
+    if (call.path === '/api/installations/i1/production') return over.production?.() ?? twoDays()
     if (call.path === '/api/installations/i1/devices')
       return over.devices?.() ?? json([device(), device({ id: 'd2', type: 'Inverter', serialNumber: 'HW-INV-77', manufacturer: 'Huawei', model: 'SUN2000-8K', powerW: 8000 })])
     if (call.path === '/api/connection-requests')
@@ -50,7 +70,7 @@ function handler(over: Partial<Record<string, () => Response>> = {}) {
 }
 
 describe('MyPlantDetailPage', () => {
-  it('shows overview, progress, connection, devices, documents and the production placeholder', async () => {
+  it('shows overview, progress, connection, devices, documents and production', async () => {
     const calls = stubFetch(handler())
     render()
     expect(await screen.findByRole('heading', { name: 'FVE Nitra', level: 2 })).toBeInTheDocument()
@@ -73,23 +93,46 @@ describe('MyPlantDetailPage', () => {
     expect(within(documents).getByText('Elektráreň bola odovzdaná 20. 5. 2026.')).toBeInTheDocument()
     expect(within(documents).getByRole('button', { name: 'Stiahnuť schema.pdf' })).toBeInTheDocument()
 
-    const production = screen.getByRole('region', { name: 'Výroba' })
-    expect(within(production).getByText('Pripravuje sa')).toBeInTheDocument()
-    expect(within(production).getByText('Údaje o výrobe pripravujeme')).toBeInTheDocument()
+    const output = screen.getByRole('region', { name: 'Výroba' })
+    expect(await within(output).findByRole('img', { name: 'Výroba za posledných 30 dní' })).toBeInTheDocument()
+    expect(within(output).getByText(/^72\skWh$/)).toBeInTheDocument()
+    expect(within(output).getByText(/^42\skWh$/)).toBeInTheDocument()
+    expect(within(output).queryByText('Pripravuje sa')).not.toBeInTheDocument()
 
     // Internal data is not shown and no back-office API is called.
     expect(screen.queryByText('Interná poznámka technika')).not.toBeInTheDocument()
     expect(screen.queryByText('interné')).not.toBeInTheDocument()
     expect(calls.find((c) => c.path === '/api/connection-requests')?.search).toBe('?installationId=i1')
-    expect(calls.some((c) => /customers|contracts|telemetry|production/.test(c.path))).toBe(false)
+    expect(calls.some((c) => /customers|contracts|telemetry/.test(c.path))).toBe(false)
+    const query = new URLSearchParams(calls.find((c) => c.path === '/api/installations/i1/production')?.search)
+    expect(query.get('granularity')).toBe('day')
   })
 
-  it('renders the production slot when it is provided', async () => {
-    stubFetch(handler())
-    render('/my-plants/i1', { renderProduction: (i) => <p>Graf výroby {i.name}</p> })
-    const production = await screen.findByRole('region', { name: 'Výroba' })
-    expect(within(production).getByText('Graf výroby FVE Nitra')).toBeInTheDocument()
-    expect(within(production).queryByText('Pripravuje sa')).not.toBeInTheDocument()
+  it('does not load production before the plant is in operation', async () => {
+    const calls = stubFetch(handler({ detail: () => json(detailOf({ state: 'Mounting' })) }))
+    render()
+    const output = await screen.findByRole('region', { name: 'Výroba' })
+    expect(within(output).getByText('Výrobu uvidíte po uvedení elektrárne do prevádzky.')).toBeInTheDocument()
+    expect(calls.some((c) => c.path.endsWith('/production'))).toBe(false)
+  })
+
+  it('shows an empty state when no production was measured yet', async () => {
+    stubFetch(handler({ production: () => json(production([])) }))
+    render()
+    const output = await screen.findByRole('region', { name: 'Výroba' })
+    expect(await within(output).findByText('Za posledných 30 dní zatiaľ nie sú namerané údaje.')).toBeInTheDocument()
+    expect(within(output).queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('shows a production error with retry', async () => {
+    let fail = true
+    stubFetch(handler({ production: () => (fail ? problem(500, 'boom') : twoDays()) }))
+    render()
+    const output = await screen.findByRole('region', { name: 'Výroba' })
+    expect(await within(output).findByText('Výrobu sa nepodarilo načítať.')).toBeInTheDocument()
+    fail = false
+    await userEvent.click(within(output).getByRole('button', { name: 'Skúsiť znova' }))
+    expect(await within(output).findByRole('img', { name: 'Výroba za posledných 30 dní' })).toBeInTheDocument()
   })
 
   it('shows a foreign or missing plant as not found and loads nothing else', async () => {

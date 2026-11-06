@@ -85,9 +85,14 @@ export const PORTAL_TEXTS = {
     download: 'Stiahnuť',
     notDownloadable: 'Len evidované',
     production: 'Výroba',
-    productionBadge: 'Pripravuje sa',
-    productionTitle: 'Údaje o výrobe pripravujeme',
-    productionText: 'Po pripojení elektrárne tu uvidíte dennú a mesačnú výrobu.',
+    productionChart: 'Výroba za posledných 30 dní',
+    productionSummary: (total: string) => `Denná výroba za posledných 30 dní, spolu ${total} kWh.`,
+    productionTotal: 'Spolu za 30 dní',
+    productionBest: 'Najlepší deň',
+    productionLoading: 'Načítavam výrobu…',
+    productionError: 'Výrobu sa nepodarilo načítať.',
+    productionEmpty: 'Za posledných 30 dní zatiaľ nie sú namerané údaje.',
+    productionPending: 'Výrobu uvidíte po uvedení elektrárne do prevádzky.',
   },
   /** Customer-facing description of the next step. */
   next: {

@@ -14,26 +14,19 @@ import type { ConnectionRequest } from '../connection/model'
 import { ATTACHMENT_KIND_LABELS } from '../connection/texts'
 import { STATE_LABELS } from '../installations/messages'
 import { StateBadge } from '../installations/StateBadge'
-import { nextStep, reachedAt, type Installation, type InstallationDetail } from './model'
+import { isOperating, nextStep, reachedAt, type InstallationDetail } from './model'
+import { PlantProduction } from './PlantProduction'
 import './portal.css'
 import { PORTAL_TEXTS as T } from './texts'
 
 const NOT_FOUND = 'not-found'
-
-export interface MyPlantDetailPageProps {
-  /**
-   * SLOT for the production dashboard (feature #28). Until it is wired, the section shows a marked placeholder;
-   * the portal does not call any production endpoint on its own.
-   */
-  renderProduction?: (installation: Installation) => ReactNode
-}
 
 /**
  * `/my-plants/:id` (role Customer): read-only view of one own installation. A foreign id gives 404 from the backend
  * (CustomerScope) and is shown exactly like a missing one. Internal fields (notes, technicians, who changed a state)
  * are deliberately not shown.
  */
-export default function MyPlantDetailPage({ renderProduction }: MyPlantDetailPageProps) {
+export default function MyPlantDetailPage() {
   const { id = '' } = useParams()
   const { data, loading, error, reload } = useLoad(async (signal) => {
     const { data, response } = await api.GET('/api/installations/{id}', { params: { path: { id } }, signal })
@@ -61,10 +54,10 @@ export default function MyPlantDetailPage({ renderProduction }: MyPlantDetailPag
       </div>
     )
 
-  return <PlantDetail detail={data} back={back} renderProduction={renderProduction} />
+  return <PlantDetail detail={data} back={back} />
 }
 
-function PlantDetail({ detail, back, renderProduction }: { detail: InstallationDetail; back: ReactNode } & MyPlantDetailPageProps) {
+function PlantDetail({ detail, back }: { detail: InstallationDetail; back: ReactNode }) {
   const { installation } = detail
   const connection = useLoad(async (signal) => {
     const { data, response } = await api.GET('/api/connection-requests', {
@@ -162,14 +155,11 @@ function PlantDetail({ detail, back, renderProduction }: { detail: InstallationD
       </section>
 
       <section className="card portal-section" aria-labelledby="plant-production">
-        <div className="plant-detail__header">
-          <h3 id="plant-production">{T.detail.production}</h3>
-          {!renderProduction && <span className="badge badge--info">{T.detail.productionBadge}</span>}
-        </div>
-        {renderProduction ? (
-          renderProduction(installation)
+        <h3 id="plant-production">{T.detail.production}</h3>
+        {isOperating(installation.state) ? (
+          <PlantProduction installationId={installation.id} />
         ) : (
-          <EmptyState title={T.detail.productionTitle} description={T.detail.productionText} />
+          <p className="page-intro">{T.detail.productionPending}</p>
         )}
       </section>
     </article>
