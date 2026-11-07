@@ -123,6 +123,8 @@ export const verifyTicket = (ticketId: string) => send<unknown>('POST', `/api/ti
 
 export const startVisit = (id: string) => send<Visit>('POST', `/api/visits/${id}/start`)
 export const reportVisit = (id: string, body: VisitReportRequest) => send<Visit>('POST', `/api/visits/${id}/report`, body)
+export const rescheduleVisit = (id: string, body: { start: string; estimatedMinutes: number; reason: string }) =>
+  send<Visit>('PUT', `/api/visits/${id}/schedule`, body)
 
 /** Technicians that can be assigned (planner roles: Admin, Operator, Sales, Designer). */
 export const listTechnicians = (signal?: AbortSignal) => request<Technician[]>('/api/installations/technicians', { signal })

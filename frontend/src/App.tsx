@@ -28,6 +28,7 @@ import TicketDetailPage from './features/tickets/TicketDetailPage'
 import TicketCreatePage from './features/tickets/TicketCreatePage'
 import MonitoringPage from './features/monitoring/MonitoringPage'
 import MyVisitsPage from './features/visits/MyVisitsPage'
+import VisitCalendarPage from './features/visits/VisitCalendarPage'
 import RegisterPage from './features/auth/RegisterPage'
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage'
 import ResetPasswordPage from './features/auth/ResetPasswordPage'
@@ -50,7 +51,7 @@ function PublicHome() {
 // Dev-only component overview; import.meta.env.DEV is false in production builds, so the chunk is dropped there.
 const UiShowcase = import.meta.env.DEV ? lazy(() => import('./dev/UiShowcase')) : null
 
-const WIRED = [HOME_PATH, '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring', '/connection-requests', '/my-visits']
+const WIRED = [HOME_PATH, '/customers', '/customers/new', '/catalog', '/quotes', '/contracts', '/installations', '/admin/users', '/designs', '/my-plants', '/tickets', '/tickets/new', '/monitoring', '/connection-requests', '/my-visits', '/visit-calendar']
 
 export default function App() {
   return (
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
           <Route path="/my-visits" element={<MyVisitsPage />} />
+          <Route path="/visit-calendar" element={<VisitCalendarPage />} />
           {UiShowcase && (
             <Route
               path="/dev/ui"

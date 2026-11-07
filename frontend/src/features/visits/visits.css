@@ -186,6 +186,85 @@
   text-align: center;
 }
 
+.visit-calendar {
+  display: grid;
+  gap: var(--spacing-12);
+}
+
+.visit-calendar__week {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.visit-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(11rem, 1fr));
+  gap: var(--spacing-8);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-8);
+}
+
+.visit-calendar__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border-radius: var(--radius-cards);
+  background: var(--surface-tint);
+}
+
+.visit-calendar__day-title {
+  margin: 0;
+  font-size: var(--text-body-sm);
+}
+
+.visit-calendar__visits {
+  display: grid;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.visit-calendar__visit {
+  display: grid;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-buttons);
+  background: var(--color-surface);
+}
+
+.visit-calendar__visit--collision {
+  border-left: 3px solid var(--color-danger);
+}
+
+.visit-calendar__warning {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-tint);
+}
+
+.visit-calendar__form {
+  display: grid;
+  gap: var(--spacing-12);
+}
+
+.visit-calendar__dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-8);
+}
+
+@media (max-width: 760px) {
+  .visit-calendar__days {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: visible;
+  }
+
 .visit-protocol__notice {
   margin: 0;
   padding: var(--spacing-8) var(--spacing-12);
