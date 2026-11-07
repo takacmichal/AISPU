@@ -64,6 +64,18 @@ Connection string pre `dotnet run` je v `src/SolarOps.Api/appsettings.Developmen
 
 JWT podpisový kľúč (`Jwt:SigningKey`, min. 32 bajtov) je v gite iba ako lokálny vývojový kľúč v `appsettings.Development.json`. Mimo Development ho nastav cez premennú `Jwt__SigningKey` (napr. `openssl rand -base64 48`), inak API nenaštartuje.
 
+Prvý administrátor `admin@solarops.local` vznikne pri štarte API, ak je nastavené `Admin:Password` (premenná `Admin__Password`, lokálne `dotnet user-secrets set "Admin:Password" "<heslo>"` v `src/SolarOps.Api`). Heslo musí spĺňať pravidlá hesiel (aspoň 10 znakov, veľké aj malé písmeno, číslica). Existujúci účet s týmto e-mailom sa nemení ani nepovyšuje na admina; heslo sa potom mení cez obnovu hesla (ADR #277).
+
+Jednorazové úlohy pre Container Apps Jobs (ADR #277): API spustené s `--job <názov>` úlohu vykoná a skončí bez webového servera. Návratový kód 0 je úspech, 1 chyba a 2 neznáma úloha.
+
+| Úloha | Čo robí |
+|---|---|
+| `migrate` | aplikuje EF migrácie; v Azure ju spúšťa CD pred novou revíziou API (API samo migruje len v Development) |
+| `ml-analysis` | jeden beh analýzy inštalácií (pozri Automatické servisné tikety) |
+| `weather-refresh` | jedna obnova predpovede počasia |
+
+Lokálne napr. `dotnet run --project src/SolarOps.Api -- --job migrate`. Úlohy ignorujú `Ml:AnalysisEnabled` a `Weather:Enabled`, tie vypínajú len plán vnútri API (v Azure `false`, plán majú joby).
+
 Predpoveď počasia (`Weather` sekcia) ťahá Open-Meteo Forecast API. Free tier kľúč nepotrebuje; pri platenom pláne ho nastav cez `Weather__ApiKey` (v docker compose `WEATHER_API_KEY`), nikdy ho necommituj.
 
 ML služba sa volá na adrese `Ml:BaseUrl` (`Ml__BaseUrl`; v Development `http://localhost:8000`, v docker compose `http://ml:8000`). Prázdna hodnota znamená, že služba nie je dostupná: API normálne beží a len `POST /api/installations/{id}/analysis` vráti 503.
@@ -83,6 +95,7 @@ Každých `Ml:AnalysisIntervalMinutes` minút (predvolene 60) API analyzuje inš
 | `dotnet test` padá hneď pri štarte integračných testov | Testcontainers potrebuje bežiaci Docker. Spusti Docker Desktop a over `docker info`. |
 | API nenaštartuje mimo Development a hlási chýbajúci JWT kľúč | Nastav `Jwt__SigningKey` (min. 32 bajtov, napr. `openssl rand -base64 48`). Vývojový kľúč je len v `appsettings.Development.json`. |
 | API alebo testy hlásia chýbajúcu tabuľku či stĺpec po pull-e | Pribudla migrácia. Lokálnu DB zmaž: `docker compose down -v && docker compose up -d postgres`. |
+| Prihlásenie ako `admin@solarops.local` nefunguje | Pred štartom API nastav `Admin__Password` (alebo user-secrets). Ak účet s týmto e-mailom už existoval bez roly Admin, admin z neho nevznikne; použi iný účet s rolou Admin alebo účet zmaž. |
 | `POST /api/auth/login` vráti 429 | Prihlásenie, registrácia a obnova hesla majú spolu limit 10 za minútu na IP. Počkaj `Retry-After` sekúnd; limit sa mení cez `RateLimiting__Auth__PermitLimit` a `RateLimiting__Auth__WindowSeconds`. Obnova tokenu má vlastný limit 60 za minútu (`RateLimiting__Refresh__*`). |
 | Za reverznou proxy všetci klienti zdieľajú jeden limit | API číta `X-Forwarded-For` len od dôveryhodnej proxy. Nastav jej adresu `ForwardedHeaders__KnownProxies__0=10.0.0.5` alebo rozsah `ForwardedHeaders__KnownNetworks__0=10.0.0.0/8` podľa siete prostredia. |
 | `pnpm api:fetch` zlyhá s chybou spojenia | API musí bežať na `http://localhost:5080`, alebo nastav `OPENAPI_URL`. |
