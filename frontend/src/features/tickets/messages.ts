@@ -135,6 +135,7 @@ export const T = {
     visitsEmpty: 'K tiketu zatiaľ nie je naplánovaný žiadny výjazd.',
     visitsError: 'Výjazdy sa nepodarilo načítať.',
     visitDuration: (minutes: number) => `${minutes} min`,
+    workload: (count: number, days: number) => `Aktívne výjazdy na ${days} dní: ${count}`,
     planTitle: 'Naplánovať výjazd',
     planHint: 'Výjazd sa naplánuje priradenému technikovi, tiket prejde do stavu „Výjazd naplánovaný“.',
     planNeedsTechnician: 'Pred plánovaním výjazdu priraďte technika.',
