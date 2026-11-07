@@ -184,6 +184,10 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 
 **EF migrácie sú súčasťou zmeny schémy.** Dev aj testy aplikujú migrácie (`MigrateAsync`); pri pridaní alebo zmene entity vygeneruj migráciu (`dotnet ef migrations add <Nazov> --project src/SolarOps.Api --startup-project src/SolarOps.Api`) a commitni ju spolu s kódom. `EnsureCreated` sa už nepoužíva.
 
+## Nasadenie do Azure
+
+Infraštruktúra je v Bicep v [`infra/`](infra/README.md): Container Apps (API, ML služba, frontend a joby), PostgreSQL Flexible Server, Key Vault a Log Analytics v regióne Poland Central. Nasadenie je `infra/deploy.sh`; tajomstvá generuje do ignorovaného `infra/.env`.
+
 ## Pravidlá PR a merge
 
 - 1 issue = 1 PR, najprv ako **draft**. Vetva `sprint1/<NN>-<issue>-<slug>`, commit správy po anglicky v rozkazovacom spôsobe.

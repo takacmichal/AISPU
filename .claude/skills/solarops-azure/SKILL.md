@@ -22,7 +22,7 @@ Frontend je **React**, nie Angular (zastarané issues #165 a #277).
 
 ## Pravidlá
 
-- **Infra ako kód** (#157), cez Bicep alebo `azd`; žiadne ručné klikanie, ktoré by sa nedalo zopakovať. Nič nenasadzuj a nevytváraj v Azure bez výslovného pokynu a bez potvrdenia subscription, resource group a regiónu.
+- **Infra ako kód** (#157): Bicep v `infra/main.bicep`, nasadenie `infra/deploy.sh`, postup v `infra/README.md`; žiadne ručné klikanie, ktoré by sa nedalo zopakovať. Nič nenasadzuj a nevytváraj v Azure bez výslovného pokynu a bez potvrdenia subscription, resource group a regiónu.
 - **Náklady:** študentský kredit. Preferuj scale-to-zero a najmenšie SKU. Pred vytvorením zdroja uveď odhad ceny a over limity Azure for Students (regióny, kvóty Container Apps; v ADR označené ako neoverené). Rozpočet a upozornenia sú #169.
 - **Tajomstvá:** v Key Vault (#159) alebo ako secrets Container Apps. V gite len `.env.example`. Mimo Development musí byť nastavené `Jwt__SigningKey` (min. 32 bajtov) a `ConnectionStrings__Postgres`, inak API nenaštartuje.
 - **CORS:** API musí povoliť origin Static Web Apps (#279). Auth je bearer token, nie cookies (cross-site, ADR-218).
