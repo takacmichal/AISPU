@@ -45,6 +45,7 @@ import {
   type TicketPriority,
 } from './ticketsApi'
 import { buildTimeline } from './timeline'
+import { WORKLOAD_DAYS, useTechnicianWorkload } from './useTechnicianWorkload'
 import { useTicketTransition } from './useTicketTransition'
 import {
   ASSIGNABLE_STATES,
@@ -447,6 +448,7 @@ function TechnicianPicker({
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const assignable = ASSIGNABLE_STATES.includes(ticket.state)
+  const workload = useTechnicianWorkload(assignable ? technicians : null)
 
   async function choose(technician: Technician) {
     setBusy(true)
@@ -482,6 +484,7 @@ function TechnicianPicker({
                 <span className="technician-option__name">
                   {name}
                   {t.email && t.email !== name && <span className="ticket-card__muted">{t.email}</span>}
+                  {workload.has(t.id) && <span className="ticket-card__muted">{T.detail.workload(workload.get(t.id) ?? 0, WORKLOAD_DAYS)}</span>}
                 </span>
                 {checked && <span className="badge badge--info">{T.detail.current}</span>}
               </label>

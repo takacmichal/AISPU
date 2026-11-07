@@ -71,9 +71,12 @@ internal sealed class FakeWeatherForecastClient : IWeatherForecastClient
     }
 
     public static IReadOnlyList<WeatherForecastPoint> Forecast(int seed) =>
+        Forecast(seed, new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc));
+
+    public static IReadOnlyList<WeatherForecastPoint> Forecast(int seed, DateTime start) =>
         Enumerable.Range(0, 48)
             .Select(i => new WeatherForecastPoint(
-                new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc).AddHours(i),
+                start.AddHours(i),
                 seed * 1000 + i,
                 seed * 1000 + i + 1,
                 seed * 1000 + i + 2,

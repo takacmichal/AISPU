@@ -71,14 +71,15 @@ export function DataTable<T>({
         </p>
       )}
       <div className="data-table__scroll">
-      <table aria-busy={loading}>
-        <thead>
-          <tr>
+      {/* Explicit roles: on phones CSS turns rows into cards, and display: block would otherwise drop the table semantics. */}
+      <table role="table" aria-busy={loading}>
+        <thead role="rowgroup">
+          <tr role="row">
             {columns.map((column) => {
               const active = sort?.key === column.key
               const ariaSort = active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined
               return (
-                <th key={column.key} scope="col" aria-sort={ariaSort}>
+                <th key={column.key} role="columnheader" scope="col" aria-sort={ariaSort}>
                   {column.sortable && onSortChange ? (
                     <button
                       type="button"
@@ -94,11 +95,12 @@ export function DataTable<T>({
             })}
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {loading && rows.length === 0 && <SkeletonRows columns={columns.length} />}
           {rows.map((row) => (
             <tr
               key={rowKey(row)}
+              role="row"
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               // Clickable rows are reachable with Tab and open with Enter, like the link they stand for.
               tabIndex={onRowClick ? 0 : undefined}
@@ -112,7 +114,9 @@ export function DataTable<T>({
               className={onRowClick ? 'clickable' : undefined}
             >
               {columns.map((column) => (
-                <td key={column.key}>{column.render(row)}</td>
+                <td key={column.key} role="cell" data-label={column.header}>
+                  {column.render(row)}
+                </td>
               ))}
             </tr>
           ))}

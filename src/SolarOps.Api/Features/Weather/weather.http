@@ -1,0 +1,24 @@
+# Historical weather backfill (admin only). Stores past hours from the Open-Meteo archive for every installation with coordinates.
+# Port matches launchSettings.json (http profile). Paste a bearer token of an Admin from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+
+### Backfill 30 days (from..to inclusive, UTC, at most 31 days, to must be before today)
+POST {{baseUrl}}/api/weather/backfill
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "from": "2026-10-01",
+  "to": "2026-10-30"
+}
+
+### Invalid: to is not before the first day (expect 400 ProblemDetails)
+POST {{baseUrl}}/api/weather/backfill
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "from": "2026-10-10",
+  "to": "2026-10-01"
+}

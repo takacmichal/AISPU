@@ -8,6 +8,13 @@ export const LAYOUT_TEXTS = {
   openMenu: 'Otvoriť menu',
   closeMenu: 'Zavrieť menu',
   quickJumpButton: 'Hľadať zákazníkov, ponuky, inštalácie, tikety…',
+  globalSearch: {
+    title: 'Prejsť na modul', inputLabel: 'Hľadať zákazníka, ponuku, inštaláciu alebo tiket',
+    placeholder: 'Zadajte aspoň 2 znaky…', listLabel: 'Výsledky vyhľadávania', minimum: 'Zadajte aspoň 2 znaky.',
+    loading: 'Vyhľadávam…', error: 'Vyhľadávanie sa nepodarilo. Skúste to znova.', empty: 'Nenašli sa žiadne výsledky.',
+    hint: 'Šípkami vyberte, Enter otvorí, Esc zavrie.',
+    groups: { customers: 'Zákazník', quotes: 'Ponuka', installations: 'Inštalácia', tickets: 'Tiket', modules: 'Modul' },
+  },
   topGroup: 'Prehľad',
   help: 'Pomocník',
   notifications: 'Notifikácie',

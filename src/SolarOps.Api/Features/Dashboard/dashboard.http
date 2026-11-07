@@ -1,0 +1,8 @@
+# Dashboard summary (staff only; a customer gets 403).
+# Port matches launchSettings.json (http profile). Paste a bearer token from POST /api/auth/login.
+@baseUrl = http://localhost:5080
+@token = paste-access-token
+
+### Counts of tickets and quotes (quotes is null for a Technician)
+GET {{baseUrl}}/api/dashboard/summary
+Authorization: Bearer {{token}}

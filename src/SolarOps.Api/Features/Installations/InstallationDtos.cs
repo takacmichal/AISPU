@@ -168,3 +168,15 @@ public sealed record InstallationQuery(
     Guid? SupplyPointId,
     bool AssignedToMe,
     bool? MonitoringEnabled = null);
+
+/// <summary>
+/// Page of installations returned by <c>GET /api/installations/paged</c>. <c>StatusCounts</c> holds the installations per
+/// <see cref="InstallationState"/> (all values present) for the current <c>q</c>, <c>customerId</c> and <c>technicianId</c>
+/// filters; the <c>state</c> filter is ignored.
+/// </summary>
+public sealed record InstallationPageResponse(
+    IReadOnlyList<InstallationResponse> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    IReadOnlyDictionary<string, int> StatusCounts);

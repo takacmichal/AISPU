@@ -185,3 +185,11 @@
   color: var(--color-text-muted);
   text-align: center;
 }
+
+.visit-protocol__notice {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-buttons);
+  background: var(--surface-tint);
+  font-size: var(--text-body-sm);
+}

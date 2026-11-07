@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SolarOps.Api.Features.Components;
@@ -5,6 +6,7 @@ using SolarOps.Api.Features.Customers;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Persistence;
+using SolarOps.Api.Infrastructure.Querying;
 
 namespace SolarOps.Api.Features.Quotes;
 
@@ -15,6 +17,9 @@ public interface IQuoteService
     Task<QuoteResponse> GetAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<QuoteResponse>> ListAsync(Guid? customerId, QuoteStatus? status, CancellationToken ct);
+
+    /// <summary>Paged list with search, filters and per-status counts; <paramref name="status"/> is an enum name (400 when unknown).</summary>
+    Task<QuotePageResponse> ListPagedAsync(PageQuery page, string? status, Guid? customerId, CancellationToken ct);
 
     Task<QuoteResponse> SendAsync(Guid id, SendQuoteRequest? request, CancellationToken ct);
 
@@ -28,8 +33,18 @@ public interface IQuoteService
     Task<int> ExpireOverdueAsync(CancellationToken ct);
 }
 
-public sealed class QuoteService(AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider, IOptions<QuoteOptions> options) : IQuoteService
+public sealed class QuoteService(
+    AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider, IOptions<QuoteOptions> options, ICustomerScope customerScope) : IQuoteService
 {
+    private static readonly Dictionary<string, Expression<Func<Quote, object>>> SortMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["createdAt"] = q => q.CreatedAt,
+        ["updatedAt"] = q => q.UpdatedAt,
+        ["status"] = q => q.Status,
+        ["grossTotal"] = q => q.GrossTotal,
+        ["validUntil"] = q => q.ValidUntil!,
+    };
+
     public async Task<QuoteResponse> CreateAsync(CreateQuoteRequest request, CancellationToken ct)
     {
         var userId = currentUser.RequireUserId();
@@ -86,6 +101,41 @@ public sealed class QuoteService(AppDbContext db, ICurrentUser currentUser, Time
 
         var quotes = await query.OrderByDescending(q => q.CreatedAt).ThenBy(q => q.Id).ToListAsync(ct);
         return quotes.ConvertAll(QuoteResponse.FromEntity);
+    }
+
+    public async Task<QuotePageResponse> ListPagedAsync(PageQuery page, string? status, Guid? customerId, CancellationToken ct)
+    {
+        var statusFilter = EnumFilter.Parse<QuoteStatus>(status, "status");
+
+        // Quote readers are back-office roles today; the scope keeps the query safe should a customer role ever read quotes.
+        var scope = await customerScope.GetAsync(ct);
+        var query = db.Set<Quote>().AsNoTracking();
+        if (scope.IsRestricted)
+        {
+            var own = scope.OwnCustomerId;
+            query = query.Where(q => q.CustomerId == own);
+        }
+
+        if (customerId is { } c)
+        {
+            query = query.Where(q => q.CustomerId == c);
+        }
+
+        if (page.SearchTerm is { } term)
+        {
+            query = query.Matching(db, SqlLike.Contains(term));
+        }
+
+        var sorted = query.ApplySort(page, SortMap, q => q.Id, "createdAt", defaultDescending: true);
+        var statusCounts = await query.CountByAsync(q => q.Status, ct);
+        if (statusFilter is { } s)
+        {
+            sorted = sorted.Where(q => q.Status == s);
+        }
+
+        var quotes = await sorted.Include(q => q.Lines).ToPagedAsync(page, ct);
+        return new QuotePageResponse(
+            quotes.Items.Select(QuoteResponse.FromEntity).ToList(), quotes.Page, quotes.PageSize, quotes.TotalCount, statusCounts);
     }
 
     public async Task<QuoteResponse> SendAsync(Guid id, SendQuoteRequest? request, CancellationToken ct)

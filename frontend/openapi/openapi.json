@@ -48,6 +48,72 @@
         }
       }
     },
+    "/api/production/summary": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Production of all visible installations for a period",
+        "description": "from/to: ISO 8601 with Z or an offset (encode + as %2B), or a date meaning local midnight in timeZone; the period is [from, to). granularity: fiveMinutes, hour (default), day, month. timeZone: IANA id for day and month buckets, default Europe/Bratislava. A reading belongs to the bucket of its window start (timestamp - intervalSec); energy comes from the totalWh counters, peak power is the highest sum of the inverters' AC power. Only buckets with data are returned; an empty period gives an empty list. A customer sees only its own installations (another one is 404). Limits: fiveMinutes 31 days, hour 366 days, day and month 3660 days. Power and energy are summed over the inverters of all installations the caller may see (staff: all, customer: own); peakPowerKw is the highest summed power of a window. installationCount counts the visible installations, also those without data. No installation or no data gives empty points, totalEnergyKwh 0 and peakPowerKw null.",
+        "operationId": "GetProductionSummary",
+        "parameters": [
+          {
+            "name": "From",
+            "in": "query",
+            "description": "Start of the period (inclusive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "End of the period (exclusive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Granularity",
+            "in": "query",
+            "description": "`fiveMinutes`, `hour` (default), `day` or `month`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TimeZone",
+            "in": "query",
+            "description": "IANA time zone for day and month buckets and date-only bounds; default Europe/Bratislava.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/roles": {
       "get": {
         "tags": [
@@ -65,6 +131,48 @@
                   "items": {
                     "type": "string"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/weather/backfill": {
+      "post": {
+        "tags": [
+          "Weather"
+        ],
+        "summary": "Store past hourly weather from the archive",
+        "description": "Fetches the Open-Meteo archive (ERA5) for the days from..to (UTC, inclusive, at most 31 days, to before today) for every installation with coordinates and stores the hours like the forecast. Idempotent: rerunning replaces the same hours. Synchronous; returns the totals and one item per installation. Stores no predictions and creates no alarms or tickets.",
+        "operationId": "BackfillWeather",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalPeriod"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherBackfillResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1825,16 +1933,9 @@
           "Customers"
         ],
         "summary": "List customers",
-        "description": "Filter q matches name, company, e-mail, phone and IČO (case-insensitive substring). Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100).",
+        "description": "Filters: q (name, company, e-mail, phone and IČO, case-insensitive substring), type = Person | Company, status = Active | Archived. Ordered by surname / company name by default; sortBy = name | email | createdAt, sortDir = asc | desc. Defaults: page 1, pageSize 20 (max 100). statusCounts holds the customers per status for the current q and type (the status filter is ignored); every item carries supplyPointCount and lastActivityAt.",
         "operationId": "ListCustomers",
         "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "page",
             "in": "query",
@@ -1862,6 +1963,13 @@
             }
           },
           {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "sortBy",
             "in": "query",
             "schema": {
@@ -1870,6 +1978,20 @@
           },
           {
             "name": "sortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
             "in": "query",
             "schema": {
               "type": "string"
@@ -2109,6 +2231,28 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/summary": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Counts of tickets and quotes for the dashboard",
+        "description": "tickets: open (not Resolved or Closed), new (state New) and open by priority. quotes: sent (status Sent), sentGrossTotal (sum of their gross totals, EUR) and open (Draft or Sent); null for roles without access to quotes (Technician). A customer gets 403.",
+        "operationId": "GetDashboardSummary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
                 }
               }
             }
@@ -3935,6 +4079,110 @@
         }
       }
     },
+    "/api/installations/paged": {
+      "get": {
+        "tags": [
+          "Installations"
+        ],
+        "summary": "List installations with paging, search and state counts",
+        "description": "Filters: state, customerId, technicianId (assigned technician), q (installation name, supply point name or address, customer name; case-insensitive substring). sortBy = createdAt | updatedAt | name | state | scheduledStart | plannedPowerKwp, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). statusCounts holds the installations per state for the current q, customerId and technicianId (the state filter is ignored). A customer sees only its own installations.",
+        "operationId": "ListInstallationsPaged",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "technicianId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/installations/technicians": {
       "get": {
         "tags": [
@@ -4792,6 +5040,99 @@
         }
       }
     },
+    "/api/installations/{installationId}/analysis/past": {
+      "post": {
+        "tags": [
+          "ML analysis"
+        ],
+        "summary": "Predict production for a past period from the stored weather",
+        "description": "Predicts the hours of the days from..to (UTC, inclusive, at most 31 days) from the weather stored by the backfill and stores the predictions, overwriting the same hours. Runs no detection: creates no alarms and no tickets. 409 when the period has no stored weather, 503 when the ML service is unavailable, 502 when it returns an unusable answer.",
+        "operationId": "RunInstallationPastPrediction",
+        "parameters": [
+          {
+            "name": "installationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoricalPeriod"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PastPredictionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/installations/{installationId}/underproduction-alarms": {
       "get": {
         "tags": [
@@ -4828,6 +5169,28 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List notifications for the current user",
+        "description": "Newest first.",
+        "operationId": "ListNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponse"
                 }
               }
             }
@@ -5479,6 +5842,156 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quotes/paged": {
+      "get": {
+        "tags": [
+          "Quotes"
+        ],
+        "summary": "List quotes with paging, search and status counts",
+        "description": "Filters: status (Draft | Sent | Accepted | Rejected | Expired), customerId, q (customer name or note, case-insensitive substring). sortBy = createdAt | updatedAt | status | grossTotal | validUntil, sortDir = asc | desc (default createdAt desc). Defaults: page 1, pageSize 20 (max 100). statusCounts holds the quotes per status for the current q and customerId (the status filter is ignored).",
+        "operationId": "ListQuotesPaged",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotePageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search customers, quotes, installations and tickets",
+        "description": "q is 2 to 200 characters (case-insensitive substring), limit is the maximum hits per group (default 5, max 10). Customers match name, e-mail, phone and IČO; quotes match the customer name and note; installations match their name, supply point name or address and customer name; tickets match the title and customer name. A group is null when the caller's role may not read that module; a customer account never gets customers or quotes and only its own installations and tickets.",
+        "operationId": "Search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -7530,42 +8043,6 @@
           }
         }
       }
-    },
-    "/api/notifications": {
-      "get": {
-        "tags": [
-          "Notifications"
-        ],
-        "summary": "List notifications for the current user",
-        "description": "PROVISIONAL entry added by the frontend; the backend spec replaces it. Newest first.",
-        "operationId": "ListNotifications",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/NotificationItemResponse"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
     }
   },
   "components": {
@@ -7797,7 +8274,7 @@
             "description": "Base64 content of the file; at most long ConnectionRequest.MaxAttachmentBytes before encoding."
           }
         },
-        "description": "Metadata of one attachment, optionally with the file content. When string? AttachmentRequest.ContentBase64 is empty, only\r\nmetadata is stored (legacy clients); when it is set, the decoded file can be downloaded from the API."
+        "description": "Metadata of one attachment, optionally with the file content. When string? AttachmentRequest.ContentBase64 is empty, only\nmetadata is stored (legacy clients); when it is set, the decoded file can be downloaded from the API."
       },
       "AttachmentResponse": {
         "required": [
@@ -7962,6 +8439,97 @@
           }
         },
         "description": "One visit in a technician's calendar with the address and the contact of the customer (story #126)."
+      },
+      "ChecklistResponse": {
+        "required": [
+          "installationId",
+          "editable",
+          "complete",
+          "missingRequiredSteps",
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "missingRequiredSteps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistStepResponse"
+            }
+          }
+        },
+        "description": "Assembly checklist of an installation (#90). `Editable` is true only while mounting."
+      },
+      "ChecklistStepResponse": {
+        "required": [
+          "code",
+          "position",
+          "title",
+          "required",
+          "done",
+          "note",
+          "changedBy",
+          "changedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "changedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One step of the checklist: template data plus the stored state."
       },
       "CloseTicketRequest": {
         "type": "object",
@@ -8373,7 +8941,7 @@
             "format": "date-time"
           }
         },
-        "description": "Connection request with its attachments and deadline. `ProposalRemainingDays` (calendar days, negative when late) and\r\n`ProposalOverdue` are set only while the request waits for the distributor (state `Submitted`)."
+        "description": "Connection request with its attachments and deadline. `ProposalRemainingDays` (calendar days, negative when late) and\n`ProposalOverdue` are set only while the request waits for the distributor (state `Submitted`)."
       },
       "ConnectionRequestState": {
         "enum": [
@@ -8386,7 +8954,7 @@
           "ContractSubmitted",
           "Concluded"
         ],
-        "description": "Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). #85 produces `Draft`; #86 adds\r\n`Submitted`, `InfoRequested`, `Rejected`, `ContractOffered` (\"schválená\"), `ContractSigned` and\r\n`ContractSubmitted`; `Concluded` is the distributor's final act (#87)."
+        "description": "Lifecycle of a connection request (ADR #217, BPMN #64, mapping #69). #85 produces `Draft`; #86 adds\n`Submitted`, `InfoRequested`, `Rejected`, `ContractOffered` (\"schválená\"), `ContractSigned` and\n`ContractSubmitted`; `Concluded` is the distributor's final act (#87)."
       },
       "ConnectionRequestType": {
         "enum": [
@@ -9146,19 +9714,141 @@
         },
         "description": "Payload of `POST /api/tickets`: a fault report for an installation (state `New`)."
       },
+      "CustomerListItemResponse": {
+        "required": [
+          "id",
+          "type",
+          "status",
+          "displayName",
+          "firstName",
+          "lastName",
+          "companyName",
+          "ico",
+          "dic",
+          "icDph",
+          "email",
+          "phone",
+          "address",
+          "note",
+          "userId",
+          "createdAt",
+          "updatedAt",
+          "supplyPointCount",
+          "lastActivityAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CustomerType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomerStatus"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "companyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ico": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icDph": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressDto"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "supplyPointCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Customer in a list: the customer data plus list summaries. `SupplyPointCount` is the number of supply points\n(odberné miesta); `LastActivityAt` is the latest of the customer's own update and the newest update of its\nquotes, installations and tickets."
+      },
       "CustomerListResponse": {
         "required": [
           "items",
           "page",
           "pageSize",
-          "totalCount"
+          "totalCount",
+          "statusCounts"
         ],
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CustomerResponse"
+              "$ref": "#/components/schemas/CustomerListItemResponse"
             }
           },
           "page": {
@@ -9184,9 +9874,20 @@
               "string"
             ],
             "format": "int32"
+          },
+          "statusCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
           }
         },
-        "description": "Page of customers returned by `GET /api/customers`."
+        "description": "Page of customers returned by `GET /api/customers`. `StatusCounts` holds the customers per status\n(all values present, 0 when none) for the current `q` and `type` filters; the `status` filter is\nignored so the status segments stay stable."
       },
       "CustomerResponse": {
         "required": [
@@ -9308,6 +10009,147 @@
           "Company"
         ],
         "description": "Legal form of a customer."
+      },
+      "DashboardQuotesResponse": {
+        "required": [
+          "sent",
+          "sentGrossTotal",
+          "open"
+        ],
+        "type": "object",
+        "properties": {
+          "sent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Quotes in status Sent.",
+            "format": "int32"
+          },
+          "sentGrossTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "description": "Sum of the gross totals of the Sent quotes in EUR.",
+            "format": "double"
+          },
+          "open": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Quotes in status Draft or Sent.",
+            "format": "int32"
+          }
+        }
+      },
+      "DashboardSummaryResponse": {
+        "required": [
+          "generatedAt",
+          "tickets",
+          "quotes"
+        ],
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Time the summary was computed (UTC).",
+            "format": "date-time"
+          },
+          "tickets": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Service ticket counts; null without the TicketsRead policy.",
+                "$ref": "#/components/schemas/DashboardTicketsResponse"
+              }
+            ]
+          },
+          "quotes": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Quote counts; null without the QuotesRead policy (e.g. Technician).",
+                "$ref": "#/components/schemas/DashboardQuotesResponse"
+              }
+            ]
+          }
+        },
+        "description": "Counts for the staff dashboard. A part is null when the caller's role may not read that data."
+      },
+      "DashboardTicketPriorityResponse": {
+        "required": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "type": "object",
+        "properties": {
+          "high": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "medium": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "low": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DashboardTicketsResponse": {
+        "required": [
+          "open",
+          "new",
+          "byPriority"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Tickets that are not Resolved or Closed.",
+            "format": "int32"
+          },
+          "new": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Tickets in state New (not triaged yet).",
+            "format": "int32"
+          },
+          "byPriority": {
+            "description": "Open tickets by priority.",
+            "$ref": "#/components/schemas/DashboardTicketPriorityResponse"
+          }
+        }
       },
       "DepositStatus": {
         "enum": [
@@ -9775,7 +10617,7 @@
           "Rejected",
           "Approved"
         ],
-        "description": "Workflow state of a technical PV design (BPMN #62, spike #207).\r\n`Requested → SiteSurveyDone → InDesign → Approved`; `SiteSurveyDone → Infeasible`; `InDesign → Rejected`."
+        "description": "Workflow state of a technical PV design (BPMN #62, spike #207).\n`Requested → SiteSurveyDone → InDesign → Approved`; `SiteSurveyDone → Infeasible`; `InDesign → Rejected`."
       },
       "FveDesignVersionResponse": {
         "required": [
@@ -9940,6 +10782,30 @@
           }
         }
       },
+      "HistoricalPeriod": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "A range of whole UTC days in the past, both ends inclusive. At most int HistoricalPeriod.MaxDays days per call; the last day\nmust be before today (UTC) because the archive is filled with a delay."
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -9986,97 +10852,6 @@
             }
           }
         }
-      },
-      "ChecklistResponse": {
-        "required": [
-          "installationId",
-          "editable",
-          "complete",
-          "missingRequiredSteps",
-          "steps"
-        ],
-        "type": "object",
-        "properties": {
-          "installationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "editable": {
-            "type": "boolean"
-          },
-          "complete": {
-            "type": "boolean"
-          },
-          "missingRequiredSteps": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ChecklistStepResponse"
-            }
-          }
-        },
-        "description": "Assembly checklist of an installation (#90). `Editable` is true only while mounting."
-      },
-      "ChecklistStepResponse": {
-        "required": [
-          "code",
-          "position",
-          "title",
-          "required",
-          "done",
-          "note",
-          "changedBy",
-          "changedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "position": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "title": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "done": {
-            "type": "boolean"
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "changedBy": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "changedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        },
-        "description": "One step of the checklist: template data plus the stored state."
       },
       "InstallationDetailResponse": {
         "required": [
@@ -10146,6 +10921,60 @@
           "HandoverProtocol"
         ],
         "description": "Documents of the hand-over package (#93) that can be downloaded."
+      },
+      "InstallationPageResponse": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "statusCounts"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallationResponse"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "statusCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Page of installations returned by `GET /api/installations/paged`. `StatusCounts` holds the installations per\nInstallationState (all values present) for the current `q`, `customerId` and `technicianId`\nfilters; the `state` filter is ignored."
       },
       "InstallationResponse": {
         "required": [
@@ -10507,6 +11336,62 @@
         },
         "description": "Outcome of one analysis of an installation (#376)."
       },
+      "NotificationItemResponse": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "createdAt",
+          "link"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Deterministic per (kind, entity, state), e.g. `ticket:{ticketId}:{state}`; the frontend remembers seen ids."
+          },
+          "kind": {
+            "description": "`ticket` or `connection_request`.",
+            "$ref": "#/components/schemas/NotificationKind"
+          },
+          "title": {
+            "type": "string",
+            "description": "Slovak text for the user."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Time the entity entered the state (UTC).",
+            "format": "date-time"
+          },
+          "link": {
+            "type": "string",
+            "description": "Frontend route, `/tickets/{id}` or `/connection-requests/{id}`."
+          }
+        },
+        "description": "One item of the notification list. The frontend builds nothing itself: string NotificationItemResponse.Link is the route to open."
+      },
+      "NotificationKind": {
+        "enum": [
+          "ticket",
+          "connection_request"
+        ],
+        "description": "Kind of a notification; serialized as `ticket` or `connection_request`."
+      },
+      "NotificationListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItemResponse"
+            }
+          }
+        },
+        "description": "Response of `GET /api/notifications`: at most 50 items, newest first."
+      },
       "PanelStringResponse": {
         "required": [
           "id",
@@ -10576,6 +11461,60 @@
         },
         "description": "A string with its installed panels. long PanelStringResponse.TotalPowerW is the sum of their rated power, computed on read."
       },
+      "PastPredictionResponse": {
+        "required": [
+          "installationId",
+          "from",
+          "to",
+          "modelVersion",
+          "weatherHours",
+          "predictedHours"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "description": "Installation of the predictions.",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "string",
+            "description": "First day of the period, UTC.",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "description": "Last day of the period, UTC (inclusive).",
+            "format": "date"
+          },
+          "modelVersion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Model of the predictions; null when nothing was predicted."
+          },
+          "weatherHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours of stored weather the prediction used.",
+            "format": "int32"
+          },
+          "predictedHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours predicted and stored in this run.",
+            "format": "int32"
+          }
+        },
+        "description": "Outcome of a prediction for a past period (backfilled weather); no detection runs and no alarm or ticket is created."
+      },
       "PlanVisitRequest": {
         "required": [
           "start",
@@ -10632,7 +11571,7 @@
             "description": "ISO 3166-1 alpha-2 country code, default \"SK\"."
           }
         },
-        "description": "Postal address value object (EF owned type). Used by Customer and by supply points;\r\nother modules may reuse it for their own addresses."
+        "description": "Postal address value object (EF owned type). Used by Customer and by supply points;\nother modules may reuse it for their own addresses."
       },
       "ProblemDetails": {
         "type": "object",
@@ -10924,6 +11863,75 @@
         },
         "description": "Production of an installation for a period (#100). Points exist only for buckets with data."
       },
+      "ProductionSummaryResponse": {
+        "required": [
+          "from",
+          "to",
+          "granularity",
+          "timeZone",
+          "installationCount",
+          "totalEnergyKwh",
+          "peakPowerKw",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start of the period, UTC (inclusive).",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "description": "End of the period, UTC (exclusive).",
+            "format": "date-time"
+          },
+          "granularity": {
+            "description": "Bucket size.",
+            "$ref": "#/components/schemas/ProductionGranularity"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA time zone of day and month buckets."
+          },
+          "installationCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Number of installations the caller may see (also those without data).",
+            "format": "int32"
+          },
+          "totalEnergyKwh": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "description": "Sum of the energy of all points.",
+            "format": "double"
+          },
+          "peakPowerKw": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "description": "Highest summed AC power of all visible installations in the period; null without data.",
+            "format": "double"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionPointResponse"
+            },
+            "description": "Buckets with data, oldest first; power and energy are summed over all visible installations."
+          }
+        },
+        "description": "Production of all installations visible to the caller for a period. Points exist only for buckets with data."
+      },
       "QuoteLineRequest": {
         "required": [
           "componentId",
@@ -11021,6 +12029,60 @@
           }
         },
         "description": "Optional body of `accept` and `reject`."
+      },
+      "QuotePageResponse": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "statusCounts"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteResponse"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pageSize": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "statusCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Page of quotes returned by `GET /api/quotes/paged`. `StatusCounts` holds the quotes per QuoteStatus\n(all values present) for the current `q` and `customerId` filters; the `status` filter is ignored."
       },
       "QuoteResponse": {
         "required": [
@@ -11434,31 +12496,6 @@
         },
         "description": "Payload of `PUT /api/visits/{id}/materials`: replaces the whole list of used material (story #128)."
       },
-      "ResetPasswordRequest": {
-        "required": [
-          "email",
-          "token",
-          "newPassword"
-        ],
-        "type": "object",
-        "properties": {
-          "email": {
-            "maxLength": 256,
-            "type": "string"
-          },
-          "token": {
-            "maxLength": 2048,
-            "type": "string",
-            "description": "Token from the reset link."
-          },
-          "newPassword": {
-            "maxLength": 128,
-            "type": "string",
-            "description": "Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit)."
-          }
-        },
-        "description": "Sets a new password with the token from the reset link."
-      },
       "RescheduleVisitRequest": {
         "required": [
           "start",
@@ -11494,6 +12531,31 @@
           }
         },
         "description": "Payload of `PUT /api/visits/{id}/schedule`: a new date with the reason of the change."
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "email",
+          "token",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 2048,
+            "type": "string",
+            "description": "Token from the reset link."
+          },
+          "newPassword": {
+            "maxLength": 128,
+            "type": "string",
+            "description": "Must satisfy the password policy (min. 10 characters, upper and lower case letter, digit)."
+          }
+        },
+        "description": "Sets a new password with the token from the reset link."
       },
       "RevisionReportResponse": {
         "required": [
@@ -11771,6 +12833,105 @@
         ],
         "description": "Roof covering / construction; determines the mounting system."
       },
+      "ScheduleInstallationRequest": {
+        "required": [
+          "scheduledStart",
+          "scheduledEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "scheduledStart": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "scheduledEnd": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "Planned mounting window of an installation."
+      },
+      "SearchHit": {
+        "required": [
+          "id",
+          "title",
+          "subtitle"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Id of the customer, quote, installation or ticket.",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "description": "Main line, e.g. the customer name, installation name or ticket title."
+          },
+          "subtitle": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Secondary line (e-mail, status and customer); may be null."
+          }
+        },
+        "description": "One search hit. The frontend builds the link from the group and `Id`."
+      },
+      "SearchResponse": {
+        "required": [
+          "customers",
+          "quotes",
+          "installations",
+          "tickets"
+        ],
+        "type": "object",
+        "properties": {
+          "customers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          },
+          "quotes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          },
+          "installations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          },
+          "tickets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          }
+        },
+        "description": "Hits grouped by type. A group is null when the caller's role may not read that module (the customers group is\nnever returned to a customer account); otherwise it is a list, possibly empty, with at most `limit` hits."
+      },
       "SendQuoteRequest": {
         "type": "object",
         "properties": {
@@ -11820,7 +12981,7 @@
           "Resolved",
           "Closed"
         ],
-        "description": "Lifecycle of a service ticket (mapping #69, BPMN #67 and #68). Story #121 names five states (Nový, Pridelený,\r\nV riešení, Vyriešený, Uzavretý); the mapping document is the source of truth and splits them along the BPMN tasks."
+        "description": "Lifecycle of a service ticket (mapping #69, BPMN #67 and #68). Story #121 names five states (Nový, Pridelený,\nV riešení, Vyriešený, Uzavretý); the mapping document is the source of truth and splits them along the BPMN tasks."
       },
       "ServiceVisitState": {
         "enum": [
@@ -11848,30 +13009,6 @@
           }
         },
         "description": "Payload for `PUT /api/users/{id}/roles`: the complete set of roles the user should have."
-      },
-      "ScheduleInstallationRequest": {
-        "required": [
-          "scheduledStart",
-          "scheduledEnd"
-        ],
-        "type": "object",
-        "properties": {
-          "scheduledStart": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          },
-          "scheduledEnd": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date"
-          }
-        },
-        "description": "Planned mounting window of an installation."
       },
       "SignContractRequest": {
         "required": [
@@ -12206,7 +13343,7 @@
             "description": "1 to 288 readings."
           }
         },
-        "description": "Ingest batch of inverter measurements (contract of ADR #185, `schemaVersion` 1.0).\r\nStatus, source and timestamps are strings on purpose: an invalid value then yields a 400 that names the field\r\ninstead of a bare deserialization error. Validation of the nested readings is done here because the\r\nDataAnnotations filter does not descend into collections; error keys look like `readings[3].timestamp`."
+        "description": "Ingest batch of inverter measurements (contract of ADR #185, `schemaVersion` 1.0).\nStatus, source and timestamps are strings on purpose: an invalid value then yields a 400 that names the field\ninstead of a bare deserialization error. Validation of the nested readings is done here because the\nDataAnnotations filter does not descend into collections; error keys look like `readings[3].timestamp`."
       },
       "TelemetryIngestResponse": {
         "required": [
@@ -12877,7 +14014,7 @@
             "description": "Opaque refresh token; keep it out of persistent storage."
           }
         },
-        "description": "Tokens returned after login (and refresh). The access token is a JWT for the `Authorization: Bearer` header;\r\nthe refresh token is opaque, single-use and valid for 7 days."
+        "description": "Tokens returned after login (and refresh). The access token is a JWT for the `Authorization: Bearer` header;\nthe refresh token is opaque, single-use and valid for 7 days."
       },
       "TransitionTicketRequest": {
         "required": [
@@ -13127,6 +14264,28 @@
           "High"
         ],
         "description": "Severity of an underproduction event (ADR #194)."
+      },
+      "UpdateChecklistStepRequest": {
+        "required": [
+          "done"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "note": {
+            "maxLength": 1000,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Marks a checklist step done or not done (#90)."
       },
       "UpdateComponentRequest": {
         "required": [
@@ -13401,28 +14560,6 @@
           }
         },
         "description": "Roof, consumption and location inputs of the design."
-      },
-      "UpdateChecklistStepRequest": {
-        "required": [
-          "done"
-        ],
-        "type": "object",
-        "properties": {
-          "done": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "note": {
-            "maxLength": 1000,
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "Marks a checklist step done or not done (#90)."
       },
       "UpdateInstallationRequest": {
         "required": [
@@ -13747,6 +14884,7 @@
           },
           "quantity": {
             "maximum": 100000,
+            "minimum": 0.001,
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
@@ -14006,6 +15144,122 @@
           }
         }
       },
+      "WeatherBackfillItem": {
+        "required": [
+          "installationId",
+          "status",
+          "rowsStored",
+          "skippedHours"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "description": "Installation of the item.",
+            "format": "uuid"
+          },
+          "status": {
+            "description": "Updated: hours stored; Skipped: no coordinates or no complete hour in the archive; Failed: the API failed.",
+            "$ref": "#/components/schemas/WeatherBackfillStatus"
+          },
+          "rowsStored": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours stored for the installation.",
+            "format": "int32"
+          },
+          "skippedHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Hours of the period left out because the archive had no complete values for them.",
+            "format": "int32"
+          }
+        },
+        "description": "Outcome of the backfill for one installation."
+      },
+      "WeatherBackfillResult": {
+        "required": [
+          "from",
+          "to",
+          "installations",
+          "succeeded",
+          "skipped",
+          "failed",
+          "rowsStored",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "installations": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "succeeded": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "skipped": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rowsStored": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeatherBackfillItem"
+            }
+          }
+        },
+        "description": "Outcome of one backfill run; the totals follow the log line of the daily refresh."
+      },
+      "WeatherBackfillStatus": {
+        "enum": [
+          "Updated",
+          "Skipped",
+          "Failed"
+        ]
+      },
       "YieldEstimateResponse": {
         "required": [
           "annualKwh",
@@ -14034,38 +15288,6 @@
             "type": "string"
           }
         }
-      },
-      "NotificationItemResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "kind",
-          "title",
-          "createdAt",
-          "link"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "ticket",
-              "connection_request"
-            ]
-          },
-          "title": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "link": {
-            "type": "string"
-          }
-        }
       }
     }
   },
@@ -14074,7 +15296,13 @@
       "name": "ML analysis"
     },
     {
+      "name": "Production"
+    },
+    {
       "name": "Roles"
+    },
+    {
+      "name": "Weather"
     },
     {
       "name": "Auth"
@@ -14092,6 +15320,9 @@
       "name": "Customers"
     },
     {
+      "name": "Dashboard"
+    },
+    {
       "name": "DeviceKeys"
     },
     {
@@ -14107,19 +15338,19 @@
       "name": "Strings"
     },
     {
-      "name": "Production"
+      "name": "Notifications"
     },
     {
       "name": "Quotes"
+    },
+    {
+      "name": "Search"
     },
     {
       "name": "SupplyPoints"
     },
     {
       "name": "System"
-    },
-    {
-      "name": "Notifications"
     },
     {
       "name": "Telemetry"

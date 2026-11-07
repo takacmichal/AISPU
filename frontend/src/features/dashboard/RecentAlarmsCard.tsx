@@ -3,12 +3,12 @@ import { Skeleton } from '../../components/Skeleton'
 import { formatRelative } from '../../lib/format'
 import type { Alarm } from '../monitoring/alarmsApi'
 import { fromAlarm, fromTicket } from './alarms'
-import type { TicketSummary } from './data'
+import type { TicketItems } from './data'
 import { DASHBOARD_PARTS as T } from './texts'
 import './dashboard.css'
 
 /** `summary` comes from the dashboard (one request shared with the KPI cards); undefined while loading. */
-export function RecentAlarmsCard({ summary, alarms = [] }: { summary: TicketSummary | null | undefined; alarms?: readonly Alarm[] }) {
+export function RecentAlarmsCard({ summary, alarms = [] }: { summary: TicketItems | null | undefined; alarms?: readonly Alarm[] }) {
   const loading = summary === undefined
   const now = new Date()
   // A ticket created from an alarm is the same event, so it is listed once, as the alarm.

@@ -1,3 +1,4 @@
+import { useState, type DragEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { DataTable, type Column } from '../../components/DataTable'
@@ -20,12 +21,16 @@ import {
   listInstallationOptions,
   listTickets,
   type TicketListItem,
+  type TicketState,
 } from './ticketsApi'
 import { useTicketTransition } from './useTicketTransition'
 
 const PAGE_SIZE = 20
 const BOARD_SIZE = 100
 type View = 'board' | 'list'
+
+/** States a planner may move a ticket to from the board; visit-driven states are set by the visit workflow. */
+const boardTargets = (state: TicketState) => TRANSITION_MAP[state].filter((target) => !VISIT_WORKFLOW_STATES.includes(target))
 
 /**
  * `/tickets` (wireframe "Servisné tikety"): Kanban with the 8 backend states or a paged list (`?view=`).
@@ -57,8 +62,34 @@ export default function TicketListPage() {
   }, 'ticket-installations')
   const installationName = (id: string) => installations.data?.get(id)
   const mover = useTicketTransition(() => reload())
+  // Cards dropped into another column; kept after a successful move, so the board does not flash a reload.
+  const [movedStates, setMovedStates] = useState<Record<string, TicketState>>({})
+  const [dragged, setDragged] = useState<TicketListItem | null>(null)
+
+  function dropOn(target: TicketState) {
+    const card = dragged
+    setDragged(null)
+    if (!card || !boardTargets(card.state).includes(target)) return
+    void mover.moveOptimistic(card.id, card.state, target, {
+      apply: () => setMovedStates((moved) => ({ ...moved, [card.id]: target })),
+      rollback: () =>
+        setMovedStates((moved) => {
+          const rest = { ...moved }
+          delete rest[card.id]
+          return rest
+        }),
+    })
+  }
+
+  function startDrag(event: DragEvent, card: TicketListItem) {
+    event.dataTransfer.effectAllowed = 'move'
+    // Firefox starts a drag only when some data is set.
+    event.dataTransfer.setData('text/plain', card.title)
+    setDragged(card)
+  }
 
   function update(changes: Record<string, string | null>) {
+    setMovedStates({})
     const next = new URLSearchParams(params)
     for (const [key, value] of Object.entries(changes)) {
       if (value === null || value === '') next.delete(key)
@@ -77,7 +108,7 @@ export default function TicketListPage() {
   ]
 
   const filtered = Boolean(state || priority || origin)
-  const items = data?.items ?? []
+  const items = (data?.items ?? []).map((t) => (movedStates[t.id] ? { ...t, state: movedStates[t.id] } : t))
   const all = (label: string) => ({ value: '', label })
 
   return (
@@ -153,11 +184,25 @@ export default function TicketListPage() {
       {board && !loading && !error && items.length > 0 && (
         <>
           {data && data.totalCount > items.length && <p role="note">{T.list.boardTruncated(items.length, data.totalCount)}</p>}
+          {canManage && <p className="kanban__hint">{T.list.dragHint}</p>}
           <div className="kanban" role="region" aria-label={T.list.boardLabel} tabIndex={0}>
             {TICKET_STATES.map((column) => {
               const cards = items.filter((t) => t.state === column)
+              const droppable = dragged !== null && boardTargets(dragged.state).includes(column)
               return (
-                <section key={column} className="kanban__column" aria-labelledby={`col-${column}`}>
+                <section
+                  key={column}
+                  className={`kanban__column${droppable ? ' kanban__column--droppable' : ''}`}
+                  aria-labelledby={`col-${column}`}
+                  onDragOver={(event) => {
+                    // Without preventDefault the browser refuses the drop, so other columns stay closed.
+                    if (droppable) event.preventDefault()
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    dropOn(column)
+                  }}
+                >
                   <h3 id={`col-${column}`}>
                     <span>{STATE_LABELS[column]}</span>
                     <span className="kanban__count">{cards.length}</span>
@@ -165,8 +210,14 @@ export default function TicketListPage() {
                   {cards.length === 0 && <p className="kanban__empty">{T.list.columnEmpty}</p>}
                   <ul className="kanban__cards">
                     {cards.map((t) => (
-                      <li key={t.id} className={`kanban__card kanban__card--${t.priority.toLowerCase()}`}>
-                        <Link to={`/tickets/${t.id}`} className="kanban__card-title">
+                      <li
+                        key={t.id}
+                        className={`kanban__card kanban__card--${t.priority.toLowerCase()}`}
+                        draggable={canManage && !mover.busy && boardTargets(t.state).length > 0}
+                        onDragStart={(event) => startDrag(event, t)}
+                        onDragEnd={() => setDragged(null)}
+                      >
+                        <Link to={`/tickets/${t.id}`} className="kanban__card-title" draggable={false}>
                           {t.title}
                         </Link>
                         {installationName(t.installationId) && <span className="kanban__card-meta">{installationName(t.installationId)}</span>}
@@ -179,20 +230,18 @@ export default function TicketListPage() {
                         </div>
                         {canManage && (
                           <div role="group" aria-label={T.list.moveLabel(t.title)} className="kanban__moves">
-                            {TRANSITION_MAP[t.state]
-                              .filter((target) => !VISIT_WORKFLOW_STATES.includes(target))
-                              .map((target) => (
-                                <button
-                                  key={target}
-                                  type="button"
-                                  className="btn btn--ghost btn--sm"
-                                  disabled={mover.busy}
-                                  aria-label={`${T.list.moveTo(STATE_LABELS[target])}: ${t.title}`}
-                                  onClick={() => void mover.move(t.id, t.state, target)}
-                                >
-                                  → {STATE_LABELS[target]}
-                                </button>
-                              ))}
+                            {boardTargets(t.state).map((target) => (
+                              <button
+                                key={target}
+                                type="button"
+                                className="btn btn--ghost btn--sm"
+                                disabled={mover.busy}
+                                aria-label={`${T.list.moveTo(STATE_LABELS[target])}: ${t.title}`}
+                                onClick={() => void mover.move(t.id, t.state, target)}
+                              >
+                                → {STATE_LABELS[target]}
+                              </button>
+                            ))}
                           </div>
                         )}
                       </li>

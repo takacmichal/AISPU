@@ -38,14 +38,14 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `CustomersWrite` | Admin, Sales | `POST /api/customers`, `PUT /api/customers/{id}`, `POST /api/customers/{id}/archive`, `POST /api/customers/{id}/reactivate`, `POST/PUT/DELETE /api/customers/{customerId}/supply-points/…` |
 | `CatalogRead` | Admin, Sales, Designer, Operator | `GET /api/components`, `GET /api/components/{id}` |
 | `CatalogWrite` | Admin, Sales | `POST /api/components`, `PUT /api/components/{id}`, `POST /api/components/{id}/activate`, `POST /api/components/{id}/deactivate` |
-| `QuotesRead` | Admin, Sales, Designer, Operator | `GET /api/quotes`, `GET /api/quotes/{id}`, `GET /api/quotes/{id}/history` |
+| `QuotesRead` | Admin, Sales, Designer, Operator | `GET /api/quotes`, `GET /api/quotes/paged`, `GET /api/quotes/{id}`, `GET /api/quotes/{id}/history` |
 | `QuotesWrite` | Admin, Sales | `POST /api/quotes`, `POST /api/quotes/{id}/send`, `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject`, `POST /api/designs/{id}/quote` |
 | `ContractsRead` | Admin, Sales, Designer, Operator | `GET /api/contracts`, `GET /api/contracts/{id}`, `GET /api/contracts/{id}/audit` |
 | `ContractsWrite` | Admin, Sales | `POST /api/contracts`, `POST /api/contracts/{id}/sign`, `POST /api/contracts/{id}/deposit/pay` |
 | `DesignsRead` | Admin, Sales, Designer | `GET /api/designs`, `GET /api/designs/{id}`, `GET /api/designs/{id}/versions`, `GET /api/designs/{id}/versions/{number}`, `POST /api/designs` (založenie návrhu patrí obchodnému toku) |
 | `DesignsWrite` | Admin, Designer | `POST /api/designs/{id}/site-survey`, `POST /api/designs/{id}/mark-infeasible`, `PUT /api/designs/{id}/parameters`, `POST /api/designs/{id}/configuration/preview`, `POST /api/designs/{id}/versions` |
 | `DesignsApprove` | Admin, Sales | `POST /api/designs/{id}/approve`, `POST /api/designs/{id}/rework` |
-| `InstallationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations`, `GET /api/installations/{id}`, `GET /api/installations/{installationId}/devices…` (všetky GET vetvy), `GET /api/installations/{id}/checklist`, `GET /api/installations/{id}/revision-reports`, `GET …/revision-reports/{reportId}`, `GET …/revision-reports/{reportId}/file`, `GET /api/installations/{id}/documentation`, `GET /api/installations/{id}/documentation/handover-protocol` |
+| `InstallationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations`, `GET /api/installations/paged`, `GET /api/installations/{id}`, `GET /api/installations/{installationId}/devices…` (všetky GET vetvy), `GET /api/installations/{id}/checklist`, `GET /api/installations/{id}/revision-reports`, `GET …/revision-reports/{reportId}`, `GET …/revision-reports/{reportId}/file`, `GET /api/installations/{id}/documentation`, `GET /api/installations/{id}/documentation/handover-protocol` |
 | `InstallationsPlan` | Admin, Sales, Designer, Operator | `POST /api/installations`, `PUT /api/installations/{id}`, `PUT /api/installations/{id}/schedule`, `PUT /api/installations/{id}/technicians`, `GET /api/installations/technicians` (zoznam technikov pre plánovanie) |
 | `InstallationsField` | Admin, Designer, Technician, Operator | `POST /api/installations/{id}/transitions`, `POST /api/installations/{installationId}/devices`, `POST /api/installations/{installationId}/devices/{deviceId}/replace`, `PUT /api/installations/{id}/checklist/{stepCode}`, `POST /api/installations/{id}/revision-reports`, `POST /api/installations/{id}/commission` |
 | `ConnectionRequestsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/connection-requests`, `GET /api/connection-requests/{id}`, `GET /api/connection-requests/{id}/attachments/{attachmentId}` |
@@ -53,7 +53,7 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `ConnectionRequestsSubmit` | Admin, Designer | `POST /api/connection-requests/{id}/submit`, `…/review-conditions`, `…/submit-signed-contract` |
 | `ConnectionRequestsProcess` | Admin, Sales, Designer, Operator | `POST /api/connection-requests/{id}/resubmit`, `…/send-contract`, `…/customer-signed` |
 | `ConnectionRequestsSimulate` | Admin, Operator | `POST /api/connection-requests/{id}/decision`, `POST /api/connection-requests/{id}/conclude` (simulovaná distribučka) |
-| `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export` (prehľady výroby, #28), `GET /api/installations/{installationId}/underproduction-alarms`, `GET /api/underproduction-alarms` (alarmy podvýroby, #376, #248) |
+| `ProductionRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/installations/{installationId}/production`, `…/production/comparison`, `…/production/export`, `GET /api/production/summary` (prehľady výroby, #28; súhrn za všetky viditeľné inštalácie), `GET /api/installations/{installationId}/underproduction-alarms`, `GET /api/underproduction-alarms` (alarmy podvýroby, #376, #248) |
 | `ProductionAnalyze` | Admin, Operator | `POST /api/installations/{installationId}/analysis` (spustenie ML predikcie a detekcie, #376) |
 | `TicketsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/history`, `GET /api/tickets/{id}/comments`, `GET /api/tickets/{id}/attachments/{attachmentId}`, `GET /api/tickets/{id}/visits`, `GET /api/visits/{id}` |
 | `TicketsCreate` | Admin, Technician, Operator, Customer | `POST /api/tickets` (zákazník len pre vlastnú inštaláciu, pôvod `CustomerReport`) |
@@ -61,8 +61,11 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 | `TicketsComment` | Admin, Technician, Operator | `POST /api/tickets/{id}/comments` |
 | `TicketsField` | Admin, Technician, Operator | `GET /api/technicians/me/visits`, `POST /api/visits/{id}/start`, `POST /api/visits/{id}/report`, `PUT /api/visits/{id}/materials`, `POST /api/visits/{id}/device-replacements`, `POST /api/tickets/{id}/verify` (technik len na vlastných výjazdoch a tiketoch, cudzie dávajú 404; Admin a Operator na všetkých) |
 | `TicketsConfirm` | Customer | `POST /api/tickets/{id}/confirm`, `POST /api/tickets/{id}/reopen` (len vlastný tiket, cudzí dáva 404; znovuotvorenie do 7 dní od uzavretia) |
+| `DashboardRead` | Admin, Sales, Designer, Technician, Operator | `GET /api/dashboard/summary` (počty tiketov a ponúk; ponuky len pre roly s `QuotesRead`, inak `null`; zákazník dostane 403) |
+| `SearchRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/search` (globálne vyhľadávanie; skupina výsledkov sa vráti len roly, ktorá smie čítať daný modul, inak `null`; zákazník nikdy nedostane zákazníkov ani ponuky a v inštaláciách a tiketoch vidí len vlastné) |
+| `NotificationsRead` | Admin, Sales, Designer, Technician, Operator, Customer | `GET /api/notifications` (zvonček; obsah závisí od roly, zákazník dostane len vlastné záznamy a technik len tikety svojich aktívnych výjazdov) |
 
-`Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead` a `TicketsCreate`, ale vidí a smie
+`Customer` je v `InstallationsRead`, `ConnectionRequestsRead`, `ProductionRead`, `TicketsRead`, `TicketsCreate`, `SearchRead` a `NotificationsRead`, ale vidí a smie
 použiť **len vlastné záznamy**: obmedzenie rieši `ICustomerScope` (#137) vo vnútri dotazu, nie autorizačná
 politika. Politika rozhoduje, či rola vôbec smie na endpoint; scope rozhoduje, ktoré riadky vráti. Pri tiketoch
 zákazník navyše vidí len verejné komentáre a v histórii nevidí interné poznámky prechodov.

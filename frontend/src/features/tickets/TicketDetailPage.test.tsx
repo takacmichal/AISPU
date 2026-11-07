@@ -141,6 +141,29 @@ describe('TicketDetailPage', () => {
     expect(await screen.findByText('Tiket priradený: Tomáš Varga')).toBeInTheDocument()
   })
 
+  it('shows the workload of technicians and still assigns when it cannot be loaded', async () => {
+    const calls = stubFetch(({ path, method }) => {
+      if (path === '/api/tickets/t1' ) return json(ticketDetail({ state: 'Triaged' }))
+      if (path === '/api/installations/technicians') return json([{ id: 'tech1', userName: 'Tomáš Varga', email: null }, { id: 'tech2', userName: 'Eva Malá', email: null }])
+      if (path === '/api/tickets/t1/visits') return json({ ticketId: 't1', assignedTechnicianId: null, visits: [] })
+      if (path === '/api/technicians/tech1/visits')
+        return json({ technicianId: 'tech1', from: '', to: '', visits: [{ state: 'Planned' }, { state: 'InProgress' }, { state: 'Done' }, { state: 'Cancelled' }] })
+      if (path === '/api/technicians/tech2/visits') return problem(500, 'boom')
+      if (path === '/api/tickets/t1/technician' && method === 'PUT') return json({ ticketId: 't1', technicianId: 'tech2' })
+      if (path === '/api/tickets/t1/history' || path === '/api/tickets/t1/comments') return json([])
+    })
+    render()
+
+    const first = await screen.findByRole('radio', { name: /Tomáš Varga/ })
+    expect(await within(first.closest('label')!).findByText('Aktívne výjazdy na 7 dní: 2')).toBeInTheDocument()
+    const second = screen.getByRole('radio', { name: /Eva Malá/ })
+    expect(within(second.closest('label')!).queryByText(/Aktívne výjazdy/)).not.toBeInTheDocument()
+
+    await userEvent.click(second)
+
+    await waitFor(() => expect(calls.find((c) => c.method === 'PUT')?.body).toEqual({ technicianId: 'tech2' }))
+  })
+
   it('plans a visit for the assigned technician', async () => {
     const calls = api(ticketDetail({ state: 'RemoteDiagnosis', allowedTransitions: ['Resolved', 'VisitScheduled'] }), (path, method) => {
       if (path === '/api/installations/technicians') return json([{ id: 'tech1', userName: 'Tomáš Varga', email: null }])

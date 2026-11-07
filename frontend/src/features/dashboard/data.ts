@@ -2,12 +2,8 @@ import { api } from '../../api/client'
 import { ALARMS_POLL_MS, DASHBOARD_POLL_MS, useLoad } from '../../components/useLoad'
 import { fetchOngoingAlarms, type Alarm } from '../monitoring/alarmsApi'
 import { addDays, toDateString } from '../monitoring/periods'
-import { fetchProduction } from '../monitoring/productionApi'
 import { listTickets, type TicketListItem } from '../tickets/ticketsApi'
 import { CLOSED } from './alarms'
-
-/** Installation states with a running plant; telemetry and production exist only for these. */
-export const OPERATING_STATES: ReadonlySet<string> = new Set(['Commissioned', 'HandedOver'])
 
 export interface TodayProduction {
   todayKwh: number
@@ -41,49 +37,31 @@ export function useTodayProduction(live = true, enabled = true) {
 
 async function loadToday(signal: AbortSignal): Promise<TodayProduction> {
   const now = new Date()
-  const { data, response } = await api.GET('/api/installations', { signal })
-  if (!data) throw new Error(`HTTP ${response.status}`)
-  const ids = data.filter((i) => OPERATING_STATES.has(i.state)).map((i) => i.id)
-  const today = toDateString(now)
-  const query = { from: addDays(today, -1), to: addDays(today, 1), granularity: 'day' as const }
-  const responses = await Promise.all(ids.map((id) => fetchProduction(id, query, signal)))
-  const sumFor = (day: string) =>
-    responses.reduce(
-      (sum, r) => sum + r.points.filter((p) => p.periodStart.slice(0, 10) === day).reduce((s, p) => s + p.energyKwh, 0),
-      0,
-    )
-  return { todayKwh: sumFor(today), yesterdayKwh: sumFor(addDays(today, -1)), operating: ids.length, asOf: hhmm(now) }
+  const [production, installations] = await Promise.all([
+    api.GET('/api/production/summary', { params: { query: { From: addDays(toDateString(now), -1), To: addDays(toDateString(now), 1), Granularity: 'day' } }, signal }),
+    api.GET('/api/installations/paged', { params: { query: { page: 1, pageSize: 1 } }, signal }),
+  ])
+  if (!production.data) throw new Error(`HTTP ${production.response.status}`)
+  if (!installations.data) throw new Error(`HTTP ${installations.response.status}`)
+  const day = toDateString(now)
+  // periodStart is a UTC instant (the local day starts at 23:00Z), so the local calendar day is taken in the plant time zone.
+  const localDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bratislava' }).format(new Date(iso))
+  const sumFor = (key: string) => production.data.points.filter((p) => localDay(p.periodStart) === key).reduce((sum, p) => sum + Number(p.energyKwh), 0)
+  const counts = installations.data.statusCounts
+  const operating = Number(counts.Commissioned ?? 0) + Number(counts.HandedOver ?? 0)
+  return { todayKwh: sumFor(day), yesterdayKwh: sumFor(addDays(day, -1)), operating, asOf: hhmm(now) }
 }
 
-export interface TicketSummary {
-  open: number
-  /** Open tickets in state New, waiting for triage. */
-  waitingTriage: number
-  fresh: number
-  critical: number
-  warning: number
-  info: number
-  items: TicketListItem[]
-}
+export interface TicketItems { items: TicketListItem[] }
 
 /** Open service tickets; the alarm KPI counts only those raised by anomaly detection. */
 export function useTicketSummary(enabled = true) {
-  return useLoad<TicketSummary | null>(
+  return useLoad<TicketItems | null>(
     async (signal) => {
       if (!enabled) return null
-      const list = await listTickets({ pageSize: 100 }, signal)
+      const list = await listTickets({ page: 1, pageSize: 10 }, signal)
       const items = list.items.filter((t) => !CLOSED.has(t.state)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-      const alarms = items.filter((t) => t.origin === 'AnomalyDetected')
-      const count = (p: TicketListItem['priority']) => alarms.filter((t) => t.priority === p).length
-      return {
-        open: items.length,
-        waitingTriage: items.filter((t) => t.state === 'New').length,
-        fresh: alarms.filter((t) => t.state === 'New').length,
-        critical: count('High'),
-        warning: count('Medium'),
-        info: count('Low'),
-        items,
-      }
+      return { items }
     },
     `dashboard-tickets|${enabled}`,
     { intervalMs: DASHBOARD_POLL_MS, enabled },
@@ -107,24 +85,11 @@ export function useOngoingAlarms(enabled = true) {
   )
 }
 
-export interface QuoteSummary {
-  waiting: number
-  valueGross: number
-  open: number
-}
-
-/** Quotes sent to customers and waiting for an answer. */
-export function useQuoteSummary(enabled = true) {
-  return useLoad<QuoteSummary | null>(
-    async (signal) => {
-      if (!enabled) return null
-      const { data, response } = await api.GET('/api/quotes', { signal })
-      if (!data) throw new Error(`HTTP ${response.status}`)
-      const sent = data.filter((q) => q.status === 'Sent')
-      const open = data.filter((q) => q.status === 'Draft' || q.status === 'Sent').length
-      return { waiting: sent.length, valueGross: sent.reduce((s, q) => s + Number(q.grossTotal ?? 0), 0), open }
-    },
-    `dashboard-quotes|${enabled}`,
-    { intervalMs: DASHBOARD_POLL_MS, enabled },
-  )
+export function useDashboardSummary(enabled = true) {
+  return useLoad(async (signal) => {
+    if (!enabled) return null
+    const { data, response } = await api.GET('/api/dashboard/summary', { signal })
+    if (!data) throw new Error(`HTTP ${response.status}`)
+    return data
+  }, `dashboard-summary|${enabled}`, { intervalMs: DASHBOARD_POLL_MS, enabled })
 }

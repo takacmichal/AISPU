@@ -72,7 +72,7 @@ describe('Dashboard', () => {
     expect(screen.queryByText('Ukážkové dáta')).not.toBeInTheDocument()
     expect(screen.queryByText(/SLA/)).not.toBeInTheDocument()
     expect(await screen.findByText('Žiadne otvorené hlásenia.')).toBeInTheDocument()
-    expect(await screen.findByText('Zatiaľ nie sú žiadne elektrárne v prevádzke.')).toBeInTheDocument()
+    expect(await screen.findByText('Zatiaľ nie sú dostupné žiadne inštalácie.')).toBeInTheDocument()
   })
 
   it('sums today production of plants in operation only', async () => {
@@ -132,8 +132,7 @@ describe('Dashboard', () => {
     const quotes = await waitFor(() => card('Ponuky čakajú na odpoveď'))
     await within(quotes).findByText(/1\s230/)
     expect(within(quotes).queryByText('Ukážkové dáta')).not.toBeInTheDocument()
-    expect(within(card('Aktívne alarmy')).getByText('1')).toBeInTheDocument()
-    expect(within(card('Aktívne alarmy')).getByText('1 nový')).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('0')).toBeInTheDocument()
     const alarm = await screen.findByRole('link', { name: 'Chyba striedača' })
     expect(alarm).toHaveAttribute('href', '/tickets/t1')
     expect(screen.getByText('Kritický')).toBeInTheDocument()
@@ -212,7 +211,7 @@ describe('Dashboard', () => {
     })
     renderDashboard('Admin')
 
-    await waitFor(() => expect(within(kpis()).getAllByText('Údaje sa nepodarilo načítať.')).toHaveLength(4))
+    await waitFor(() => expect(within(kpis()).getAllByText('Údaje sa nepodarilo načítať.')).toHaveLength(3))
     expect(screen.queryByText(/1\s284/)).not.toBeInTheDocument()
     expect(screen.queryByText('Ukážkové dáta')).not.toBeInTheDocument()
   })
@@ -233,19 +232,15 @@ describe('Dashboard', () => {
     expect(screen.queryByRole('group', { name: 'Kľúčové ukazovatele' })).not.toBeInTheDocument()
   })
 
-  it('counts only anomaly tickets as alarms', async () => {
+  it('does not treat generic tickets or ticket priorities as underproduction alarms', async () => {
     mockApi({
-      'GET /api/installations': json([]),
-      'GET /api/tickets': json({
-        items: [ticket({ id: 'a1' }), ticket({ id: 'm1', origin: 'Manual' })],
-        totalCount: 2,
-        page: 1,
-        pageSize: 100,
-      }),
+      'GET /api/dashboard/summary': json({ tickets: { open: 2, new: 1, byPriority: { high: 2, medium: 0, low: 0 } }, quotes: null }),
+      'GET /api/underproduction-alarms': json({ items: [] }),
     })
     renderDashboard('Operator')
 
     await waitFor(() => expect(within(card('Otvorené tikety')).getByText('2')).toBeInTheDocument())
-    expect(within(card('Aktívne alarmy')).getByText('1')).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('0')).toBeInTheDocument()
+    expect(within(card('Aktívne alarmy')).getByText('0 kritický · 0 varovania · 0 info')).toBeInTheDocument()
   })
 })

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
+using SolarOps.Api.Features.Weather;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Modules;
+using SolarOps.Api.Infrastructure.Validation;
 
 namespace SolarOps.Api.Features.MlIntegration;
 
@@ -49,6 +51,19 @@ public sealed class MlAnalysisModule : IModule
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .RequireAuthorization(AuthorizationPolicies.ProductionAnalyze);
 
+        group.MapPost("/analysis/past", RunPastAnalysis)
+            .WithName("RunInstallationPastPrediction")
+            .WithSummary("Predict production for a past period from the stored weather")
+            .WithDescription("Predicts the hours of the days from..to (UTC, inclusive, at most 31 days) from the weather stored by the backfill " +
+                "and stores the predictions, overwriting the same hours. Runs no detection: creates no alarms and no tickets. " +
+                "409 when the period has no stored weather, 503 when the ML service is unavailable, 502 when it returns an unusable answer.")
+            .WithValidation<HistoricalPeriod>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
+            .RequireAuthorization(AuthorizationPolicies.ProductionAnalyze);
+
         group.MapGet("/underproduction-alarms", ListAlarms)
             .WithName("ListUnderproductionAlarms")
             .WithSummary("Underproduction alarms of an installation")
@@ -78,6 +93,22 @@ public sealed class MlAnalysisModule : IModule
         {
             // The answer of the service stays in the log; it is not meant for API clients.
             loggers.CreateLogger<MlAnalysisModule>().LogError(ex, "Analysis of installation {InstallationId} failed", installationId);
+            return ex.IsUnavailable
+                ? TypedResults.Problem("The ML service is unavailable. Try again later.", statusCode: StatusCodes.Status503ServiceUnavailable)
+                : TypedResults.Problem("The ML service returned an unusable answer.", statusCode: StatusCodes.Status502BadGateway);
+        }
+    }
+
+    internal static async Task<Results<Ok<PastPredictionResponse>, ProblemHttpResult>> RunPastAnalysis(
+        Guid installationId, HistoricalPeriod period, IMlAnalysisService service, ILoggerFactory loggers, CancellationToken ct)
+    {
+        try
+        {
+            return TypedResults.Ok(await service.RunPastAsync(installationId, period, ct));
+        }
+        catch (MlServiceException ex)
+        {
+            loggers.CreateLogger<MlAnalysisModule>().LogError(ex, "Past prediction of installation {InstallationId} failed", installationId);
             return ex.IsUnavailable
                 ? TypedResults.Problem("The ML service is unavailable. Try again later.", statusCode: StatusCodes.Status503ServiceUnavailable)
                 : TypedResults.Problem("The ML service returned an unusable answer.", statusCode: StatusCodes.Status502BadGateway);

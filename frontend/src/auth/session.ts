@@ -4,6 +4,7 @@ import { HOME_PATH } from './navigation'
 
 export interface Session {
   email: string
+  userId?: string
   roles: string[]
   accessToken: string
   refreshToken: string
@@ -35,6 +36,7 @@ export function sessionFromTokens(tokens: { accessToken: string; refreshToken: s
   const roles = Array.isArray(role) ? (role as string[]) : typeof role === 'string' ? [role] : []
   return {
     email: typeof claims.email === 'string' ? claims.email : '',
+    userId: typeof claims.sub === 'string' ? claims.sub : undefined,
     roles,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,

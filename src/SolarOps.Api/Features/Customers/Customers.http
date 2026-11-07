@@ -57,3 +57,7 @@ Authorization: Bearer {{token}}
 ###
 POST {{baseUrl}}/api/customers/{{customerId}}/reactivate
 Authorization: Bearer {{token}}
+
+### List with search, type/status filters and paging; statusCounts ignores the status filter, items carry supplyPointCount and lastActivityAt
+GET {{baseUrl}}/api/customers?q=novak&type=Person&status=Active&page=1&pageSize=8&sortBy=name&sortDir=asc
+Authorization: Bearer {{token}}
