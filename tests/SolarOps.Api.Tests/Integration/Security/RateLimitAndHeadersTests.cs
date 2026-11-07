@@ -44,6 +44,44 @@ public sealed class RateLimitAndHeadersTests(PostgresFixture postgres) : IClassF
         Assert.Equal("application/problem+json", limited.Content.Headers.ContentType?.MediaType);
     }
 
+    [Theory]
+    [InlineData("/api/auth/register")]
+    [InlineData("/api/auth/forgot-password")]
+    [InlineData("/api/auth/reset-password")]
+    public async Task CredentialEndpoints_ReturnTooManyRequests_AfterTheSharedLimitIsExceeded(string path)
+    {
+        using var client = CreateLimitedClient();
+        for (var i = 0; i < LoginLimit; i++)
+        {
+            await Login(client);
+        }
+
+        // An empty body would be a 400 without the limit, so 429 proves the policy runs first.
+        var limited = await client.PostAsJsonAsync(path, new { });
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        Assert.Equal("application/problem+json", limited.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task Refresh_HasItsOwnLimit_AndDoesNotUseUpLoginAttempts()
+    {
+        using var client = _factory
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("RateLimiting:Auth:PermitLimit", "1");
+                builder.UseSetting("RateLimiting:Refresh:PermitLimit", "2");
+            })
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var body = new { refreshToken = "unknown-token" };
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/refresh", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/refresh", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsJsonAsync("/api/auth/refresh", body)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Login(client)).StatusCode);
+    }
+
     [Fact]
     public async Task OtherEndpoints_AreNotAffectedByTheLoginLimit()
     {

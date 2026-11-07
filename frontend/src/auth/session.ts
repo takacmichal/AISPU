@@ -1,3 +1,4 @@
+import { MESSAGES } from '../lib/messages'
 import { apiUrl } from '../api/config'
 import { HOME_PATH } from './navigation'
 
@@ -63,17 +64,22 @@ export async function login(email: string, password: string): Promise<Session> {
     body: JSON.stringify({ email, password }),
   })
   if (response.status === 401) throw new Error('Nesprávny e-mail alebo heslo.')
+  if (response.status === 429) throw new Error(MESSAGES.errors.tooManyRequests)
   if (!response.ok) throw new Error(`Prihlásenie zlyhalo (HTTP ${response.status}).`)
   return sessionFromTokens((await response.json()) as TokenResponse)
 }
 
-export async function refreshTokens(refreshToken: string): Promise<Session | null> {
+/** The server refused the refresh for now (429); the refresh token is still valid, so the session stays. */
+export const REFRESH_LIMITED = 'limited'
+
+export async function refreshTokens(refreshToken: string): Promise<Session | null | typeof REFRESH_LIMITED> {
   try {
     const response = await fetch(`${apiUrl}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     })
+    if (response.status === 429) return REFRESH_LIMITED
     if (!response.ok) return null
     return sessionFromTokens((await response.json()) as TokenResponse)
   } catch {

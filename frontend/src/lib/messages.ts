@@ -46,6 +46,7 @@ export const MESSAGES = {
   errors: {
     validation: 'Údaje nie sú v poriadku. Skontrolujte zvýraznené polia.',
     unauthorized: 'Platnosť relácie vypršala, prihláste sa znova.',
+    tooManyRequests: 'Príliš veľa pokusov. Počkajte chvíľu a skúste to znova.',
     forbidden: 'Na túto akciu nemáte oprávnenie.',
     notFound: 'Záznam sa nenašiel. Mohol byť medzitým zmazaný.',
     conflict: 'Akciu nie je možné vykonať, záznam je v konflikte s aktuálnym stavom.',
