@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import TicketListPage from './TicketListPage'
@@ -142,5 +142,100 @@ describe('TicketListPage Kanban', () => {
     await screen.findByText('Invertor nesvieti')
     expect(screen.getByRole('button', { name: /Vyriešený/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Výjazd naplánovaný/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('TicketListPage Kanban drag and drop', () => {
+  const dataTransfer = { setData: vi.fn(), effectAllowed: '' }
+  const column = (name: RegExp) => screen.getByRole('heading', { name }).closest('section')!
+  const card = (title: string) => screen.getByRole('link', { name: title }).closest('li')!
+
+  function drag(title: string, target: RegExp) {
+    fireEvent.dragStart(card(title), { dataTransfer })
+    const over = column(target)
+    const accepted = !fireEvent.dragOver(over, { dataTransfer })
+    fireEvent.drop(over, { dataTransfer })
+    return accepted
+  }
+
+  const board = async (roles = ['Admin']) => {
+    render(roles, '/tickets?view=board')
+    await screen.findByRole('link', { name: 'Invertor nesvieti' })
+  }
+
+  it('moves the card at once, before the server answers, and without a dialog', async () => {
+    let answer: (response: Response) => void = () => {}
+    const calls = stubFetch(({ path, method }) => {
+      if (path === '/api/tickets' && method === 'GET') return json(ticketList([ticketItem()]))
+      if (path === '/api/tickets/t1/transition') return new Promise<Response>((resolve) => (answer = resolve))
+    })
+    await board()
+
+    expect(drag('Invertor nesvieti', /Zatriedený/)).toBe(true)
+
+    expect(within(column(/Zatriedený/)).getByRole('link', { name: 'Invertor nesvieti' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/tickets/t1/transition')?.body).toEqual({ state: 'Triaged' }))
+
+    answer(json({ ...ticketItem({ state: 'Triaged' }), allowedTransitions: [], attachments: [] }))
+
+    expect(await screen.findByText('Stav tiketu bol zmenený na „Zatriedený“.')).toBeInTheDocument()
+    expect(within(column(/Zatriedený/)).getByRole('link', { name: 'Invertor nesvieti' })).toBeInTheDocument()
+    expect(calls.filter((c) => c.path === '/api/tickets' && c.method === 'GET')).toHaveLength(1)
+  })
+
+  it('returns the card to its column when the server refuses the move', async () => {
+    stubFetch(({ path, method }) => {
+      if (path === '/api/tickets' && method === 'GET') return json(ticketList([ticketItem()]))
+      if (path === '/api/tickets/t1/transition') return problem(409, 'Invalid transition')
+    })
+    await board()
+
+    drag('Invertor nesvieti', /Zatriedený/)
+
+    expect(await screen.findByText('Tento prechod stavu nie je možný. Obnovte stránku a skúste to znova.')).toBeInTheDocument()
+    expect(within(column(/Nový/)).getByRole('link', { name: 'Invertor nesvieti' })).toBeInTheDocument()
+  })
+
+  it('refuses columns the ticket cannot move to', async () => {
+    const calls = stubFetch(({ path }) => (path === '/api/tickets' ? json(ticketList([ticketItem()])) : undefined))
+    await board()
+
+    expect(drag('Invertor nesvieti', /Vyriešený/)).toBe(false)
+
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    expect(within(column(/Nový/)).getByRole('link', { name: 'Invertor nesvieti' })).toBeInTheDocument()
+  })
+
+  it('refuses the visit-driven column', async () => {
+    const calls = stubFetch(({ path }) => (path === '/api/tickets' ? json(ticketList([ticketItem({ state: 'RemoteDiagnosis' })])) : undefined))
+    await board()
+
+    expect(drag('Invertor nesvieti', /Výjazd naplánovaný/)).toBe(false)
+
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+  })
+
+  it('asks for confirmation before closing a ticket', async () => {
+    const calls = stubFetch(({ path, method }) => {
+      if (path === '/api/tickets' && method === 'GET') return json(ticketList([ticketItem({ state: 'Resolved' })]))
+      if (path === '/api/tickets/t1/transition') return json({ ...ticketItem({ state: 'Closed' }), allowedTransitions: [], attachments: [] })
+    })
+    await board()
+
+    drag('Invertor nesvieti', /Uzavretý/)
+
+    const dialog = await screen.findByRole('dialog')
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Uzavretý' }))
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/tickets/t1/transition')?.body).toEqual({ state: 'Closed' }))
+  })
+
+  it('does not let roles without the manage permission drag cards', async () => {
+    stubFetch(({ path }) => (path === '/api/tickets' ? json(ticketList([ticketItem()])) : undefined))
+    await board(['Technician'])
+
+    expect(card('Invertor nesvieti')).toHaveAttribute('draggable', 'false')
+    expect(screen.queryByText(/Kartu presuniete myšou/)).not.toBeInTheDocument()
   })
 })

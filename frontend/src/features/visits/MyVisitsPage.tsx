@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { userMessage } from '../../api/problem'
 import { EmptyState } from '../../components/EmptyState'
@@ -26,6 +26,7 @@ import {
   type VisitState,
 } from '../tickets/visitsApi'
 import { RANGES, dayOf, formatAddress, navigationHref, phoneHref, rangeWindow, timeOf, toLocalInput, type Range } from './myVisits'
+import { clearProtocolDraft, readProtocolDraft, writeProtocolDraft, type ProtocolValues } from './protocolDraft'
 import './visits.css'
 
 const T = TICKET_TEXTS.visits
@@ -230,14 +231,6 @@ function VisitDetail({ entry, onChanged }: { entry: CalendarVisit; onChanged: ()
   )
 }
 
-interface ProtocolValues {
-  cause: VisitCause | ''
-  arrivedAt: string
-  departedAt: string
-  findings: string
-  workDone: string
-}
-
 function validateProtocol(values: ProtocolValues): Record<string, string[]> {
   const errors: Record<string, string[]> = {}
   for (const key of ['cause', 'arrivedAt', 'departedAt', 'findings', 'workDone'] as const) {
@@ -252,13 +245,17 @@ function validateProtocol(values: ProtocolValues): Record<string, string[]> {
 
 function ProtocolForm({ visit, onDone }: { visit: Visit; onDone: () => void }) {
   const toast = useToast()
-  const [values, setValues] = useState<ProtocolValues>(() => ({
+  const [saved] = useState(() => readProtocolDraft(visit.id))
+  const emptyValues = (): ProtocolValues => ({
     cause: '',
     arrivedAt: toLocalInput(new Date(visit.startedAt ?? visit.plannedStart)),
     departedAt: toLocalInput(new Date()),
     findings: '',
     workDone: '',
-  }))
+  })
+  const [values, setValues] = useState<ProtocolValues>(() => saved?.values ?? emptyValues())
+  const [restored, setRestored] = useState(saved !== null)
+  const [waiting, setWaiting] = useState(saved?.waiting ?? false)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const { busy, fieldErrors, formError, submit } = useFormSubmit(async () => {
     await reportVisit(visit.id, {
@@ -268,18 +265,62 @@ function ProtocolForm({ visit, onDone }: { visit: Visit; onDone: () => void }) {
       arrivedAt: new Date(values.arrivedAt).toISOString(),
       departedAt: new Date(values.departedAt).toISOString(),
     })
+    clearProtocolDraft(visit.id)
     toast.success(T.submitted)
     onDone()
   })
 
-  const set = (key: keyof ProtocolValues, value: string) => setValues((v) => ({ ...v, [key]: value }))
+  function set(key: keyof ProtocolValues, value: string) {
+    const next = { ...values, [key]: value }
+    setValues(next)
+    writeProtocolDraft(visit.id, { values: next, waiting: false })
+  }
   const errorsFor = (key: string) => [...(errors[key] ?? []), ...(fieldErrors[key] ?? [])]
+
+  function waitForConnection() {
+    writeProtocolDraft(visit.id, { values, waiting: true })
+    setWaiting(true)
+  }
+
+  /** Sends the protocol, or keeps it for later when the phone has no connection (also when the connection drops mid-request). */
+  async function send() {
+    if (!navigator.onLine) {
+      waitForConnection()
+      return
+    }
+    const sent = await submit()
+    if (!sent && !navigator.onLine) waitForConnection()
+  }
+
+  const sendWaiting = useEffectEvent(() => {
+    setWaiting(false)
+    writeProtocolDraft(visit.id, { values, waiting: false })
+    void send()
+  })
+
+  useEffect(() => {
+    if (!waiting) return
+    if (navigator.onLine) {
+      const timer = setTimeout(sendWaiting)
+      return () => clearTimeout(timer)
+    }
+    window.addEventListener('online', sendWaiting)
+    return () => window.removeEventListener('online', sendWaiting)
+  }, [waiting])
+
+  function discardDraft() {
+    clearProtocolDraft(visit.id)
+    setValues(emptyValues())
+    setRestored(false)
+    setWaiting(false)
+    setErrors({})
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     const next = validateProtocol(values)
     setErrors(next)
-    if (Object.keys(next).length === 0) await submit()
+    if (Object.keys(next).length === 0) await send()
   }
 
   return (
@@ -288,6 +329,14 @@ function ProtocolForm({ visit, onDone }: { visit: Visit; onDone: () => void }) {
         {T.protocolTitle}
       </h3>
       <p className="visit-detail__muted">{T.protocolHint}</p>
+      {restored && (
+        <p className="visit-protocol__notice">
+          {T.draftRestored}{' '}
+          <button type="button" className="btn btn--ghost btn--sm" onClick={discardDraft}>
+            {T.draftDiscard}
+          </button>
+        </p>
+      )}
       <FormField label={T.cause} required errors={errorsFor('cause')}>
         {(props) => (
           <select {...props} required value={values.cause} onChange={(e) => set('cause', e.target.value)}>
@@ -319,8 +368,13 @@ function ProtocolForm({ visit, onDone }: { visit: Visit; onDone: () => void }) {
           {formError}
         </p>
       )}
+      {waiting && (
+        <p role="status" className="visit-protocol__notice">
+          {T.waitingForConnection}
+        </p>
+      )}
       <div className="visit-actionbar">
-        <button type="submit" className="btn btn--primary" disabled={busy} aria-busy={busy}>
+        <button type="submit" className="btn btn--primary" disabled={busy || waiting} aria-busy={busy}>
           {T.submit}
         </button>
       </div>

@@ -70,7 +70,7 @@ Všetky návrhy okrem Kovacovej sú V návrhu s jednou uloženou verziou, žiadn
 - [ ] Ctrl+K (Cmd+K) → rýchly skok, napíš „pon“ → Enter otvorí Ponuky.
 - [ ] Breadcrumbs na vnorených stránkach (napr. detail zákazníka).
 - [ ] Používateľské menu vpravo hore: e-mail, rola, Odhlásiť.
-- [ ] Zvonček notifikácií otvorí okno; kým backend nemá `/api/notifications`, ukáže chybu s tlačidlom na opakovanie.
+- [ ] Zvonček notifikácií otvorí okno s položkami, ktoré čakajú na danú rolu.
 
 **Dashboard (`/app`)**
 - [ ] KPI: Výroba dnes = 0 kWh („4 elektrárne v prevádzke“), Aktívne alarmy = 0, Otvorené tikety = 2 („0 čakajú na triáž“), Ponuky čakajú na odpoveď = 1.
@@ -151,7 +151,6 @@ Všetky návrhy okrem Kovacovej sú V návrhu s jednou uloženou verziou, žiadn
 ## Známe obmedzenia (nie sú chyby)
 
 - **Seed nevytvára telemetriu.** Výroba na dashboarde, v monitoringu a v portáli je preto 0 alebo prázdna a nevzniknú alarmy podvýroby. Dáta sa dajú poslať zo simulátora (`ml/src/solarops_ml/simulator`) na `POST /api/telemetry` s API kľúčom zariadenia.
-- **Notifikácie:** zvonček volá `GET /api/notifications`, ktorý backend zatiaľ nemá.
 - **Stringy** sa v UI dajú len prezerať; vytváranie a priraďovanie panelov je zatiaľ len cez API.
 - **Potvrdenie tiketu:** API nevracia, či už zákazník opravu potvrdil, preto sa tlačidlo po obnovení stránky ukáže znova (druhé potvrdenie skončí hláškou „Opravu ste už potvrdili.“).
 - **Dôvod zmeny termínu montáže** je povinný, ale backend ho zatiaľ neukladá.
