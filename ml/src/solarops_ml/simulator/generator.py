@@ -2,6 +2,9 @@
 
 Model: solar position + clear-sky plane-of-array irradiance, scaled by a seeded AR(1)
 cloud-cover process, converted to DC/AC power (PVWatts-like, with inverter clipping).
+With hourly ``weather`` (e.g. Open-Meteo) the clouds and air temperature come from it instead:
+each hour keeps the clear-sky shape scaled to the weather's plane irradiance, so the hourly
+mean follows the prediction baseline of ``solarops_ml.prediction`` (demo data, #188).
 Faults are applied as a transformation of the output; the fault-free ``expected_power_w``
 and the fault flags go to ``labels`` (kept out of the ingest contract, ADR #185).
 
@@ -109,6 +112,58 @@ def _cloud_cover(n: int, mean: float, rng: np.random.Generator) -> np.ndarray:
     return np.clip(mean + z, 0.0, 1.0)
 
 
+WEATHER_COLUMNS = ("ghi_wm2", "dni_wm2", "dhi_wm2", "temp_air_c")
+MAX_CLEARNESS = 1.5
+
+
+def _weather_per_reading(
+    index: pd.DatetimeIndex, weather: pd.DataFrame, config: SimulatorConfig
+) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Clearness on the panel plane, air temperature and cloud cover of each reading's hour.
+
+    ``weather`` is hourly with ``hour_start_utc`` labels (ADR #189) and the columns of
+    ``WEATHER_COLUMNS``; ``cloud_cover_pct`` is optional.
+    """
+    missing = [c for c in WEATHER_COLUMNS if c not in weather.columns]
+    if missing:
+        raise ValueError(f"weather is missing columns {missing}")
+    hours = index.floor("h")
+    hourly = weather.reindex(hours.unique())
+    gaps = hourly[list(WEATHER_COLUMNS)].isna().any(axis=1)
+    if gaps.any():
+        raise ValueError(
+            f"weather does not cover {int(gaps.sum())} hours, first {hourly.index[gaps][0]}"
+        )
+    middle = hourly.index + pd.Timedelta(minutes=30)
+    pos = solar_position(middle, config.latitude, config.longitude)
+    zen, sun_azimuth = pos["zenith_deg"].to_numpy(), pos["azimuth_deg"].to_numpy()
+    cs_ghi, cs_dni, cs_dhi = clear_sky(zen, np.asarray(middle.dayofyear))
+    clear_gti = plane_irradiance(
+        zen, sun_azimuth, cs_ghi, cs_dni, cs_dhi, config.tilt, config.azimuth
+    )
+    gti = plane_irradiance(
+        zen,
+        sun_azimuth,
+        hourly["ghi_wm2"].to_numpy(dtype=float),
+        hourly["dni_wm2"].to_numpy(dtype=float),
+        hourly["dhi_wm2"].to_numpy(dtype=float),
+        config.tilt,
+        config.azimuth,
+    )
+    safe_clear = np.where(clear_gti > 1, clear_gti, np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        clearness = np.nan_to_num(np.clip(gti, 0, None) / safe_clear, nan=0.0)
+    position = hourly.index.get_indexer(hours)
+    cloud = None
+    if "cloud_cover_pct" in weather.columns:
+        cloud = hourly["cloud_cover_pct"].to_numpy(dtype=float)[position] / 100
+    return (
+        np.clip(clearness, 0, MAX_CLEARNESS)[position],
+        hourly["temp_air_c"].to_numpy(dtype=float)[position],
+        cloud,
+    )
+
+
 def _air_temperature(index: pd.DatetimeIndex, config: SimulatorConfig) -> np.ndarray:
     lat = abs(config.latitude)
     mean = 28 - 0.4 * lat
@@ -127,8 +182,13 @@ def simulate(
     start: datetime,
     end: datetime,
     faults: list[FaultSpec] | tuple[FaultSpec, ...] = (),
+    weather: pd.DataFrame | None = None,
 ) -> SimulationResult:
-    """Generate one reading per 5 minutes for ``start <= t < end`` (UTC, tz-aware)."""
+    """Generate one reading per 5 minutes for ``start <= t < end`` (UTC, tz-aware).
+
+    ``weather`` (optional, hourly, ``hour_start_utc`` labels) replaces the synthetic clouds and
+    air temperature and must cover every hour of the range.
+    """
     if start.tzinfo is None or end.tzinfo is None:
         raise ValueError("start and end must be timezone-aware")
     if end <= start:
@@ -150,10 +210,16 @@ def simulate(
     gti_clear = plane_irradiance(
         zen, pos["azimuth_deg"].to_numpy(), ghi, dni, dhi, config.tilt, config.azimuth
     )
-    gti = gti_clear * (1 - 0.75 * cloud**3.4)  # Kasten-Czeplak
+    if weather is None:
+        gti = gti_clear * (1 - 0.75 * cloud**3.4)  # Kasten-Czeplak
+        air_c = _air_temperature(index, config)
+    else:
+        clearness, air_c, weather_cloud = _weather_per_reading(index, weather, config)
+        gti = gti_clear * clearness
+        if weather_cloud is not None:
+            cloud = weather_cloud
     producing = gti >= MIN_PRODUCING_GTI_WM2
 
-    air_c = _air_temperature(index, config)
     cell_c = air_c + gti * (NOCT_C - 20) / 800
     rated_ac_w = config.capacity_kwp * 1000 / config.dc_ac_ratio
     dc = config.capacity_kwp * gti * (1 + GAMMA_PER_K * (cell_c - 25)) * power_noise

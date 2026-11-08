@@ -1,4 +1,9 @@
-"""CLI: ``python -m solarops_ml.simulator --location alice_springs --start ... --end ...``."""
+"""CLI: ``python -m solarops_ml.simulator --location alice_springs --start ... --end ...``.
+
+``--lat``/``--lon`` replace ``--location`` for a plant that is not in the locations file, and
+``--weather`` takes a dataset of ``python -m solarops_ml.weather fetch`` (hours labelled by
+their end) instead of the synthetic clouds.
+"""
 
 from __future__ import annotations
 
@@ -9,9 +14,11 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from solarops_ml.prediction.features import from_open_meteo
 from solarops_ml.simulator.generator import FaultSpec, SimulatorConfig, simulate
 from solarops_ml.simulator.telemetry import to_payloads
 from solarops_ml.weather.locations import load_locations
+from solarops_ml.weather.store import read_dataset
 
 
 def _utc(value: str) -> datetime:
@@ -33,6 +40,12 @@ def _fault(value: str) -> FaultSpec:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="solarops_ml.simulator", description=__doc__)
     p.add_argument("--location", default="alice_springs", help="name from config/locations.toml")
+    p.add_argument("--lat", type=float, help="latitude instead of --location (requires --lon)")
+    p.add_argument("--lon", type=float, help="longitude instead of --location")
+    p.add_argument("--tilt", type=float, help="panel tilt in degrees (default from the location)")
+    p.add_argument(
+        "--azimuth", type=float, help="panel azimuth, 0 = south, -90 = east (default: equator)"
+    )
     p.add_argument("--start", type=_utc, required=True, help="UTC, ISO 8601 (inclusive)")
     p.add_argument("--end", type=_utc, required=True, help="UTC, ISO 8601 (exclusive)")
     p.add_argument("--seed", type=int, default=0)
@@ -41,7 +54,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--installation-id", help="UUID of the installation; default derived from device"
     )
     p.add_argument("--capacity-kwp", type=float, default=10.0)
+    p.add_argument("--dc-ac-ratio", type=float, default=1.2, help="DC kWp / inverter AC kW")
     p.add_argument("--cloudiness", type=float, default=0.3, help="mean cloud cover 0..1")
+    p.add_argument(
+        "--weather",
+        type=Path,
+        help="hourly weather (.csv/.parquet from solarops_ml.weather fetch) instead of clouds",
+    )
     p.add_argument("--utc-offset", type=float, help="local UTC offset in hours for dayWh reset")
     p.add_argument(
         "--fault",
@@ -60,30 +79,47 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    locations = load_locations()
-    if args.location not in locations:
-        print(f"unknown location {args.location!r}; known: {', '.join(locations)}", file=sys.stderr)
+    if (args.lat is None) != (args.lon is None):
+        print("--lat and --lon go together", file=sys.stderr)
         return 2
-    loc = locations[args.location]
+    if args.lat is not None:
+        name, latitude, longitude = "custom", args.lat, args.lon
+        tilt, azimuth = None, None
+    else:
+        locations = load_locations()
+        if args.location not in locations:
+            known = ", ".join(locations)
+            print(f"unknown location {args.location!r}; known: {known}", file=sys.stderr)
+            return 2
+        loc = locations[args.location]
+        name, latitude, longitude, tilt, azimuth = (
+            args.location,
+            loc.latitude,
+            loc.longitude,
+            loc.tilt,
+            loc.azimuth,
+        )
+    tilt = args.tilt if args.tilt is not None else tilt
+    azimuth = args.azimuth if args.azimuth is not None else azimuth
     device_id = args.device_id or str(
-        uuid.uuid5(uuid.NAMESPACE_URL, f"solarops-sim/{args.location}/{args.seed}")
+        uuid.uuid5(uuid.NAMESPACE_URL, f"solarops-sim/{name}/{args.seed}")
     )
-    offset = args.utc_offset if args.utc_offset is not None else round(loc.longitude / 15 * 2) / 2
+    offset = args.utc_offset if args.utc_offset is not None else round(longitude / 15 * 2) / 2
     try:
         config = SimulatorConfig(
             device_id=device_id,
-            latitude=loc.latitude,
-            longitude=loc.longitude,
-            tilt=loc.tilt if loc.tilt is not None else 20.0,
-            azimuth=loc.azimuth
-            if loc.azimuth is not None
-            else (180.0 if loc.latitude < 0 else 0.0),
+            latitude=latitude,
+            longitude=longitude,
+            tilt=tilt if tilt is not None else 20.0,
+            azimuth=azimuth if azimuth is not None else (180.0 if latitude < 0 else 0.0),
             capacity_kwp=args.capacity_kwp,
+            dc_ac_ratio=args.dc_ac_ratio,
             cloudiness=args.cloudiness,
             utc_offset_hours=offset,
             seed=args.seed,
         )
-        result = simulate(config, args.start, args.end, args.fault)
+        weather = from_open_meteo(read_dataset(args.weather)) if args.weather else None
+        result = simulate(config, args.start, args.end, args.fault, weather=weather)
         payloads = to_payloads(result, installation_id=args.installation_id)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
