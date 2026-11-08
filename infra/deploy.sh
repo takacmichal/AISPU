@@ -73,6 +73,7 @@ output() { az deployment group show -g "$RESOURCE_GROUP" -n "$DEPLOYMENT" --quer
 API_URL=$(output apiUrl)
 WEB_URL=$(output webUrl)
 MIGRATE_JOB=$(output migrateJobName)
+DEPLOY_CLIENT_ID=$(output deployClientId)
 
 # ---------------------------------------------------------------- migrations
 
@@ -97,3 +98,8 @@ echo
 echo "Frontend: $WEB_URL"
 echo "API:      $API_URL (docs: $API_URL/scalar/v1)"
 echo "Admin:    admin@solarops.local, password SOLAROPS_ADMIN_PASSWORD in infra/$ENV_FILE"
+echo
+echo "GitHub repository variables for the CD pipeline (.github/workflows/deploy.yml):"
+echo "  AZURE_CLIENT_ID=$DEPLOY_CLIENT_ID"
+echo "  AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)"
+echo "  AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)"

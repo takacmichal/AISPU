@@ -18,6 +18,7 @@ Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predpla
 | PostgreSQL Flexible Server | `solarops-pg-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní |
 | Key Vault | `solarops-kv-<suffix>` | tajomstvá, prístup cez RBAC |
 | Managed identity | `solarops-identity` | aplikácie a joby ňou čítajú tajomstvá z Key Vault |
+| Managed identity | `solarops-deploy` | CD pipeline sa ňou prihlasuje cez OIDC, Contributor len na `solarops-rg` |
 | Log Analytics | `solarops-logs` | 30 dní, limit 1 GB denne |
 
 Joby používajú obraz API. Plán ML analýzy a počasia je v API vypnutý (`Ml__AnalysisEnabled=false`, `Weather__Enabled=false`), robia ho joby.
@@ -47,9 +48,30 @@ Skript:
 1. vytvorí resource group a nasadí `main.bicep` s parametrami z `main.bicepparam`,
 2. spustí job `solarops-migrate` a počká na jeho koniec,
 3. reštartuje API, aby na novej schéme vytvorilo roly a prvého admina,
-4. vypíše adresy frontendu a API.
+4. vypíše adresy frontendu a API a premenné pre CD pipeline.
 
-Ďalšie behy môžu obrazy vynechať, ostanú nasadené. Frontend pri prvom nasadení beží ako prázdny nginx (`nginx-unprivileged`), lebo jeho build potrebuje adresu API (`VITE_API_URL`), ktorá vznikne až s prostredím. Skutočný obraz frontendu nasadí CD (#162).
+Ďalšie behy môžu obrazy vynechať, ostanú nasadené. Frontend pri prvom nasadení beží ako prázdny nginx (`nginx-unprivileged`), lebo jeho build potrebuje adresu API (`VITE_API_URL`), ktorá vznikne až s prostredím. Skutočný obraz frontendu nasadí CD.
+
+## CD pipeline
+
+Workflow [`deploy.yml`](../.github/workflows/deploy.yml) (#161, #162) beží po každom pushi do `main`, ktorý mení `src/`, `ml/` alebo `frontend/`, a ručne cez *Run workflow*.
+
+1. Postaví obrazy zmenených častí a nahrá ich do GHCR ako `ghcr.io/takacmichal/aispu-{api,ml}:<commit>` a `:latest`. Toto ide aj bez Azure, obrazy sú potom pripravené na prvý `deploy.sh`.
+2. Ak sú nastavené premenné repozitára `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` a `AZURE_SUBSCRIPTION_ID`, prihlási sa do Azure cez OIDC (identita `solarops-deploy`, len z prostredia `production`, žiadne heslo v GitHube) a nasadí:
+   - pri zmene API: job `solarops-migrate` s novým obrazom a čaká na úspech, potom API a joby `solarops-ml-analysis` a `solarops-weather`,
+   - pri zmene ML: službu `solarops-ml`,
+   - pri zmene frontendu: postaví `aispu-web` s adresou API z Azure a nasadí `solarops-web`,
+   - nakoniec zavolá `/health` API.
+
+Neúspešná migrácia zastaví workflow skôr, než sa nasadí nové API. Container Apps v režime jednej revízie nechá prevádzku na starej revízii, kým nová neprejde readiness probe.
+
+Prvé nasadenie:
+
+1. Merge do `main` (alebo *Run workflow*) postaví obrazy API a ML.
+2. Vlastník repozitára prepne balíčky `aispu-api`, `aispu-ml` a `aispu-web` na GHCR na **public** (repozitár je verejný, inak treba `SOLAROPS_REGISTRY_*`).
+3. `infra/deploy.sh` s obrazmi `:latest` alebo `:<commit>`.
+4. Vlastník repozitára nastaví tri premenné, ktoré vypísal `deploy.sh` (Settings → Secrets and variables → Actions → Variables). Nie sú tajné, prihlásenie funguje len z tohto repozitára.
+5. *Run workflow* na `deploy` nasadí všetko vrátane frontendu.
 
 Súkromné obrazy: nastav `SOLAROPS_REGISTRY_USERNAME` a `SOLAROPS_REGISTRY_PASSWORD` (napr. GHCR token s `read:packages`).
 
