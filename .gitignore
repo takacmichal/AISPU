@@ -71,6 +71,10 @@ nunit-*.xml
 !.env.example
 *.local
 
+# Bicep compiled output
+infra/main.json
+infra/resources.json
+
 # Node / frontend
 node_modules/
 dist/
