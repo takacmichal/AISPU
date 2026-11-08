@@ -62,6 +62,22 @@ public sealed class CustomersModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .RequireAuthorization(AuthorizationPolicies.CustomersWrite);
+
+        group.MapPost("/{id:guid}/anonymize", AnonymizeAsync)
+            .WithName("AnonymizeCustomer")
+            .WithSummary("Erase the personal data of a customer (GDPR)")
+            .WithDescription("Clears names, identifiers, contact details, address, note and the login link, archives the customer "
+                + "and keeps its id and audit trail. Already anonymized customers give 409.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
+
+        group.MapGet("/{id:guid}/audit", AuditAsync)
+            .WithName("GetCustomerAudit")
+            .WithSummary("Audit trail of the customer (created, updated, archived, reactivated, anonymized), oldest first")
+            .WithDescription("Entries contain who, when and the names of changed fields, never the personal data values.")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
     }
 
     internal static async Task<Created<CustomerResponse>> CreateAsync(CreateCustomerRequest request, ICustomerService service, CancellationToken ct)
@@ -85,4 +101,10 @@ public sealed class CustomersModule : IModule
 
     internal static async Task<Ok<CustomerResponse>> ReactivateAsync(Guid id, ICustomerService service, CancellationToken ct) =>
         TypedResults.Ok(await service.ReactivateAsync(id, ct));
+
+    internal static async Task<Ok<CustomerResponse>> AnonymizeAsync(Guid id, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.AnonymizeAsync(id, ct));
+
+    internal static async Task<Ok<IReadOnlyList<CustomerAuditEntryResponse>>> AuditAsync(Guid id, ICustomerService service, CancellationToken ct) =>
+        TypedResults.Ok(await service.AuditAsync(id, ct));
 }

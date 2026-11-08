@@ -6,6 +6,7 @@ namespace SolarOps.Api.Tests.Unit.Customers;
 public sealed class CustomerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
+    private static readonly Guid Actor = Guid.CreateVersion7();
 
     private static CustomerDetails Person(string email = "Jan.Novak@Example.sk") => new(
         CustomerType.Person, " Ján ", " Novák ", "ignored", null, null, null, email, null,
@@ -18,7 +19,7 @@ public sealed class CustomerTests
     [Fact]
     public void Create_Person_NormalizesDataAndSortsBySurname()
     {
-        var customer = Customer.Create(Person(), null, Now);
+        var customer = Customer.Create(Person(), null, Actor, Now);
 
         Assert.Equal(CustomerStatus.Active, customer.Status);
         Assert.Equal("jan.novak@example.sk", customer.Email);
@@ -32,7 +33,7 @@ public sealed class CustomerTests
     [Fact]
     public void Create_Company_UsesCompanyNameAsSortName()
     {
-        var customer = Customer.Create(Company(), null, Now);
+        var customer = Customer.Create(Company(), null, Actor, Now);
 
         Assert.Equal("Slnko s.r.o.", customer.SortName);
         Assert.Equal("Slnko s.r.o.", customer.DisplayName);
@@ -41,14 +42,14 @@ public sealed class CustomerTests
     [Fact]
     public void Create_CompanyWithoutIco_Throws()
     {
-        var ex = Assert.Throws<RequestValidationException>(() => Customer.Create(Company(ico: null), null, Now));
+        var ex = Assert.Throws<RequestValidationException>(() => Customer.Create(Company(ico: null), null, Actor, Now));
         Assert.Contains(nameof(Customer.Ico), ex.Errors.Keys);
     }
 
     [Fact]
     public void Create_CompanyWithInvalidIcoChecksum_Throws()
     {
-        var ex = Assert.Throws<RequestValidationException>(() => Customer.Create(Company(ico: "35763468"), null, Now));
+        var ex = Assert.Throws<RequestValidationException>(() => Customer.Create(Company(ico: "35763468"), null, Actor, Now));
         Assert.Contains(nameof(Customer.Ico), ex.Errors.Keys);
     }
 
@@ -72,15 +73,15 @@ public sealed class CustomerTests
     [Fact]
     public void Archive_ThenReactivate_ChangesStatus()
     {
-        var customer = Customer.Create(Person(), null, Now);
+        var customer = Customer.Create(Person(), null, Actor, Now);
 
-        customer.Archive(Now.AddDays(1));
+        customer.Archive(Actor, Now.AddDays(1));
         Assert.Equal(CustomerStatus.Archived, customer.Status);
-        Assert.Throws<DomainException>(() => customer.Archive(Now));
-        Assert.Throws<DomainException>(() => customer.Update(Person(), null, Now));
+        Assert.Throws<DomainException>(() => customer.Archive(Actor, Now));
+        Assert.Throws<DomainException>(() => customer.Update(Person(), null, Actor, Now));
 
-        customer.Reactivate(Now.AddDays(2));
+        customer.Reactivate(Actor, Now.AddDays(2));
         Assert.Equal(CustomerStatus.Active, customer.Status);
-        Assert.Throws<DomainException>(() => customer.Reactivate(Now));
+        Assert.Throws<DomainException>(() => customer.Reactivate(Actor, Now));
     }
 }
