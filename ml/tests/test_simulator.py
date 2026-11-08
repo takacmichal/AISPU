@@ -4,17 +4,21 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
+from solarops_ml.prediction.features import PlantSpec, build_features
 from solarops_ml.simulator import (
     FaultSpec,
     SimulatorConfig,
     simulate,
     to_payloads,
 )
-from solarops_ml.simulator.solar import solar_position
+from solarops_ml.simulator.cli import main as cli_main
+from solarops_ml.simulator.solar import clear_sky, solar_position
+from solarops_ml.weather.store import write_dataset
 
 DEVICE = "7f3c2d9e-1b4a-4c55-9a1e-2d6f0b8e1a10"
 INSTALLATION = "0b8e1a10-7f3c-4d9e-8b4a-2d6f0c551a9e"
@@ -189,3 +193,99 @@ def test_solar_position_sanity() -> None:
     # Alice Springs, December solstice, solar noon (~03:00 UTC): sun almost overhead.
     pos2 = solar_position(pd.DatetimeIndex([dt(2024, 12, 21, 3, 0)]), -23.76, 133.87)
     assert pos2["zenith_deg"].iloc[0] < 5
+
+
+# --- weather-driven mode (#188): the plant follows real weather like the prediction model
+
+
+def hourly_weather(start: datetime, hours: int, plant: SimulatorConfig) -> pd.DataFrame:
+    """Hourly GHI/DNI/DHI (hour-start labels) from the clear sky, with a cloudy afternoon."""
+    index = pd.date_range(start, periods=hours, freq="h", tz="UTC", name="hour_start_utc")
+    middle = index + pd.Timedelta(minutes=30)
+    zen = solar_position(middle, plant.latitude, plant.longitude)["zenith_deg"].to_numpy()
+    ghi, dni, dhi = clear_sky(zen, np.asarray(middle.dayofyear))
+    cloudy = np.asarray(index.hour >= 13)
+    return pd.DataFrame(
+        {
+            "ghi_wm2": np.where(cloudy, ghi * 0.4, ghi),
+            "dni_wm2": np.where(cloudy, dni * 0.1, dni),
+            "dhi_wm2": np.where(cloudy, dhi * 1.3, dhi),
+            "temp_air_c": 18.0 + 6 * np.sin(np.pi * np.asarray(index.hour) / 24),
+            "cloud_cover_pct": np.where(cloudy, 85.0, 5.0),
+        },
+        index=index,
+    )
+
+
+def test_weather_drives_power_like_the_prediction_baseline() -> None:
+    # The detection compares telemetry with the baseline model, so a healthy simulated plant
+    # must stay close to it in every daylight hour (no false underproduction alarms).
+    config = kosice(4, capacity_kwp=9.9, dc_ac_ratio=0.99)
+    start = dt(2024, 6, 20)
+    weather = hourly_weather(start, 48, config)
+    result = simulate(config, start, start + timedelta(days=2), weather=weather)
+
+    plant = PlantSpec(
+        latitude=config.latitude, longitude=config.longitude, capacity_kwp=9.9,
+        tilt=config.tilt, azimuth=config.azimuth, dc_ac_ratio=0.99,
+    )  # fmt: skip
+    features = build_features(weather, plant)
+    expected = features["p_baseline"] * 9.9 * 1000
+    actual = result.readings["ac_power_w"].resample("h").mean()
+    day = features["gti_wm2"] > 200
+    ratio = actual[day] / expected[day]
+    assert day.sum() >= 12
+    assert ratio.between(0.9, 1.1).all(), ratio[~ratio.between(0.9, 1.1)]
+    # Cloudy hours produce less, and the reported cloud cover is the weather's.
+    afternoon = result.readings.between_time("13:00", "15:55")["ac_power_w"].mean()
+    morning = result.readings.between_time("08:00", "10:55")["ac_power_w"].mean()
+    assert afternoon < morning
+    assert result.readings.loc[dt(2024, 6, 20, 14), "cloud_cover_pct"] == 85.0
+
+
+def test_weather_mode_keeps_faults_and_reproducibility() -> None:
+    config = kosice(4)
+    start, end = dt(2024, 6, 20), dt(2024, 6, 21)
+    weather = hourly_weather(start, 24, config)
+    w0, w1 = dt(2024, 6, 20, 8), dt(2024, 6, 20, 12)
+    base = simulate(config, start, end, weather=weather)
+    again = simulate(config, start, end, weather=weather)
+    faulty = simulate(config, start, end, [FaultSpec("power_drop", w0, w1, 0.5)], weather=weather)
+    assert base.readings.equals(again.readings)
+    inside = (base.readings.index >= w0) & (base.readings.index < w1)
+    b, f = base.readings["ac_power_w"], faulty.readings["ac_power_w"]
+    assert f[inside].sum() == pytest.approx(0.5 * b[inside].sum(), rel=0.02)
+    assert b[~inside].equals(f[~inside])
+
+
+def test_weather_must_cover_every_hour() -> None:
+    config = kosice()
+    start = dt(2024, 6, 20)
+    weather = hourly_weather(start, 24, config)
+    with pytest.raises(ValueError, match="weather"):
+        simulate(config, start, start + timedelta(days=2), weather=weather)
+    with pytest.raises(ValueError, match="weather"):
+        simulate(config, start, start + timedelta(days=1), weather=weather.drop(columns="dni_wm2"))
+
+
+def test_cli_reads_open_meteo_weather_and_coordinates(tmp_path: Path) -> None:
+    # The dataset of `python -m solarops_ml.weather fetch` labels each hour by its end.
+    plant = kosice()
+    weather = hourly_weather(dt(2024, 6, 20), 24, plant)
+    weather.index = pd.DatetimeIndex(weather.index + pd.Timedelta(hours=1), name="time")
+    weather_file = write_dataset(weather, tmp_path / "weather.csv")
+    out = tmp_path / "batches.json"
+
+    code = cli_main([
+        "--lat", "48.31", "--lon", "18.08", "--tilt", "35", "--azimuth", "0",
+        "--capacity-kwp", "9.9", "--dc-ac-ratio", "0.99", "--weather", str(weather_file),
+        "--start", "2024-06-20T00:00Z", "--end", "2024-06-21T00:00Z",
+        "--device-id", DEVICE, "--installation-id", INSTALLATION, "--out", str(out),
+    ])  # fmt: skip
+
+    assert code == 0
+    batches = json.loads(out.read_text())
+    assert [b["installationId"] for b in batches] == [INSTALLATION]
+    readings = batches[0]["readings"]
+    assert len(readings) == 288
+    assert max(r["acPowerW"] for r in readings) > 1000

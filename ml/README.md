@@ -15,6 +15,17 @@ uv run python -m solarops_ml.simulator --location alice_springs --start 2024-06-
     --out data/sim/alice.json --labels-out data/sim/alice_labels.csv
 ```
 
+Simulátor vie namiesto náhodnej oblačnosti použiť **skutočné hodinové počasie** (`--weather`, súbor z `solarops_ml.weather fetch`). Každá hodina má potom tvar krivky z čistej oblohy, ale výšku podľa ožiarenia na rovine panelov z počasia. Teplota a oblačnosť sú tiež z počasia. Hodinový priemer výroby tak zodpovedá fyzikálnemu baseline predikcie (#106): zdravá elektráreň nespúšťa falošné alarmy podvýroby a vložená porucha áno. Pre elektráreň mimo `locations.toml` sú `--lat`/`--lon`, `--tilt`, `--azimuth` a `--dc-ac-ratio`. Takto plní demo skript `scripts/demo/reset-demo.py` výrobu (#188):
+
+```bash
+cd ml
+uv run python -m solarops_ml.weather fetch --lat 48.31 --lon 18.08 --start 2026-10-09 --end 2026-11-08 \
+    --source archive --format csv --out data/sim/nitra-weather.csv
+uv run python -m solarops_ml.simulator --lat 48.31 --lon 18.08 --tilt 35 --azimuth 0 \
+    --capacity-kwp 9.9 --dc-ac-ratio 0.99 --weather data/sim/nitra-weather.csv \
+    --start 2026-10-09T00:00Z --end 2026-11-08T00:00Z --seed 188 --out data/sim/nitra.json
+```
+
 ## Historické počasie (`solarops_ml.weather`)
 
 Sťahuje počasie z [Open-Meteo](https://open-meteo.com) podľa ADR #180 a #189:

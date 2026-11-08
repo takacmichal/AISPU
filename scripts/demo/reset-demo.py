@@ -7,7 +7,11 @@ What it does (idempotent, safe to run repeatedly):
      Demo rows are recognised by customer e-mail '*@demo.solarops.local' and catalog code 'DEMO-*'.
      Nothing else in the database is touched.
   3. Re-creates the demo data through the public API (so business rules and numbering apply).
-  4. Prints a structural fingerprint (no ids/timestamps) of the demo data, so two runs can be diffed.
+  4. Fills Novak's plant with production (unless --no-production): 30 days of 5-minute telemetry from the
+     simulator in ml/, driven by the real weather of those days, the ML prediction for the same days and a
+     power drop over the last two days, which the ML detection turns into an underproduction alarm and a
+     service ticket. Needs `uv` (ml/), internet (Open-Meteo) and the ML service behind the API.
+  5. Prints a structural fingerprint (no ids/timestamps) of the demo data, so two runs can be diffed.
 
 Accounts: Admin (DEMO_EMAIL), Sales, Designer, Operator, two technicians and the customer portal account of Novak
 (see ROLE_ACCOUNTS, PORTAL_EMAIL); docs/frontend-prechod.md walks through the frontend with them.
@@ -34,7 +38,7 @@ Configuration (environment, local defaults only):
   DEMO_EMAIL      default demo@solarops.local   (user with role Admin)
   DEMO_PASSWORD   default DemoPass12345
 
-Usage: python3 scripts/demo/reset-demo.py [--no-seed]
+Usage: python3 scripts/demo/reset-demo.py [--no-seed] [--no-production]
 
 Deployed environment (Azure, docs/demo/scenar.md): python3 scripts/demo/reset-demo.py --remote
   Seeds an HTTPS API. The repository is public, so the default passwords are not used: DEMO_EMAIL/DEMO_PASSWORD
@@ -53,6 +57,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -87,6 +92,17 @@ DEMO_DOMAIN = "demo.solarops.local"
 # Revision report and photo payloads (placeholder bytes, the API only stores them).
 DEMO_PDF_BASE64 = base64.b64encode(b"%PDF-1.4 demo revision report").decode()
 DEMO_PHOTO_BASE64 = "/9j/4AAQSkZJRg=="  # the same tiny JPEG header as in Tickets.http
+
+# Location and roof of every demo design; the production of Novak's plant is simulated for the same place.
+DEMO_LATITUDE, DEMO_LONGITUDE = 48.31, 18.08
+DEMO_TILT_DEG, DEMO_AZIMUTH_DEG = 35, 0
+NOVAK_PANELS = 22
+PANEL_KWP, INVERTER_AC_KW = 0.45, 10.0
+# The weather backfill and the past prediction accept at most 31 days, both ending yesterday.
+PRODUCTION_DAYS = 30
+# Output drops to 55 % for the last two days: inside the 72 h detection lookback and still going on at the end.
+FAULT_DAYS, FAULT_SEVERITY = 2, 0.45
+SIMULATOR_SEED = 188
 
 CHECKLIST_CODES = ("SiteSafety", "MountingStructure", "PanelsMounted", "DcCabling", "InverterMounted", "Protections",
                    "AcConnection", "Grounding", "StringMeasurements", "PhotoDocumentation", "SiteCleanup")
@@ -181,6 +197,10 @@ DELETE FROM connection_requests WHERE customer_id IN (SELECT id FROM demo_custom
 DELETE FROM telemetry_readings WHERE device_id IN
   (SELECT id FROM installation_devices WHERE installation_id IN (SELECT id FROM demo_installations));
 DELETE FROM device_api_keys WHERE installation_id IN (SELECT id FROM demo_installations);
+-- Predictions, alarms and stored weather have no FK to the installation.
+DELETE FROM production_predictions WHERE installation_id IN (SELECT id FROM demo_installations);
+DELETE FROM underproduction_alarms WHERE installation_id IN (SELECT id FROM demo_installations);
+DELETE FROM weather_forecasts WHERE installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM panel_strings WHERE installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM installation_devices WHERE installation_id IN (SELECT id FROM demo_installations);
 DELETE FROM installations WHERE id IN (SELECT id FROM demo_installations);
@@ -200,10 +220,14 @@ COMMIT;
 TOKEN = ""
 
 
-def api(method: str, path: str, body: object | None = None, expect: tuple[int, ...] = (200, 201, 204)):
+def api(method: str, path: str, body: object | None = None, expect: tuple[int, ...] = (200, 201, 204),
+        api_key: str | None = None):
+    """JSON call with the admin token, or with a device API key (X-Api-Key) when api_key is given."""
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"}
-    if TOKEN:
+    if api_key:
+        headers["X-Api-Key"] = api_key
+    elif TOKEN:
         headers["Authorization"] = f"Bearer {TOKEN}"
     req = urllib.request.Request(API_URL + path, data=data, headers=headers, method=method)
     # URLError means the request was not sent (connect or TLS failed), so even a POST is safe to repeat.
@@ -321,9 +345,9 @@ def seed() -> dict:
         if until == "surveyed":
             return
         api("PUT", f"/api/designs/{d['id']}/parameters", {
-            "latitude": 48.31, "longitude": 18.08, "annualConsumptionKwh": 5200,
+            "latitude": DEMO_LATITUDE, "longitude": DEMO_LONGITUDE, "annualConsumptionKwh": 5200,
             "consumptionProfile": "Household",
-            "roofPlanes": [{"name": "Juh", "azimuthDeg": 0, "tiltDeg": 35, "usableAreaM2": 60,
+            "roofPlanes": [{"name": "Juh", "azimuthDeg": DEMO_AZIMUTH_DEG, "tiltDeg": DEMO_TILT_DEG, "usableAreaM2": 60,
                             "shadingLossPercent": 3, "roofType": "PitchedTile"}]})
         api("POST", f"/api/designs/{d['id']}/versions", {
             "panelId": ids["panel"], "panelCount": panels, "inverterId": ids["inverter"]})
@@ -454,8 +478,8 @@ def seed() -> dict:
     ids["technician2"] = tech2
 
     # Novak: complete flow up to a commissioned installation (the "finished customer" of the demo)
-    design("novak", "Zakaznik chce FVE na rodinny dom", "configured")
-    quote_contract("novak", "Novak", 22, "signed")
+    design("novak", "Zakaznik chce FVE na rodinny dom", "configured", panels=NOVAK_PANELS)
+    quote_contract("novak", "Novak", NOVAK_PANELS, "signed")
     inst = ids["novak_installation"]
     connection_request("novak", inst, "24ZDEMO00000001A", 25, until="concluded")
     commissioned_installation("novak", inst, [tech], offset_days=3, panel_count=2, accepted_by="Jan Novak")
@@ -565,6 +589,62 @@ def seed() -> dict:
     return ids
 
 
+def run_ml(*args: str) -> None:
+    """Run a module of the ml/ package through uv (the simulator needs numpy and pandas)."""
+    uv = shutil.which("uv")
+    if not uv:
+        die("uv not found; install it (ml/README.md) or run with --no-production.")
+    proc = subprocess.run([uv, "run", "--quiet", "python", "-m", *args], cwd=REPO_ROOT / "ml",
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        die(f"{args[0]} failed: {proc.stderr.strip()[-1500:]}")
+
+
+def seed_production(ids: dict) -> dict:
+    """Production of Novak's plant: telemetry, ML prediction and an underproduction alarm with a ticket.
+
+    The ML prediction comes from the Open-Meteo archive stored by the weather backfill; the simulator gets the
+    same archive, so the healthy days match the prediction and only the injected power drop is an anomaly.
+    """
+    inst = ids["novak_installation"]
+    today = datetime.now(timezone.utc).date()
+    first, last = today - timedelta(days=PRODUCTION_DAYS), today - timedelta(days=1)
+    period = {"from": first.isoformat(), "to": last.isoformat()}
+    kwp = NOVAK_PANELS * PANEL_KWP
+
+    inverter = next(d for d in api("GET", f"/api/installations/{inst}/devices?type=Inverter"))
+    key = api("POST", f"/api/installations/{inst}/api-keys")["apiKey"]
+
+    print(f"  weather {first}..{last} (Open-Meteo archive, every installation with coordinates) ...")
+    backfill = api("POST", "/api/weather/backfill", period)
+    status = next((i["status"] for i in backfill["items"] if i["installationId"] == inst), None)
+    if status != "Updated":
+        die(f"weather backfill for Novak's installation ended with {status}: {backfill}")
+    past = api("POST", f"/api/installations/{inst}/analysis/past", period)
+
+    print(f"  telemetry from the simulator, power drop of {FAULT_SEVERITY:.0%} over the last {FAULT_DAYS} days ...")
+    fault_start = datetime.combine(today - timedelta(days=FAULT_DAYS), datetime.min.time(), timezone.utc)
+    with tempfile.TemporaryDirectory() as tmp:
+        weather_file, batches_file = Path(tmp, "weather.csv"), Path(tmp, "batches.json")
+        coords = ("--lat", str(DEMO_LATITUDE), "--lon", str(DEMO_LONGITUDE))
+        # Open-Meteo labels an hour by its end: the last hour of yesterday is labelled today 00:00 (like the backfill).
+        run_ml("solarops_ml.weather", "fetch", *coords, "--start", first.isoformat(), "--end", today.isoformat(),
+               "--source", "archive", "--format", "csv", "--no-cache", "--out", str(weather_file))
+        run_ml("solarops_ml.simulator", *coords, "--tilt", str(DEMO_TILT_DEG), "--azimuth", str(DEMO_AZIMUTH_DEG),
+               "--capacity-kwp", str(kwp), "--dc-ac-ratio", str(kwp / INVERTER_AC_KW),
+               "--weather", str(weather_file), "--seed", str(SIMULATOR_SEED),
+               "--start", f"{first.isoformat()}T00:00Z", "--end", f"{today.isoformat()}T00:00Z",
+               "--device-id", inverter["id"], "--installation-id", inst,
+               "--fault", f"power_drop,{fault_start.isoformat()},{today.isoformat()}T00:00Z,{FAULT_SEVERITY}",
+               "--out", str(batches_file))
+        batches = json.loads(batches_file.read_text(encoding="utf-8"))
+    stored = sum(api("POST", "/api/telemetry", batch, expect=(202,), api_key=key)["stored"] for batch in batches)
+
+    print("  ML analysis (prediction + underproduction detection) ...")
+    analysis = api("POST", f"/api/installations/{inst}/analysis")
+    return {"readings": stored, "predictedPastHours": past["predictedHours"], **analysis}
+
+
 def summary() -> str:
     """Structural fingerprint (no ids, timestamps or sequence numbers) used to compare two runs."""
     lines = []
@@ -613,6 +693,11 @@ def main() -> None:
         return
     print("Seeding through the API ...")
     ids = seed()
+    if "--no-production" not in sys.argv:
+        print("Production of Novak's plant ...")
+        production = seed_production(ids)
+        print("  " + ", ".join(f"{k}={production[k]}" for k in (
+            "readings", "predictedPastHours", "alarms", "ongoingAlarms", "ticketsCreated")))
     print("\nDemo ids:")
     for key, value in ids.items():
         print(f"  {key:28} {value}")

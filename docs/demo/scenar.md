@@ -7,6 +7,12 @@ Issue #188. Scenár je postavený len na tom, čo API a frontend reálne vedia (
 - Lokálny stack: `docker compose up -d postgres`, `dotnet run --project src/SolarOps.Api` (http://localhost:5080), `cd frontend && pnpm dev` (http://localhost:5173).
 - Prihlásenie: `demo@solarops.local` / `DemoPass12345` (rola Admin, smie všetko). Technik: `technik@demo.solarops.local` / `DemoTech12345`.
 - Obnova dát (pred každým prejdením): `python3 scripts/demo/reset-demo.py`. Skript zmaže len demo riadky (zákazníci `*@demo.solarops.local`, komponenty `DEMO-*`) a znova ich vytvorí cez API. Odmietne bežať, ak DB alebo API nie je na localhoste. Nastavenia cez env: `DEMO_API_URL`, `DEMO_DB_URL`, `DEMO_EMAIL`, `DEMO_PASSWORD`, `DEMO_TECH_PASSWORD`. Beh trvá cca 3 s.
+- **Výroba** (súčasť resetu, vypína ju `--no-production`): elektráreň Nováka dostane 30 dní 5-minútovej telemetrie až po dnešnú polnoc UTC. Postup:
+  - Simulátor z `ml/` ju vypočíta zo skutočného počasia tých dní (archív Open-Meteo).
+  - ML predikcia sa počíta z rovnakého počasia, takže zdravé dni sedia s predikciou na cca 99 %.
+  - Posledné 2 dni klesne výkon na 55 %. ML detekcia z toho urobí prebiehajúci alarm podvýroby a servisný tiket „Podvýroba: …“.
+
+  Potrebné je `uv` (`ml/`), internet a bežiaca ML služba za API. Lokálne ju spustíš príkazom `cd ml && uv run uvicorn solarops_ml.api:app --port 8000`. Táto časť trvá cca 20 s. Údaje sú statické: nová výroba pribudne až ďalším resetom.
 - **Azure** (nasadené prostredie, `infra/README.md`): `python3 scripts/demo/reset-demo.py --remote`. Heslá z repozitára sa tu nepoužijú, všetko ide z `infra/.env`:
   ```bash
   set -a; . infra/.env; set +a
@@ -27,7 +33,7 @@ Issue #188. Scenár je postavený len na tom, čo API a frontend reálne vedia (
 
 | Zákazník | Stav po resete | Použitie |
 |---|---|---|
-| Ján Novák (`novak@…`) | návrh s verziou, prijatá ponuka, podpísaná zmluva so zálohou, inštalácia `Commissioned`, 1 striedač + 2 panely, žiadosť o pripojenie `Draft` | „hotový“ zákazník: pripojenie, zariadenia, monitoring (plán B) |
+| Ján Novák (`novak@…`) | návrh s verziou, prijatá ponuka, podpísaná zmluva so zálohou, inštalácia `Commissioned`, 1 striedač + 2 panely, žiadosť o pripojenie `Draft`, 30 dní výroby s predikciou, alarm podvýroby a tiket z neho | „hotový“ zákazník: pripojenie, zariadenia, monitoring a detekcia |
 | Mária Kováčová (`kovacova@…`) | len zákazník, odberné miesto a žiadosť o návrh (`Requested`) | živý začiatok: obhliadka, návrh, ponuka, zmluva |
 | Peter Horváth (`horvath@…`) | podpísaná zmluva, inštalácia `Planned` | záložný zákazník pre plán B |
 
@@ -48,32 +54,29 @@ Hodnoty `<…>` sú id vypísané skriptom `reset-demo.py` na konci behu.
 | 6 | 1 min | Obchod | `POST /api/contracts` z prijatej ponuky, `…/sign` s odberným miestom, `…/deposit/pay`. | Zmluva `ZM-2026-…` `Signed`, záloha `Paid`, vznikne inštalácia `Planned`. | API |
 | 7 | 1 min | Obchod | **Pripojenie:** `POST /api/connection-requests` (EIC, 10 kW, schéma a súhlas vlastníka ako prílohy). | 201, žiadosť v stave `Draft`. Odoslanie distribučke a ďalšie stavy: **zatiaľ nie je implementované**. | API (čiastočne) |
 | 8 | 1 min | Technik | Na hotovom zákazníkovi Novák ukáže `GET /api/installations/<novak_installation>` a `…/devices`. | Stav `Commissioned`, história stavov, striedač a 2 panely so sériovými číslami. | API |
-| 9 | 1 min | Moderátor | **Monitoring:** telemetria zo striedača. | **Zatiaľ nie je implementované** (API nemá príjem ani zobrazenie telemetrie). Plán B: simulátor `ml/` vygeneruje dávky podľa ADR-185. | chýba |
-| 10 | 1 min | Moderátor | **Detekcia anomálií:** pokles výkonu. | **Zatiaľ nie je implementované** (`ml/` má len `/health`). Plán B: simulátor s injekciou poruchy, viď nižšie. | chýba |
-| 11 | 1 min | Operátor | **Tiket:** vytvorenie servisného tiketu z alertu. | **Zatiaľ nie je implementované** (žiadny endpoint ani entita). Plán B: BPMN proces servisného tiketu v `docs/bpmn/`. | chýba |
+| 9 | 1 min | Operátor | **Monitoring:** frontend `/monitoring`, elektráreň Nováka, obdobie 30 dní. | Graf skutočnej výroby oproti ML predikcii. Zdravé dni sa takmer prekrývajú, posledné 2 dni sú výrazne pod predikciou. | UI |
+| 10 | 1 min | Operátor | **Detekcia anomálií:** sekcia alarmov na tej istej stránke. | Prebiehajúci alarm podvýroby: medián cca 55 % predikcie, odhad straty v kWh, závažnosť Medium. | UI |
+| 11 | 1 min | Operátor | **Tiket:** frontend `/tickets`, tiket „Podvýroba: FVE 9,9 kWp Novak (demo)“. | Tiket s pôvodom `AnomalyDetected`, popis s dôkazmi po hodinách. Nadväzuje BPMN proces #68. | UI |
 
 ## Plán B
 
 - **API padne alebo DB nie je dostupná:** `docker compose up -d postgres`, reštart API, `python3 scripts/demo/reset-demo.py`. Ak ani to, ukázať `.http` súbory a pripravené snímky obrazovky.
 - **Nejaký krok vráti 409/400:** dáta sú rozbité po neúspešnom pokuse, spustiť reset a zopakovať od kroku 2. Záložný zákazník Horváth má zmluvu a inštaláciu už hotové (kroky 2 až 6 preskočiť).
 - **Frontend nefunguje:** všetko okrem kroku 1 ide cez API, takže stačí Swagger alebo `curl`.
-- **Monitoring a detekcia (kroky 9 a 10):** ukážka simulátora (offline, bez siete, trvá cca 2 s):
+- **Monitoring a detekcia (kroky 9 a 10), keď reset výroby zlyhá** (chýba internet alebo ML služba): spustiť reset s `--no-production` a ukázať samotný simulátor (offline, bez siete, trvá cca 2 s):
   ```bash
   cd ml && uv run python -m solarops_ml.simulator --location alice_springs \
     --start 2024-06-20 --end 2024-06-21 --seed 42 \
     --fault power_drop,2024-06-20T02:00,2024-06-20T05:00,0.5 \
     --out data/sim/alice.json --labels-out data/sim/alice_labels.csv
   ```
-  Výstup je JSON s dávkami po 5 minútach (kontrakt ADR-185) a CSV s labelmi poruchy. Do API sa zatiaľ nahrať nedá.
-- **Tiket (krok 11):** ukázať proces v `docs/bpmn/` a povedať, že implementácia je v backlogu.
+  Výstup je JSON s dávkami po 5 minútach (kontrakt ADR-185) a CSV s labelmi poruchy.
 
 ## Čo scenár nepokrýva (zhrnutie medzier)
 
-1. Príjem a zobrazenie telemetrie (ingest endpoint, ukladanie, grafy).
-2. Detekcia anomálií nad telemetriou (ML služba má len health check).
-3. Tikety a alerty (entity, endpointy, UI).
-4. Odoslanie žiadosti o pripojenie a jej stavy za `Draft` (`Submitted` až `Concluded` existujú v enume, ale chýba endpoint na prechod).
-5. Frontend: hotová je len správa zákazníkov s odbernými miestami; ponuky, zmluvy a inštalácie sú zástupné stránky.
+1. Živá výroba: telemetria pribúda len pri resete, nie priebežne.
+2. Odoslanie žiadosti o pripojenie a jej stavy za `Draft` (`Submitted` až `Concluded` existujú v enume, ale chýba endpoint na prechod).
+3. Frontend: hotová je len správa zákazníkov s odbernými miestami; ponuky, zmluvy a inštalácie sú zástupné stránky.
 
 ## Skúška nanečisto
 
