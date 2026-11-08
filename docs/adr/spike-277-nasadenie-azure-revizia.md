@@ -1,7 +1,7 @@
 # ADR #277: Revízia nasadenia v Azure (región, hosting frontendu, joby, admin)
 
 - **Stav:** Prijaté
-- **Dátum:** 2026-11-07
+- **Dátum:** 2026-11-07, doplnené 2026-11-08 po prvom nasadení
 - **Issue:** #277 (nadradené #51, #11)
 - **Mení:** ADR #211 (hosting frontendu, región), ADR #215 (región a odhad nákladov)
 - **Súvisí:** #157 (infra ako kód), #158 (PostgreSQL a migrácie), #159 (tajomstvá), #161 a #162 (CD), #168 (úlohy a health-checky), #169 (rozpočet), #278 a #279 (SPA routing, CORS), #380 (poplatok za prostredie)
@@ -12,7 +12,7 @@ ADR #211 počíta so Static Web Apps (SWA) pre React SPA a ADR #215 s cenami reg
 
 - Politika „Allowed resource deployment regions“ povoľuje len `swedencentral`, `switzerlandnorth`, `polandcentral`, `uaenorth` a `italynorth`. **West Europe nie je povolený.**
 - `Microsoft.Web/staticSites` je v Európe dostupné len vo West Europe. Validácia šablóny so SWA Free (`az deployment group validate`) skončila chybou `RequestDisallowedByAzure`. **SWA sa na tomto predplatnom nedá vytvoriť.**
-- Container Apps, PostgreSQL Flexible Server, Key Vault a Application Insights sú dostupné vo všetkých povolených regiónoch.
+- Container Apps, Key Vault a Application Insights sú dostupné vo všetkých povolených regiónoch. PostgreSQL Flexible Server síce zoznam SKU (`list-skus`) uvádza všade, pri vytvorení však v niektorých regiónoch zlyhá (pozri Doplnenie).
 - Aplikácia pobeží v Azure len **4 až 5 dní** okolo obhajoby, potom sa resource group zmaže.
 
 Ďalej treba vyriešiť veci, ktoré ADR #211 nechal otvorené: ako sa v Azure aplikujú EF migrácie (v kóde bežia len v Development), ako vznikne prvý administrátor a čo s úlohami na pozadí pri škálovaní na nulu.
@@ -29,7 +29,7 @@ ADR #211 počíta so Static Web Apps (SWA) pre React SPA a ADR #215 s cenami reg
 ## Rozhodnutie
 
 ### Región
-Všetky zdroje idú do **Poland Central** (`polandcentral`).
+Všetky zdroje idú do **Poland Central** (`polandcentral`), okrem databázy, ktorá je v **Italy North** (pozri Doplnenie).
 
 ### Frontend: možnosť A
 - Samostatná aplikácia v tom istom prostredí Container Apps s verejným ingressom. Obraz obsahuje `vite build` a nginx (multi-stage, non-root).
@@ -61,10 +61,18 @@ Odhad na 5 dní v Poland Central (Azure Retail Prices API, 2026-11-07, USD):
 | Položka | Cena | 5 dní |
 |---|---|---|
 | Environment Management Hour (ak sa účtuje, #380) | 0,10 USD/h | 12,00 |
-| PostgreSQL Flexible B1ms, výpočet | 0,0199 USD/h | 2,39 |
+| PostgreSQL Flexible B1ms, výpočet (Italy North, rovnaká cena) | 0,0199 USD/h | 2,39 |
 | PostgreSQL úložisko 32 GB | podľa cenníka | < 1 |
 | Container Apps (API, ML, frontend, joby) | vCPU 0,000024 USD/s aktívne, 0,000003 USD/s nečinné; mesačná bezplatná kvóta | 0 až 3 |
 | **Spolu (horší prípad)** | | **približne 15 až 20** |
+
+### Doplnenie 2026-11-08: prvé nasadenie
+Prvý beh `infra/deploy.sh` (#157) odhalil dve veci, ktoré validácia šablóny nezachytí:
+
+- **Prostredie Container Apps v režime Express.** Ak šablóna neurčí režim, Azure nové prostredie vytvorí ako *Express* (`environmentMode: Express`). Express nepodporuje joby, referencie na Key Vault, interné mená aplikácií (`http://solarops-ml`) ani nešifrované HTTP medzi aplikáciami, teda všetko, na čom stojí toto ADR. Šablóna preto nastavuje `environmentMode: 'WorkloadProfiles'` s jediným profilom Consumption (API `2026-07-01`). Platí sa ďalej len za použitie a škálovanie na nulu ostáva. Existujúce prostredie sa dá prepnúť na mieste, trvá to okolo 20 minút.
+- **PostgreSQL mimo Poland Central.** Burstable `Standard_B1ms` aj `Standard_B2s` vracia predplatnému Azure for Students v Poland Central (vo všetkých troch zónach) aj v Sweden Central chybu `SkuNotAvailable`. V **Italy North** sa B1ms vytvoril. Databáza je preto v Italy North (`postgresLocation` v `main.bicepparam`), ostatné zdroje ostávajú v Poland Central. Názov servera obsahuje región, lebo neúspešný názov ostáva v pôvodnom regióne istý čas rezervovaný.
+
+Dôsledky doplnenia: dotazy z API do databázy idú cez dva regióny (rádovo +20 ms na dotaz). Cena B1ms je v oboch regiónoch rovnaká. Firewall pravidlo „Allow Azure services“ funguje aj medzi regiónmi.
 
 ## Dôsledky
 
@@ -90,3 +98,6 @@ Odhad na 5 dní v Poland Central (Azure Retail Prices API, 2026-11-07, USD):
 4. Azure Retail Prices API, región `polandcentral`: https://prices.azure.com/api/retail/prices
 5. Container Apps Jobs: https://learn.microsoft.com/en-us/azure/container-apps/jobs
 6. Container Apps: fakturácia: https://learn.microsoft.com/en-us/azure/container-apps/billing
+7. Container Apps express: https://learn.microsoft.com/en-us/azure/container-apps/express-overview
+8. `Microsoft.App/managedEnvironments`, vlastnosť `environmentMode`: https://learn.microsoft.com/en-us/azure/templates/microsoft.app/managedenvironments
+9. PostgreSQL Flexible Server, chyby kapacity a SKU: https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-resolve-capacity-errors
