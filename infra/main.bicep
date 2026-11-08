@@ -1,142 +1,380 @@
-targetScope = 'subscription'
+// Azure environment of SolarOps (#157; ADR #211, #213, #215 and #277).
+// Deploy with infra/deploy.sh; parameters come from main.bicepparam, secrets from environment variables, never from git.
+targetScope = 'resourceGroup'
 
-@description('Deployment environment. Also used in resource names and tags.')
-@allowed([
-  'dev'
-  'prod'
-])
-param environment string
+@description('Azure region. The Azure for Students subscription allows only a few regions (ADR #277).')
+param location string = resourceGroup().location
 
-@description('Azure region for every resource. West Europe is the region used in the cost estimate (ADR #215).')
-param location string = 'westeurope'
-
-@description('Prefix for resource names.')
+@description('Prefix of all resource names.')
 @minLength(3)
-@maxLength(20)
-param namePrefix string = 'solarops'
+@maxLength(12)
+param prefix string = 'solarops'
 
-@description('Suffix that keeps globally unique names (PostgreSQL, Static Web Apps) unique. Defaults to a hash of the subscription and environment.')
-@minLength(3)
-@maxLength(20)
-param nameSuffix string = uniqueString(subscription().subscriptionId, environment)
+@description('API image. The jobs run the same image with `--job <name>`.')
+param apiImage string
 
-@description('PostgreSQL administrator login. The application uses the same login until a read-only ML user exists.')
-@minLength(1)
-@maxLength(63)
-param postgresAdminLogin string = 'solaropsadmin'
+@description('ML service image.')
+param mlImage string
 
-@description('PostgreSQL administrator password. Supply it through POSTGRES_ADMIN_PASSWORD, never commit it.')
+@description('Frontend image. Until the first frontend build any nginx serving on port 8080 works as a placeholder.')
+param webImage string
+
+@description('Minimum replicas of the API and the frontend: 0 scales to zero, 1 avoids cold starts (before the defence).')
+@minValue(0)
+@maxValue(1)
+param minReplicas int = 0
+
 @secure()
-@minLength(16)
+@description('Password of the PostgreSQL administrator. Must not contain ";" because it is part of the connection string.')
 param postgresAdminPassword string
 
-@description('Backup retention in days. Dev keeps the minimum, prod keeps two weeks.')
-@minValue(1)
-@maxValue(35)
-param postgresBackupRetentionDays int = 7
-
-@description('JWT signing key (at least 32 bytes). Supply it through JWT_SIGNING_KEY, never commit it.')
 @secure()
-@minLength(32)
+@description('JWT signing key, at least 32 bytes.')
 param jwtSigningKey string
 
-@description('API container image. Placeholder until the API deploy workflow (#161) pushes the real image.')
-param apiImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+@secure()
+@description('Password of the first administrator admin@solarops.local (ADR #277).')
+param adminPassword string
 
-@description('ML container image. Placeholder until the ML deploy workflow (#164) pushes the real image.')
-param mlImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+@description('Container registry of the images.')
+param registryServer string = 'ghcr.io'
 
-@description('Minimum API replicas. 0 uses scale-to-zero; set 1 before a demo to avoid a cold start.')
-@minValue(0)
-@maxValue(10)
-param apiMinReplicas int = 0
+@description('Registry user; empty for public images.')
+param registryUsername string = ''
 
-@description('Maximum API replicas.')
-@minValue(1)
-@maxValue(30)
-param apiMaxReplicas int = 3
+@secure()
+@description('Registry password or token; empty for public images.')
+param registryPassword string = ''
 
-@description('Minimum ML replicas. 0 keeps the ML service stopped until the API calls it.')
-@minValue(0)
-@maxValue(10)
-param mlMinReplicas int = 0
-
-@description('Maximum ML replicas.')
-@minValue(1)
-@maxValue(30)
-param mlMaxReplicas int = 3
-
-@description('Log Analytics retention in days. Keep it short to stay inside the student budget.')
-@minValue(30)
-@maxValue(730)
-param logRetentionDays int = 30
-
-var tags = {
-  project: 'SolarOps'
-  environment: environment
-  managedBy: 'Bicep'
-  owner: 'solarops-team'
-  workload: 'solarops'
-  costCenter: 'azure-for-students'
+var suffix = take(uniqueString(resourceGroup().id), 8)
+var postgresLogin = 'solarops'
+var databaseName = 'solarops'
+var names = {
+  logs: '${prefix}-logs'
+  identity: '${prefix}-identity'
+  keyVault: '${prefix}-kv-${suffix}'
+  postgres: '${prefix}-pg-${suffix}'
+  environment: '${prefix}-env'
+  api: '${prefix}-api'
+  ml: '${prefix}-ml'
+  web: '${prefix}-web'
+  migrateJob: '${prefix}-migrate'
+  mlJob: '${prefix}-ml-analysis'
+  weatherJob: '${prefix}-weather'
 }
 
-var resourceGroupName = 'rg-${namePrefix}-${environment}'
+// ---------------------------------------------------------------- logs, identity, secrets
 
-resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: resourceGroupName
+resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: names.logs
   location: location
-  tags: tags
-}
-
-module resources './resources.bicep' = {
-  name: 'solarops-${environment}-resources'
-  scope: resourceGroup(rg.name)
-  params: {
-    environment: environment
-    location: location
-    namePrefix: namePrefix
-    nameSuffix: nameSuffix
-    tags: tags
-    postgresAdminLogin: postgresAdminLogin
-    postgresAdminPassword: postgresAdminPassword
-    postgresBackupRetentionDays: postgresBackupRetentionDays
-    jwtSigningKey: jwtSigningKey
-    apiImage: apiImage
-    mlImage: mlImage
-    apiMinReplicas: apiMinReplicas
-    apiMaxReplicas: apiMaxReplicas
-    mlMinReplicas: mlMinReplicas
-    mlMaxReplicas: mlMaxReplicas
-    logRetentionDays: logRetentionDays
+  properties: {
+    sku: { name: 'PerGB2018' }
+    retentionInDays: 30
+    // Cost cap: ingestion stops for the day after 1 GB.
+    workspaceCapping: { dailyQuotaGb: 1 }
   }
 }
 
-@description('Name of the created resource group.')
-output resourceGroupName string = rg.name
+// Identity of the container apps and jobs, used to read the Key Vault secrets.
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: names.identity
+  location: location
+}
 
-@description('Public HTTPS URL of the API.')
-output apiUrl string = 'https://${resources.outputs.apiFqdn}'
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: names.keyVault
+  location: location
+  properties: {
+    tenantId: subscription().tenantId
+    sku: { family: 'A', name: 'standard' }
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 7
+  }
+}
 
-@description('Internal FQDN of the ML service (only reachable from the Container Apps environment).')
-output mlFqdn string = resources.outputs.mlFqdn
+var keyVaultSecretsUserRole = '4633458b-17de-408a-b874-0445c86b69e6'
 
-@description('Default hostname of the Static Web App (the frontend URL).')
-output staticWebAppHostname string = resources.outputs.staticWebAppHostname
+resource secretsReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, identity.id, keyVaultSecretsUserRole)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRole)
+    principalId: identity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
-@description('Static Web App resource name (for fetching the deployment token).')
-output staticWebAppName string = resources.outputs.staticWebAppName
+// ---------------------------------------------------------------- database (ADR #213)
 
-@description('PostgreSQL server FQDN. Do not use it directly from the internet; the API connects with SSL.')
-output postgresFqdn string = resources.outputs.postgresFqdn
+resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: names.postgres
+  location: location
+  sku: { name: 'Standard_B1ms', tier: 'Burstable' }
+  properties: {
+    version: '16'
+    administratorLogin: postgresLogin
+    administratorLoginPassword: postgresAdminPassword
+    storage: { storageSizeGB: 32, autoGrow: 'Disabled' }
+    backup: { backupRetentionDays: 7, geoRedundantBackup: 'Disabled' }
+    highAvailability: { mode: 'Disabled' }
+    network: { publicNetworkAccess: 'Enabled' }
+    authConfig: { activeDirectoryAuth: 'Disabled', passwordAuth: 'Enabled' }
+  }
+}
 
-@description('PostgreSQL server resource name.')
-output postgresName string = resources.outputs.postgresName
+resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  parent: postgres
+  name: databaseName
+  properties: { charset: 'UTF8', collation: 'en_US.utf8' }
+}
 
-@description('Application database name.')
-output databaseName string = resources.outputs.databaseName
+// Container Apps (Consumption) have no fixed outbound IP. The 0.0.0.0 rule admits connections from Azure services only;
+// closing the server to one environment would need a VNet (ADR #277, risks).
+resource allowAzureServices 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+  parent: postgres
+  name: 'AllowAzureServices'
+  properties: { startIpAddress: '0.0.0.0', endIpAddress: '0.0.0.0' }
+  // The server accepts one change at a time.
+  dependsOn: [database]
+}
 
-@description('Container Apps environment name.')
-output containerAppsEnvironmentName string = resources.outputs.containerAppsEnvironmentName
+resource connectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'postgres-connection'
+  properties: {
+    value: 'Host=${postgres.properties.fullyQualifiedDomainName};Port=5432;Database=${databaseName};Username=${postgresLogin};Password=${postgresAdminPassword};SslMode=Require'
+  }
+}
 
-@description('Log Analytics workspace resource ID.')
-output logAnalyticsWorkspaceId string = resources.outputs.logAnalyticsWorkspaceId
+resource jwtSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'jwt-signing-key'
+  properties: { value: jwtSigningKey }
+}
+
+resource adminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'admin-password'
+  properties: { value: adminPassword }
+}
+
+// ---------------------------------------------------------------- container apps (ADR #211, #277)
+
+resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: names.environment
+  location: location
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logs.properties.customerId
+        sharedKey: logs.listKeys().primarySharedKey
+      }
+    }
+  }
+}
+
+var apiFqdn = '${names.api}.${environment.properties.defaultDomain}'
+var webFqdn = '${names.web}.${environment.properties.defaultDomain}'
+var userIdentity = { type: 'UserAssigned', userAssignedIdentities: { '${identity.id}': {} } }
+
+var usesRegistryLogin = !empty(registryUsername)
+var registries = usesRegistryLogin ? [{ server: registryServer, username: registryUsername, passwordSecretRef: 'registry-password' }] : []
+var registrySecrets = usesRegistryLogin ? [{ name: 'registry-password', value: registryPassword }] : []
+
+// Container Apps read the newest version of these Key Vault secrets when a revision or job execution starts.
+var connectionSecretRef = { name: 'postgres-connection', keyVaultUrl: connectionSecret.properties.secretUri, identity: identity.id }
+var backendSecrets = concat([connectionSecretRef], registrySecrets)
+var apiSecrets = concat([
+  connectionSecretRef
+  { name: 'jwt-signing-key', keyVaultUrl: jwtSecret.properties.secretUri, identity: identity.id }
+  { name: 'admin-password', keyVaultUrl: adminSecret.properties.secretUri, identity: identity.id }
+], registrySecrets)
+
+// Shared by the API and the jobs that run its image.
+var backendEnv = [
+  { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+  { name: 'ConnectionStrings__Postgres', secretRef: 'postgres-connection' }
+  { name: 'Ml__BaseUrl', value: 'http://${names.ml}' }
+  // The ML service scales to zero and needs time to start.
+  { name: 'Ml__TimeoutSeconds', value: '60' }
+  // The schedules run as the ml-analysis and weather jobs, not inside the API (ADR #277).
+  { name: 'Ml__AnalysisEnabled', value: 'false' }
+  { name: 'Weather__Enabled', value: 'false' }
+]
+var backendResources = { cpu: json('0.5'), memory: '1Gi' }
+
+resource api 'Microsoft.App/containerApps@2024-03-01' = {
+  name: names.api
+  location: location
+  identity: userIdentity
+  properties: {
+    managedEnvironmentId: environment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: { external: true, targetPort: 8080, transport: 'auto' }
+      secrets: apiSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'api'
+          image: apiImage
+          resources: backendResources
+          env: concat(backendEnv, [
+            { name: 'Jwt__SigningKey', secretRef: 'jwt-signing-key' }
+            { name: 'Admin__Password', secretRef: 'admin-password' }
+            { name: 'Cors__AllowedOrigins__0', value: 'https://${webFqdn}' }
+          ])
+          probes: [
+            { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          ]
+        }
+      ]
+      // One replica: the rate limiter and the startup seeding are per process.
+      scale: { minReplicas: minReplicas, maxReplicas: 1 }
+    }
+  }
+  dependsOn: [secretsReader]
+}
+
+// Internal ingress: only apps in the environment (the API and the jobs) reach it, as http://<name> (ADR #196).
+resource ml 'Microsoft.App/containerApps@2024-03-01' = {
+  name: names.ml
+  location: location
+  properties: {
+    managedEnvironmentId: environment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: { external: false, targetPort: 8000, transport: 'auto', allowInsecure: true }
+      secrets: registrySecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'ml'
+          image: mlImage
+          resources: backendResources
+          probes: [
+            { type: 'Readiness', httpGet: { path: '/health', port: 8000 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          ]
+        }
+      ]
+      scale: { minReplicas: 0, maxReplicas: 1 }
+    }
+  }
+}
+
+resource web 'Microsoft.App/containerApps@2024-03-01' = {
+  name: names.web
+  location: location
+  properties: {
+    managedEnvironmentId: environment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: { external: true, targetPort: 8080, transport: 'auto' }
+      secrets: registrySecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'web'
+          image: webImage
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+          // Exact API origin for the CSP connect-src (frontend/nginx/default.conf.template).
+          env: [{ name: 'API_ORIGIN', value: 'https://${apiFqdn}' }]
+          // "/" and not "/healthz", so the placeholder image passes as well.
+          probes: [
+            { type: 'Readiness', httpGet: { path: '/', port: 8080 }, initialDelaySeconds: 2, periodSeconds: 10 }
+          ]
+        }
+      ]
+      scale: { minReplicas: minReplicas, maxReplicas: 1 }
+    }
+  }
+}
+
+// ---------------------------------------------------------------- jobs (ADR #277)
+
+// Started by the deployment before a new API revision; the API migrates by itself only in Development.
+resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: names.migrateJob
+  location: location
+  identity: userIdentity
+  properties: {
+    environmentId: environment.id
+    configuration: {
+      triggerType: 'Manual'
+      replicaTimeout: 600
+      replicaRetryLimit: 0
+      manualTriggerConfig: { parallelism: 1, replicaCompletionCount: 1 }
+      secrets: backendSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        { name: 'migrate', image: apiImage, args: ['--job', 'migrate'], env: backendEnv, resources: backendResources }
+      ]
+    }
+  }
+  dependsOn: [secretsReader]
+}
+
+// Hourly analysis of the monitored installations (alarms and tickets, #33).
+resource mlJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: names.mlJob
+  location: location
+  identity: userIdentity
+  properties: {
+    environmentId: environment.id
+    configuration: {
+      triggerType: 'Schedule'
+      replicaTimeout: 900
+      replicaRetryLimit: 0
+      scheduleTriggerConfig: { cronExpression: '5 * * * *', parallelism: 1, replicaCompletionCount: 1 }
+      secrets: backendSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        { name: 'ml-analysis', image: apiImage, args: ['--job', 'ml-analysis'], env: backendEnv, resources: backendResources }
+      ]
+    }
+  }
+  dependsOn: [secretsReader]
+}
+
+// Daily 48-hour weather forecast (#104), before the morning production.
+resource weatherJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: names.weatherJob
+  location: location
+  identity: userIdentity
+  properties: {
+    environmentId: environment.id
+    configuration: {
+      triggerType: 'Schedule'
+      replicaTimeout: 600
+      replicaRetryLimit: 1
+      scheduleTriggerConfig: { cronExpression: '30 3 * * *', parallelism: 1, replicaCompletionCount: 1 }
+      secrets: backendSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        { name: 'weather-refresh', image: apiImage, args: ['--job', 'weather-refresh'], env: backendEnv, resources: backendResources }
+      ]
+    }
+  }
+  dependsOn: [secretsReader]
+}
+
+output apiUrl string = 'https://${apiFqdn}'
+output webUrl string = 'https://${webFqdn}'
+output keyVaultName string = keyVault.name
+output postgresHost string = postgres.properties.fullyQualifiedDomainName
+output migrateJobName string = migrateJob.name

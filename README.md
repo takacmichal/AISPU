@@ -13,7 +13,7 @@ Backlog: [Issues](../../issues) a [GitHub Project](https://github.com/users/taka
 | Frontend | **React** + Vite + TypeScript (pnpm) – od Sprintu 1 namiesto Angularu | `frontend/` |
 | ML služba | Python 3.12 (uv), FastAPI, pytest, ruff | `ml/` |
 | Databáza | PostgreSQL 16 | `docker-compose.yml` |
-| Azure infraštruktúra | Bicep (Container Apps, PostgreSQL Flexible Server, Static Web Apps) | `infra/` |
+| Azure infraštruktúra | Bicep (Container Apps, PostgreSQL Flexible Server, Key Vault) | `infra/` |
 | Dokumentácia | ADR, BPMN | `docs/` |
 
 ## Snímky obrazoviek
@@ -184,6 +184,10 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 7. Integračné testy: `IClassFixture<PostgresFixture>` (bez `[Collection]`, aby triedy bežali paralelne), konštruktor s `PostgresFixture`, `new ApiFactory(postgres)` (každá factory má vlastnú databázu, kópiu migrovanej template), `factory.CreateApiClient()` (anonymný) alebo `factory.CreateApiClient(userId, Roles.Sales)` (prihlásený cez testovaciu schému `TestAuthHandler`, funguje aj po pridaní JWT v #132), seed cez `factory.ExecuteDbAsync(db => ...)`. Unit testy patria do `tests/SolarOps.Api.Tests/Unit/<Modul>/`, integračné do `Integration/<Modul>/`.
 
 **EF migrácie sú súčasťou zmeny schémy.** Dev aj testy aplikujú migrácie (`MigrateAsync`); pri pridaní alebo zmene entity vygeneruj migráciu (`dotnet ef migrations add <Nazov> --project src/SolarOps.Api --startup-project src/SolarOps.Api`) a commitni ju spolu s kódom. `EnsureCreated` sa už nepoužíva.
+
+## Nasadenie do Azure
+
+Infraštruktúra je v Bicep v [`infra/`](infra/README.md): Container Apps (API, ML služba, frontend a joby), PostgreSQL Flexible Server, Key Vault a Log Analytics v regióne Poland Central. Nasadenie je `infra/deploy.sh`; tajomstvá generuje do ignorovaného `infra/.env`.
 
 ## Pravidlá PR a merge
 

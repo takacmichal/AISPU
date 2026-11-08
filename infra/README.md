@@ -1,179 +1,92 @@
-# Azure infraštruktúra ako kód (Bicep)
+# Azure infraštruktúra (Bicep)
 
-Bicep šablóny pre prostredie SolarOps v Azure. Vytvárajú resource group a všetky runtime zdroje tak, aby sa dali znovu vytvoriť bez ručného klikania.
-
-> **Rozpor so zadaním #157:** issue hovorí o App Service pláne a Azure SQL. Záväzné ADR [#211](../docs/adr/spike-211-azure-hosting.md) a [#213](../docs/adr/spike-213-databaza.md) určujú **Container Apps** a **PostgreSQL Flexible Server**. Šablóny sa riadia ADR; App Service ani Azure SQL sa nevytvárajú.
+Celé prostredie SolarOps v Azure je opísané v [`main.bicep`](main.bicep) (#157). Rozhodnutia sú v ADR #211, #213, #215 a #277; ADR #277 mení región a hosting frontendu.
 
 ## Čo sa vytvorí
 
-| Zdroj | Účel | SKU / nastavenie |
+Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predplatné Azure for Students povoľuje len niekoľko regiónov).
+
+| Zdroj | Názov | Poznámka |
 |---|---|---|
-| Resource group `rg-solarops-{env}` | Spoločný kontajner zdrojov | `westeurope` |
-| Log Analytics workspace | Logy prostredia Container Apps | PerGB2018, retencia 30 dní |
-| Container Apps environment | Spoločné prostredie pre API a ML | Consumption |
-| Container App `ca-solarops-api-{env}` | .NET 10 API | verejný ingress, port 8080, 0,25 vCPU / 0,5 GiB, 0–3 (dev) / 0–5 (prod) replík |
-| Container App `ca-solarops-ml-{env}` | FastAPI ML služba | **interný** ingress, port 8000, 0,5 vCPU / 1 GiB, 0–3 (dev) / 0–5 (prod) replík |
-| PostgreSQL Flexible Server `psql-solarops-{env}-{suffix}` | Databáza | Burstable B1ms, PostgreSQL 16, 32 GB, bez HA |
-| Databáza `solarops` | Aplikačná schéma | UTF-8 |
-| Static Web App `swa-solarops-{env}-{suffix}` | React SPA | plán Free |
+| Container Apps prostredie | `solarops-env` | Consumption, logy do Log Analytics |
+| API | `solarops-api` | verejné, port 8080, 0 až 1 replika |
+| ML služba | `solarops-ml` | len interná, API ju volá na `http://solarops-ml` |
+| Frontend | `solarops-web` | nginx, verejný, port 8080 |
+| Job `solarops-migrate` | ručne | EF migrácie (`--job migrate`), spúšťa ho `deploy.sh` |
+| Job `solarops-ml-analysis` | každú hodinu (`5 * * * *`, UTC) | analýza inštalácií, alarmy a tikety |
+| Job `solarops-weather` | denne o 3:30 UTC | predpoveď počasia |
+| PostgreSQL Flexible Server | `solarops-pg-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní |
+| Key Vault | `solarops-kv-<suffix>` | tajomstvá, prístup cez RBAC |
+| Managed identity | `solarops-identity` | aplikácie a joby ňou čítajú tajomstvá z Key Vault |
+| Log Analytics | `solarops-logs` | 30 dní, limit 1 GB denne |
 
-Všetky zdroje majú tagy `project`, `environment`, `managedBy`, `owner`, `workload` a `costCenter`.
+Joby používajú obraz API. Plán ML analýzy a počasia je v API vypnutý (`Ml__AnalysisEnabled=false`, `Weather__Enabled=false`), robia ho joby.
 
-## Štruktúra
+## Tajomstvá
 
-```text
-infra/
-├── main.bicep             # subscription scope: resource group + volanie resources.bicep
-├── resources.bicep        # všetky zdroje v resource group
-├── main.dev.bicepparam    # parametre pre dev
-├── main.prod.bicepparam   # parametre pre prod/demo
-└── README.md
-```
+V gite nie je žiadne tajomstvo. `deploy.sh` pri prvom behu vygeneruje do `infra/.env` (ignorovaný, práva 600):
 
-## Predpoklady
+- `SOLAROPS_POSTGRES_PASSWORD` – heslo správcu PostgreSQL,
+- `SOLAROPS_JWT_SIGNING_KEY` – podpisový kľúč JWT,
+- `SOLAROPS_ADMIN_PASSWORD` – heslo prvého admina `admin@solarops.local`.
 
-- Azure CLI 2.90+ a Bicep CLI (`az bicep install`)
-- Azure for Students subscription s dostupným kreditom
-- `POSTGRES_ADMIN_PASSWORD` (min. 16 znakov) a `JWT_SIGNING_KEY` (min. 32 bajtov) v prostredí, nikdy v gite
-- Potvrdená subscription, resource group a región pred akýmkoľvek deployom
+Bicep ich zapíše do Key Vault (`postgres-connection`, `jwt-signing-key`, `admin-password`). Container Apps ich čítajú cez managed identity ako referencie na Key Vault, nie ako hodnoty. `infra/.env` si odlož; bez neho ďalší beh vygeneruje nové heslá a zmení ich v Azure.
 
-## Parametre a tajomstvá
+## Nasadenie
 
-Tajomstvá sa neukladajú do `.bicepparam`; načítajú sa z premenných prostredia:
+Predpoklady: `az login` do predplatného Azure for Students, zaregistrovaní provideri `Microsoft.App`, `Microsoft.DBforPostgreSQL` a `Microsoft.KeyVault`, obrazy API a ML v registri (zo CD #161 a #162, napr. `ghcr.io/takacmichal/aispu-api:<tag>`).
 
 ```bash
-export POSTGRES_ADMIN_PASSWORD="$(openssl rand -base64 24)"
-export JWT_SIGNING_KEY="$(openssl rand -base64 48)"
+SOLAROPS_API_IMAGE=ghcr.io/takacmichal/aispu-api:<tag> \
+SOLAROPS_ML_IMAGE=ghcr.io/takacmichal/aispu-ml:<tag> \
+infra/deploy.sh
 ```
 
-Hodnoty si ulož do správcu hesiel. Pri ďalšom deployi ich musíš použiť znova, inak sa zmení administrátorské heslo PostgreSQL a JWT kľúč (čím sa zneplatnia prihlásenia). Heslo PostgreSQL nesmie obsahovať `;`, pretože sa vkladá do connection stringu; hodnota z `openssl rand -base64` je bezpečná.
+Skript:
 
-Ďalšie parametre v `main.*.bicepparam`:
+1. vytvorí resource group a nasadí `main.bicep` s parametrami z `main.bicepparam`,
+2. spustí job `solarops-migrate` a počká na jeho koniec,
+3. reštartuje API, aby na novej schéme vytvorilo roly a prvého admina,
+4. vypíše adresy frontendu a API.
 
-| Parameter | Význam |
-|---|---|
-| `environment` | `dev` alebo `prod`; používa sa v názvoch a tagoch |
-| `location` | región, predvolene `westeurope` |
-| `namePrefix` | predvolene `solarops` |
-| `nameSuffix` | hash subscription + environment pre globálne unikátne názvy |
-| `postgresAdminLogin` | administrátor PostgreSQL, predvolene `solaropsadmin` |
-| `postgresBackupRetentionDays` | 7 dní v dev, 14 v prod |
-| `apiImage`, `mlImage` | obrazy kontajnerov; predvolene placeholder do prvého nasadenia |
-| `apiMinReplicas`, `apiMaxReplicas` | škálovanie API; 0 znamená scale-to-zero |
-| `mlMinReplicas`, `mlMaxReplicas` | škálovanie ML služby |
-| `logRetentionDays` | retencia logov, predvolene 30 dní |
+Ďalšie behy môžu obrazy vynechať, ostanú nasadené. Frontend pri prvom nasadení beží ako prázdny nginx (`nginx-unprivileged`), lebo jeho build potrebuje adresu API (`VITE_API_URL`), ktorá vznikne až s prostredím. Skutočný obraz frontendu nasadí CD (#162).
 
-## Validácia bez Azure
+Súkromné obrazy: nastav `SOLAROPS_REGISTRY_USERNAME` a `SOLAROPS_REGISTRY_PASSWORD` (napr. GHCR token s `read:packages`).
+
+Overenie šablóny bez vytvárania zdrojov:
 
 ```bash
-az bicep build --file infra/main.bicep --stdout > /dev/null
-
-POSTGRES_ADMIN_PASSWORD=local-test-password-123 \
-JWT_SIGNING_KEY=local-test-signing-key-0123456789abcdef \
-az bicep build-params --file infra/main.dev.bicepparam --stdout > /dev/null
-
-POSTGRES_ADMIN_PASSWORD=local-test-password-123 \
-JWT_SIGNING_KEY=local-test-signing-key-0123456789abcdef \
-az bicep build-params --file infra/main.prod.bicepparam --stdout > /dev/null
+az bicep build --file infra/main.bicep
+az deployment group validate -g <existujúca resource group> --parameters infra/main.bicepparam   # premenné SOLAROPS_* nastavené
 ```
 
-`build-params` vypíše aj hodnoty tajomstiev, preto nikdy nepresmeruj jeho výstup s reálnymi heslami do súboru.
-
-## Náhľad a nasadenie
-
-Najprv over subscription a región. Nič sa nevytvorí, kým nespustíš `create`.
+## Prevádzka
 
 ```bash
-az login
-az account show
-az account set --subscription "<subscription-id>"
+# pred obhajobou bez studeného štartu (~cena: API a frontend bežia stále)
+az containerapp update -g solarops-rg -n solarops-api --min-replicas 1
+az containerapp update -g solarops-rg -n solarops-web --min-replicas 1
 
-# Dev
-az deployment sub validate \
-  --name solarops-dev \
-  --location westeurope \
-  --parameters infra/main.dev.bicepparam
+# logy aplikácie a jobu
+az containerapp logs show -g solarops-rg -n solarops-api --tail 100
+az containerapp job execution list -g solarops-rg -n solarops-migrate -o table
 
-az deployment sub what-if \
-  --name solarops-dev \
-  --location westeurope \
-  --parameters infra/main.dev.bicepparam
+# ručné spustenie analýzy
+az containerapp job start -g solarops-rg -n solarops-ml-analysis
 
-az deployment sub create \
-  --name solarops-dev \
-  --location westeurope \
-  --parameters infra/main.dev.bicepparam
+# PostgreSQL mimo hodnotenia zastaviť (platí sa len úložisko)
+az postgres flexible-server stop -g solarops-rg -n <solarops-pg-...>
 
-# Prod/demo
-az deployment sub validate \
-  --name solarops-prod \
-  --location westeurope \
-  --parameters infra/main.prod.bicepparam
-
-az deployment sub what-if \
-  --name solarops-prod \
-  --location westeurope \
-  --parameters infra/main.prod.bicepparam
-
-az deployment sub create \
-  --name solarops-prod \
-  --location westeurope \
-  --parameters infra/main.prod.bicepparam
+# po obhajobe všetko zmazať
+az group delete -n solarops-rg
 ```
 
-Výstupy:
+Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade). Rozpočet `solarops-budget` (30 USD) posiela upozornenia vlastníkovi predplatného.
 
-```bash
-az deployment sub show --name solarops-dev --query properties.outputs -o json
-```
+## Známe obmedzenia
 
-Kľúčové výstupy: `apiUrl`, `staticWebAppHostname`, `staticWebAppName`, `postgresFqdn`, `containerAppsEnvironmentName`, `logAnalyticsWorkspaceId`.
-
-## Po nasadení
-
-1. **Obrazy:** Bicep použije placeholder. Reálne obrazy doplní deploy workflow API (#161) a ML (#164); vtedy nastav `apiImage` a `mlImage` na publikované tagy.
-2. **Frontend:** do GitHub Secrets pridaj `AZURE_STATIC_WEB_APPS_API_TOKEN` a do Variables `VITE_API_URL` (#280). Token získaš cez:
-   ```bash
-   az staticwebapp secrets list \
-     --name <static-web-app-name> \
-     --resource-group rg-solarops-dev \
-     --query properties.apiKey -o tsv
-   ```
-3. **Migrácie:** pred prvým štartom API aplikuj EF migrácie na PostgreSQL (#158 v pôvodnom znení je zastarané).
-4. **SPA routing:** `staticwebapp.config.json` s `navigationFallback` a bezpečnostnými hlavičkami patrí do #278.
-5. **Ďalšie vrstvy:** Key Vault (#159), Application Insights (#167), budget a alerty (#169), custom doména (#166).
-
-## Odhad nákladov
-
-Ceny sú z ADR [#215](../docs/adr/spike-215-azure-naklady.md) (West Europe, október 2026) a nie sú overené na študentskom predplatnom.
-
-| Položka | Mesačne (USD) |
-|---|---:|
-| PostgreSQL B1ms, výpočet + 32 GB | cca 18,91 |
-| Container Apps, scale-to-zero (API aj ML) | 0 v rámci free grantu |
-| Static Web Apps Free | 0 |
-| Log Analytics (< 1 GB/mesiac) | 0–3 |
-| **Spolu, demo** | **cca 19–22** |
-| API stále zapnuté (`apiMinReplicas = 1`) | cca +20, teda 44–47 |
-
-Kredit Azure for Students je 100 USD. Pred obhajobou sa dá `apiMinReplicas` nastaviť na 1, po nej vrátiť na 0. Ak sa potvrdí 12-mesačná free ponuka PostgreSQL, náklady klesnú takmer na nulu.
-
-## Obmedzenia a riziká
-
-- **Databáza je verejne dostupná** cez firewall pravidlo `AllowAzureServices` (Container Apps nemá stabilnú odchádzajúcu IP). Pre produkciu treba private endpoint alebo VNet integráciu; pre študentské demo je to vedomý kompromis.
-- **Tajomstvá** sú v Container Apps secrets, nie v Key Vault. To je dočasné do #159.
-- **X-Forwarded-For:** API dôveruje privátnej sieti `10.0.0.0/8`, z ktorej Container Apps ingress pridáva hlavičku. Bez toho by rate limit podľa reálnej IP (#379) videl jednu spoločnú adresu. Pri prechode na VNet rozsah zúžte.
-- **Súkromné obrazy:** šablóna nekonfiguruje `registries`. Placeholder z MCR je verejný; ak sa použije súkromné GHCR, doplňte registry credentials do Container App (súčasť #161/#164).
-- **Placeholder obrazy** po prvom deployi neposkytujú reálne API ani ML; zdroje ale vzniknú a dajú sa aktualizovať bez zmeny infraštruktúry.
-- **Región a kvóty** Container Apps a free ponuka PostgreSQL na Azure for Students nie sú overené. Pred deployom skontroluj dostupnosť v subscription.
-- **Žiadny ACR** — počíta sa s GHCR; ak sa tím rozhodne pre ACR Basic, pribudne cca 5 USD/mesiac a parameter pre registry.
-- **Cold start** pri `minReplicas = 0`; pred demo nastav API na 1.
-- **Vlastná doména** a CORS pre ňu nie sú súčasťou šablón; CORS je nastavený na predvolený hostname Static Web App.
-
-## Zmazanie prostredia
-
-```bash
-az group delete --name rg-solarops-dev --yes --no-wait
-```
-
-Tým sa zmažú všetky zdroje vrátane databázy. Pred zmazaním skontroluj, že zálohy už nepotrebuješ.
+- **Firewall databázy** povoľuje služby Azure (pravidlo `0.0.0.0`), nie len naše prostredie. Container Apps (Consumption) nemajú pevnú odchádzajúcu IP; uzavretie by vyžadovalo VNet.
+- **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
+- **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).
+- **ML model:** obraz neobsahuje natrénovaný model, služba počíta nekalibrovaným fyzikálnym modelom (#378).
+- Application Insights a upozornenia ešte nie sú (#167, #168).
