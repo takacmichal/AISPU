@@ -7,6 +7,20 @@ Issue #188. Scenár je postavený len na tom, čo API a frontend reálne vedia (
 - Lokálny stack: `docker compose up -d postgres`, `dotnet run --project src/SolarOps.Api` (http://localhost:5080), `cd frontend && pnpm dev` (http://localhost:5173).
 - Prihlásenie: `demo@solarops.local` / `DemoPass12345` (rola Admin, smie všetko). Technik: `technik@demo.solarops.local` / `DemoTech12345`.
 - Obnova dát (pred každým prejdením): `python3 scripts/demo/reset-demo.py`. Skript zmaže len demo riadky (zákazníci `*@demo.solarops.local`, komponenty `DEMO-*`) a znova ich vytvorí cez API. Odmietne bežať, ak DB alebo API nie je na localhoste. Nastavenia cez env: `DEMO_API_URL`, `DEMO_DB_URL`, `DEMO_EMAIL`, `DEMO_PASSWORD`, `DEMO_TECH_PASSWORD`. Beh trvá cca 3 s.
+- **Azure** (nasadené prostredie, `infra/README.md`): `python3 scripts/demo/reset-demo.py --remote`. Heslá z repozitára sa tu nepoužijú, všetko ide z `infra/.env`:
+  ```bash
+  set -a; . infra/.env; set +a
+  SRV=solarops-db-italynorth-<suffix>; MYIP=$(curl -s https://api.ipify.org)
+  az postgres flexible-server firewall-rule create -g solarops-rg --server-name $SRV --name demo-reset-temp \
+    --start-ip-address $MYIP --end-ip-address $MYIP          # len na čas resetu
+  DEMO_API_URL=https://<api>.azurecontainerapps.io DEMO_EMAIL=admin@solarops.local \
+  DEMO_PASSWORD="$SOLAROPS_ADMIN_PASSWORD" DEMO_ACCOUNT_PASSWORD="$SOLAROPS_DEMO_PASSWORD" \
+  DEMO_TECH_PASSWORD="$SOLAROPS_DEMO_PASSWORD" \
+  DEMO_DB_URL="Host=$SRV.postgres.database.azure.com;Database=solarops;Username=solarops;Password=$SOLAROPS_POSTGRES_PASSWORD" \
+  python3 scripts/demo/reset-demo.py --remote
+  az postgres flexible-server firewall-rule delete -g solarops-rg --server-name $SRV --name demo-reset-temp --yes
+  ```
+  Bez `DEMO_DB_URL` (a bez firewall pravidla) skript len nahrá dáta do prázdnej databázy; ak demo zákazníci existujú, odmietne bežať. SQL ide cez `psql` alebo `docker run postgres:16-alpine` s TLS. Simulátor distribučky je v Azure zapnutý (`ConnectionRequest__Simulator__Enabled=true`). Účty: admin `admin@solarops.local` (`SOLAROPS_ADMIN_PASSWORD`), ostatné roly `*@demo.solarops.local` (`SOLAROPS_DEMO_PASSWORD`).
 - Ukazovanie API: Swagger/OpenAPI `http://localhost:5080/openapi/v1.json`, alebo `.http` súbory v `src/SolarOps.Api/Features/*/`.
 
 ## Pripravené dáta
