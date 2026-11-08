@@ -35,6 +35,13 @@ Configuration (environment, local defaults only):
   DEMO_PASSWORD   default DemoPass12345
 
 Usage: python3 scripts/demo/reset-demo.py [--no-seed]
+
+Deployed environment (Azure, docs/demo/scenar.md): python3 scripts/demo/reset-demo.py --remote
+  Seeds an HTTPS API. The repository is public, so the default passwords are not used: DEMO_EMAIL/DEMO_PASSWORD
+  are the admin login, DEMO_ACCOUNT_PASSWORD and DEMO_TECH_PASSWORD must be set. Without DEMO_DB_URL it cannot
+  delete anything and refuses to run when demo customers exist. With DEMO_DB_URL (the Azure server, your IP
+  allowed in its firewall) it deletes the demo rows first, using psql or `docker run postgres:16-alpine psql`
+  over TLS.
 """
 
 from __future__ import annotations
@@ -46,6 +53,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
@@ -61,6 +69,9 @@ PASSWORD = os.environ.get("DEMO_PASSWORD", "DemoPass12345")
 TECH_EMAIL = "technik@demo.solarops.local"
 TECH2_EMAIL = "technik2@demo.solarops.local"
 TECH_PASSWORD = os.environ.get("DEMO_TECH_PASSWORD", "DemoTech12345")
+# Password of the created role and portal accounts; locally the same as the admin login.
+ACCOUNT_PASSWORD = os.environ.get("DEMO_ACCOUNT_PASSWORD", PASSWORD)
+REMOTE = "--remote" in sys.argv
 # One account per remaining role for the walkthrough (docs/frontend-prechod.md); all use DEMO_PASSWORD.
 ROLE_ACCOUNTS = {
     "obchod@demo.solarops.local": ["Sales"],
@@ -97,6 +108,27 @@ def parse_conn(conn: str) -> dict[str, str]:
     return parts
 
 
+def guard_remote() -> None:
+    if urlparse(API_URL).scheme != "https":
+        die(f"--remote needs an https API (DEMO_API_URL), got '{API_URL}'.")
+    for name in ("DEMO_EMAIL", "DEMO_PASSWORD", "DEMO_ACCOUNT_PASSWORD", "DEMO_TECH_PASSWORD"):
+        if not os.environ.get(name):
+            die(f"--remote needs {name}; the defaults are public in the repository.")
+    if "--no-seed" in sys.argv and "DEMO_DB_URL" not in os.environ:
+        die("--remote --no-seed needs DEMO_DB_URL to delete the demo data.")
+
+
+def remote_db() -> dict[str, str] | None:
+    """The deployed database, only when DEMO_DB_URL is given explicitly."""
+    if "DEMO_DB_URL" not in os.environ:
+        return None
+    db = parse_conn(DB_URL)
+    for key in ("host", "database", "username", "password"):
+        if not db.get(key):
+            die(f"DEMO_DB_URL is missing '{key}'.")
+    return db
+
+
 def guard() -> dict[str, str]:
     db = parse_conn(DB_URL)
     host = db.get("host", "")
@@ -113,11 +145,17 @@ def guard() -> dict[str, str]:
 
 def run_sql(db: dict[str, str], sql: str) -> str:
     base = ["-v", "ON_ERROR_STOP=1", "-X", "-q", "-At", "-U", db["username"], "-d", db["database"]]
-    if shutil.which("psql"):
-        cmd = ["psql", "-h", db["host"], "-p", db.get("port", "5432"), *base]
-        env = {**os.environ, "PGPASSWORD": db.get("password", "")}
+    if REMOTE and not shutil.which("psql") and shutil.which("docker"):
+        # Azure PostgreSQL requires TLS; the password goes through the environment, not the command line.
+        cmd = ["docker", "run", "--rm", "-i", "-e", "PGPASSWORD", "-e", "PGSSLMODE=require", "postgres:16-alpine",
+               "psql", "-h", db["host"], "-p", db.get("port", "5432"), *base]
+        env = {**os.environ, "PGPASSWORD": db["password"]}
         proc = subprocess.run(cmd, input=sql, capture_output=True, text=True, env=env)
-    elif shutil.which("docker"):
+    elif shutil.which("psql"):
+        cmd = ["psql", "-h", db["host"], "-p", db.get("port", "5432"), *base]
+        env = {**os.environ, "PGPASSWORD": db.get("password", ""), **({"PGSSLMODE": "require"} if REMOTE else {})}
+        proc = subprocess.run(cmd, input=sql, capture_output=True, text=True, env=env)
+    elif shutil.which("docker") and not REMOTE:
         cmd = ["docker", "compose", "exec", "-T", "postgres", "psql", *base]
         proc = subprocess.run(cmd, input=sql, capture_output=True, text=True, cwd=REPO_ROOT)
     else:
@@ -168,13 +206,19 @@ def api(method: str, path: str, body: object | None = None, expect: tuple[int, .
     if TOKEN:
         headers["Authorization"] = f"Bearer {TOKEN}"
     req = urllib.request.Request(API_URL + path, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            status, raw = resp.status, resp.read()
-    except urllib.error.HTTPError as err:
-        status, raw = err.code, err.read()
-    except urllib.error.URLError as err:
-        die(f"API not reachable at {API_URL}: {err.reason}")
+    # URLError means the request was not sent (connect or TLS failed), so even a POST is safe to repeat.
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status, raw = resp.status, resp.read()
+            break
+        except urllib.error.HTTPError as err:
+            status, raw = err.code, err.read()
+            break
+        except urllib.error.URLError as err:
+            if attempt == 3:
+                die(f"API not reachable at {API_URL}: {err.reason}")
+            time.sleep(5 * attempt)
     if status not in expect:
         die(f"{method} {path} -> {status}: {raw.decode(errors='replace')[:600]}")
     return json.loads(raw) if raw else None
@@ -223,8 +267,12 @@ def seed() -> dict:
     def component(key: str, type_: str, code: str, name: str, manufacturer: str | None, power: int | None, price: float):
         res = api("POST", "/api/components", {
             "type": type_, "code": code, "name": name, "manufacturer": manufacturer,
-            "powerW": power, "unitPrice": price})
-        ids[key] = res["id"]
+            "powerW": power, "unitPrice": price}, expect=(201, 409))
+        if res and "id" in res:
+            ids[key] = res["id"]
+        else:
+            # Only --remote keeps the catalog (no SQL delete); reuse the component from an interrupted run.
+            ids[key] = next(c["id"] for c in api("GET", f"/api/components?q={code}") if c["code"] == code)
 
     component("panel", "Panel", "DEMO-PAN-450", "JA Solar JAM54S30-450 (demo)", "JA Solar", 450, 145.0)
     component("inverter", "Inverter", "DEMO-INV-10K", "Fronius Symo 10.0-3-M (demo)", "Fronius", 10000, 1450.0)
@@ -233,8 +281,8 @@ def seed() -> dict:
     # Customers + supply points
     # Accounts for the other roles and the customer portal (Novak sees only his own plant and tickets)
     for email, roles in ROLE_ACCOUNTS.items():
-        ensure_user(email, PASSWORD, roles)
-    portal_user = ensure_user(PORTAL_EMAIL, PASSWORD, ["Customer"])
+        ensure_user(email, ACCOUNT_PASSWORD, roles)
+    portal_user = ensure_user(PORTAL_EMAIL, ACCOUNT_PASSWORD, ["Customer"])
 
     def customer(key: str, first: str, last: str, city: str, street: str, postal: str, phone: str, eic: str, amps: int,
                  user_id: str | None = None):
@@ -544,11 +592,22 @@ def summary() -> str:
 
 
 def main() -> None:
-    db = guard()
-    print(f"DB: {db['host']}:{db.get('port', '5432')}/{db['database']}  API: {API_URL}")
-    login()
-    print("Deleting previous demo rows ...")
-    run_sql(db, RESET_SQL)
+    if REMOTE:
+        guard_remote()
+        db = remote_db()
+        print(f"API: {API_URL}  DB: {db['host'] if db else 'not used, nothing is deleted'}")
+        login()
+        if db:
+            print("Deleting previous demo rows ...")
+            run_sql(db, RESET_SQL)
+        elif any(c["email"].endswith(DEMO_DOMAIN) for c in api("GET", "/api/customers?pageSize=100")["items"]):
+            die("demo customers already exist; set DEMO_DB_URL to delete them first (docs/demo/scenar.md).")
+    else:
+        db = guard()
+        print(f"DB: {db['host']}:{db.get('port', '5432')}/{db['database']}  API: {API_URL}")
+        login()
+        print("Deleting previous demo rows ...")
+        run_sql(db, RESET_SQL)
     if "--no-seed" in sys.argv:
         print("Done (no seed).")
         return

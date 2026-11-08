@@ -270,6 +270,8 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
           image: apiImage
           resources: backendResources
           env: concat(backendEnv, [
+            // No distributor is connected, the demo answers for it (docs/simulator-distribucky.md, Admin and Operator only).
+            { name: 'ConnectionRequest__Simulator__Enabled', value: 'true' }
             { name: 'Jwt__SigningKey', secretRef: 'jwt-signing-key' }
             { name: 'Admin__Password', secretRef: 'admin-password' }
             { name: 'Cors__AllowedOrigins__0', value: 'https://${webFqdn}' }
