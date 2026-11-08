@@ -40,7 +40,26 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Ico);
         builder.HasIndex(c => c.SortName);
 
+        builder.HasMany(c => c.AuditEntries)
+            .WithOne()
+            .HasForeignKey(e => e.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(c => c.AuditEntries).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Optional link to the login account; deleting the account keeps the customer.
         builder.HasOne<AppUser>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+internal sealed class CustomerAuditEntryConfiguration : IEntityTypeConfiguration<CustomerAuditEntry>
+{
+    public void Configure(EntityTypeBuilder<CustomerAuditEntry> builder)
+    {
+        builder.ToTable("customer_audit_entries");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Action).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.Details).HasMaxLength(CustomerAuditEntry.DetailsMaxLength);
+        builder.HasIndex(e => new { e.CustomerId, e.PerformedAt });
     }
 }

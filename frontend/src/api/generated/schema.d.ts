@@ -687,6 +687,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/customers/{id}/anonymize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase the personal data of a customer (GDPR)
+         * @description Clears names, identifiers, contact details, address, note and the login link, archives the customer and keeps its id and audit trail. Already anonymized customers give 409.
+         */
+        post: operations["AnonymizeCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit trail of the customer (created, updated, archived, reactivated, anonymized), oldest first
+         * @description Entries contain who, when and the names of changed fields, never the personal data values.
+         */
+        get: operations["GetCustomerAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/summary": {
         parameters: {
             query?: never;
@@ -2703,6 +2743,20 @@ export interface components {
             attachments?: null | components["schemas"]["TicketAttachmentRequest"][];
         };
         /**
+         * @description Audited operations on a customer (#140).
+         * @enum {unknown}
+         */
+        CustomerAction: "Created" | "Updated" | "Archived" | "Reactivated" | "Anonymized";
+        /** @description Audit trail entry of a customer (#140): who, when and what changed, without personal data values. */
+        CustomerAuditEntryResponse: {
+            action: components["schemas"]["CustomerAction"];
+            /** Format: uuid */
+            performedBy: string;
+            /** Format: date-time */
+            performedAt: string;
+            details: null | string;
+        };
+        /**
          * @description Customer in a list: the customer data plus list summaries. `SupplyPointCount` is the number of supply points
          *     (odberné miesta); `LastActivityAt` is the latest of the customer's own update and the newest update of its
          *     quotes, installations and tickets.
@@ -2733,6 +2787,8 @@ export interface components {
             supplyPointCount: number | string;
             /** Format: date-time */
             lastActivityAt: string;
+            /** Format: date-time */
+            anonymizedAt: null | string;
         };
         /**
          * @description Page of customers returned by `GET /api/customers`. `StatusCounts` holds the customers per status
@@ -2774,6 +2830,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: date-time */
+            anonymizedAt: null | string;
         };
         /**
          * @description Lifecycle state of a customer (BPMN mapping: Active, Archived).
@@ -6082,6 +6140,77 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AnonymizeCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetCustomerAudit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerAuditEntryResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
