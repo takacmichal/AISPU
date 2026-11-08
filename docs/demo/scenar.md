@@ -1,6 +1,6 @@
 # Scenár dema SolarOps
 
-Issue #188. Scenár je postavený len na tom, čo API a frontend reálne vedia (stav k 2026-10-28). Čo chýba, je označené **„zatiaľ nie je implementované“** a v demo sa ukazuje cez plán B (slajd, simulátor, BPMN).
+Issue #188. Scenár je postavený len na tom, čo API a frontend reálne vedia. Pôvodná verzia je zo 2026-10-28, krok 7 a medzery sú aktualizované k 2026-11-08 (pozri [Kontrola v Azure](#kontrola-v-azure-2026-11-08)). Čo chýba, je označené **„zatiaľ nie je implementované“** a v demo sa ukazuje cez plán B (slajd, simulátor, BPMN).
 
 ## Predpoklady a príprava
 
@@ -52,7 +52,7 @@ Hodnoty `<…>` sú id vypísané skriptom `reset-demo.py` na konci behu.
 | 4 | 2 min | Projektant | `POST …/configuration/preview` s 20 panelmi a striedačom, potom `POST …/versions`. | Kompatibilita OK (DC 9 kWp, AC 10 kW, pomer 0,9), odhad výroby cca 8 690 kWh/rok, verzia 1. | API |
 | 5 | 2 min | Obchod | **Ponuka:** `POST /api/quotes` (20× panel, 1× striedač, 24 h práce, DPH 23 %), `…/send`, `…/accept`. | Stavy `Draft`, `Sent` (platnosť 30 dní), `Accepted`. | API |
 | 6 | 1 min | Obchod | `POST /api/contracts` z prijatej ponuky, `…/sign` s odberným miestom, `…/deposit/pay`. | Zmluva `ZM-2026-…` `Signed`, záloha `Paid`, vznikne inštalácia `Planned`. | API |
-| 7 | 1 min | Obchod | **Pripojenie:** `POST /api/connection-requests` (EIC, 10 kW, schéma a súhlas vlastníka ako prílohy). | 201, žiadosť v stave `Draft`. Odoslanie distribučke a ďalšie stavy: **zatiaľ nie je implementované**. | API (čiastočne) |
+| 7 | 2 min | Obchod, Projektant, Operátor | **Pripojenie:** `POST /api/connection-requests` (EIC, 10 kW, schéma a súhlas vlastníka ako prílohy), Projektant `POST …/submit`, Operátor zahrá distribučku cez simulátor `POST …/decision` s `{"decision": "Approve"}` ([simulátor](../simulator-distribucky.md)). | 201 `Draft`, potom `Submitted` (beží lehota 10 pracovných dní), potom `ContractOffered`. Ďalšie kroky až po `Concluded` sú v [simulator-distribucky.md](../simulator-distribucky.md). | API |
 | 8 | 1 min | Technik | Na hotovom zákazníkovi Novák ukáže `GET /api/installations/<novak_installation>` a `…/devices`. | Stav `Commissioned`, história stavov, striedač a 2 panely so sériovými číslami. | API |
 | 9 | 1 min | Operátor | **Monitoring:** frontend `/monitoring`, elektráreň Nováka, obdobie 30 dní. | Graf skutočnej výroby oproti ML predikcii. Zdravé dni sa takmer prekrývajú, posledné 2 dni sú výrazne pod predikciou. | UI |
 | 10 | 1 min | Operátor | **Detekcia anomálií:** sekcia alarmov na tej istej stránke. | Prebiehajúci alarm podvýroby: medián cca 55 % predikcie, odhad straty v kWh, závažnosť Medium. | UI |
@@ -74,9 +74,8 @@ Hodnoty `<…>` sú id vypísané skriptom `reset-demo.py` na konci behu.
 
 ## Čo scenár nepokrýva (zhrnutie medzier)
 
-1. Živá výroba: telemetria pribúda len pri resete, nie priebežne.
-2. Odoslanie žiadosti o pripojenie a jej stavy za `Draft` (`Submitted` až `Concluded` existujú v enume, ale chýba endpoint na prechod).
-3. Frontend: hotová je len správa zákazníkov s odbernými miestami; ponuky, zmluvy a inštalácie sú zástupné stránky.
+1. Živá výroba: telemetria pribúda len pri resete, nie priebežne. Alarm je „prebiehajúci“ voči dňu resetu, preto reset spustiť deň pred obhajobou alebo v ten deň.
+2. Kroky 2 až 7 sú v tabuľke ako volania API. Frontend má od Sprintu 3 obrazovky aj pre návrhy, ponuky, zmluvy, žiadosti o pripojenie, inštalácie, tikety a kalendár výjazdov, ale prejdenie týchto krokov klikaním zatiaľ nebolo overené.
 
 ## Skúška nanečisto
 
@@ -100,3 +99,19 @@ Dátum: **2026-10-28**, lokálny stack (API `dotnet run`, PostgreSQL 16 v docker
 Idempotencia skriptu: `reset-demo.py` spustený dvakrát po sebe dal rovnaký stav (3 zákazníci, 3 komponenty, 3 zariadenia, 2 zmluvy, 2 inštalácie, rovnaké stavy entít). Líši sa len poradové číslo zmluvy (`ZM-2026-000002` → `000004`), lebo číslovanie zmlúv je sekvencia, ktorú reset nevracia. Technický účet `technik@demo.solarops.local` sa nemaže, len sa znova použije. Beh s `DEMO_DB_URL` na cudzí host skončil chybou „refusing to run“ (kód 1).
 
 Poznámky z nanečisto: pred prvým úspešným behom skript zlyhal na prechode do `Mounting`, ktorý vyžaduje harmonogram a technika. Skript teraz zakladá technika a harmonogram sám. Na živom začiatku (Kováčová) preto po skúške treba pred ostrým demom znova spustiť reset, lebo skúška ju presunula do hotovej zmluvy.
+
+## Kontrola v Azure (2026-11-08)
+
+Kontrola len na čítanie (bez zmien dát) na nasadenom API po resete s výrobou (#454). Overené volaniami API, nie klikaním v UI.
+
+| Čo | Výsledok |
+|---|---|
+| Prihlásenie rolí Admin, Obchod, Projektant, Technik, Operátor, Zákazník (Novák) | OK, všetky 200 |
+| Zákazníci | OK, 11 demo zákazníkov vrátane Kováčovej a Horvátha |
+| Alarm podvýroby (Operátor) | OK, 1 prebiehajúci, závažnosť Medium, medián 55 % predikcie |
+| Tikety (Operátor) | OK, 5 tiketov, medzi nimi „Podvýroba: FVE 9,9 kWp Novak (demo)“ v stave `New` s pôvodom `AnomalyDetected` |
+| Tikety v portáli zákazníka (Novák) | OK, vidí len svoje (2) |
+| Inštalácie (Technik) | OK, 8 |
+| Studený štart | API aj web majú `minReplicas 0`: prvá požiadavka po nečinnosti trvá 20 až 30 s. Pred obhajobou nastaviť 1 repliku (`infra/README.md`). |
+
+Celé prejdenie scenára klikaním vo frontende (kroky 0 až 11) treba urobiť pred obhajobou ručne. Kroky 2 až 7 menia dáta Kováčovej, po skúške preto znova spustiť reset.
