@@ -4,7 +4,7 @@ Celé prostredie SolarOps v Azure je opísané v [`main.bicep`](main.bicep) (#15
 
 ## Čo sa vytvorí
 
-Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predplatné Azure for Students povoľuje len niekoľko regiónov).
+Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predplatné Azure for Students povoľuje len niekoľko regiónov). Výnimkou je databáza v **Italy North**: Burstable PostgreSQL vracia študentskému predplatnému v Poland Central aj Sweden Central chybu `SkuNotAvailable` (región nastavuje `postgresLocation` v `main.bicepparam`).
 
 | Zdroj | Názov | Poznámka |
 |---|---|---|
@@ -15,7 +15,7 @@ Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predpla
 | Job `solarops-migrate` | ručne | EF migrácie (`--job migrate`), spúšťa ho `deploy.sh` |
 | Job `solarops-ml-analysis` | každú hodinu (`5 * * * *`, UTC) | analýza inštalácií, alarmy a tikety |
 | Job `solarops-weather` | denne o 3:30 UTC | predpoveď počasia |
-| PostgreSQL Flexible Server | `solarops-pg-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní |
+| PostgreSQL Flexible Server | `solarops-db-<región>-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní, Italy North |
 | Key Vault | `solarops-kv-<suffix>` | tajomstvá, prístup cez RBAC |
 | Managed identity | `solarops-identity` | aplikácie a joby ňou čítajú tajomstvá z Key Vault |
 | Managed identity | `solarops-deploy` | CD pipeline sa ňou prihlasuje cez OIDC, Contributor len na `solarops-rg` |
@@ -97,7 +97,7 @@ az containerapp job execution list -g solarops-rg -n solarops-migrate -o table
 az containerapp job start -g solarops-rg -n solarops-ml-analysis
 
 # PostgreSQL mimo hodnotenia zastaviť (platí sa len úložisko)
-az postgres flexible-server stop -g solarops-rg -n <solarops-pg-...>
+az postgres flexible-server stop -g solarops-rg -n <solarops-db-...>
 
 # po obhajobe všetko zmazať
 az group delete -n solarops-rg
@@ -107,6 +107,8 @@ Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade).
 
 ## Známe obmedzenia
 
+- **Režim prostredia:** Azure nové prostredie bez určeného režimu vytvorí ako *Express*, ktoré nemá joby, Key Vault referencie, interné mená služieb ani HTTP medzi aplikáciami. Šablóna preto nastavuje `environmentMode: 'WorkloadProfiles'` s profilom Consumption (platí sa za použitie, scale to zero ostáva).
+- **Databáza v inom regióne** (Italy North) pridáva ku každému dotazu z Poland Central rádovo 20 ms.
 - **Firewall databázy** povoľuje služby Azure (pravidlo `0.0.0.0`), nie len naše prostredie. Container Apps (Consumption) nemajú pevnú odchádzajúcu IP; uzavretie by vyžadovalo VNet.
 - **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
 - **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).

@@ -3,6 +3,8 @@ using './main.bicep'
 // Images and secrets come from environment variables: infra/deploy.sh loads them from infra/.env (ignored by git)
 // and generates the secrets on the first run. Nothing secret is stored in this file.
 param location = 'polandcentral'
+// Azure for Students gets SkuNotAvailable for Burstable PostgreSQL in Poland Central and Sweden Central (November 2026).
+param postgresLocation = 'italynorth'
 
 param apiImage = readEnvironmentVariable('SOLAROPS_API_IMAGE')
 param mlImage = readEnvironmentVariable('SOLAROPS_ML_IMAGE')
