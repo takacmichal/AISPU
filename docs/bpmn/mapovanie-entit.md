@@ -26,22 +26,30 @@ Všetko navrhované.
 | `Notification` | `Pending`, `Sent`, `Failed` | E-mail zákazníkovi / technikovi (#130, #131, #271). |
 | `AppUser` (roly) | roly `Sales`, `Designer`, `Technician`, `Operator`, `Customer`, `Admin` | Mapovanie BPMN lanes na roly (#135, #207). |
 
-Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** = Projektant, **T** = Technik, **Z** = Zákazník, **D** = Distribučka, **M** = ML služba. Lanes Z, D, M sú pooly (externé strany), v tabuľkách sa objavujú len ako správy.
+Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** = Projektant, **T** = Technik, **Z** = Zákazník, **D** = Distribučka, **M** = ML služba. **S** = Systém (automaticky, #68), **Op** = Operátor (#68). D a M sú zbalené pooly (externé strany), v tabuľkách sa objavujú len ako správy. Bazén Zákazník je od Sprintu 4 na stranách #61 až #67 a na L1 rozbalený: úlohy zákazníka sú v tabuľkách s lane Z. Zákazník ich robí na portáli alebo mimo systému (podpis, platba).
 
 ## #61 Dopyt a cenová ponuka
 
 | Úloha | Lane | Entita → stav | Endpoint (navrhovaný) | Story |
 |---|---|---|---|---|
 | Zaznamenať zákazníka a odberné miesto | O | `Customer` → `Active`; `SupplyPoint` vznikne | `POST /api/customers`, `POST /api/customers/{id}/supply-points` | #70, #72 |
+| Overiť odberné miesto (EIC, hlavný istič) | O | `SupplyPoint` (EIC, istič, distribučka) | `PUT /api/customers/{customerId}/supply-points/{id}` | #72 |
 | Zostaviť cenovú ponuku z komponentov | O | `Quote` → `Draft` | `POST /api/quotes`, `PUT /api/quotes/{id}/items`, `GET /api/components` | #73, #74 |
 | Odoslať ponuku zákazníkovi | O | `Quote` → `Sent` | `POST /api/quotes/{id}/send` | #75 |
-| Odpoveď zákazníka (catch) a brána "Ponuka schválená?" | O | `Quote` → `Accepted` / `Rejected` / `RevisionRequested` (→ `Draft`) | `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject`, `POST /api/quotes/{id}/request-revision` | #75 |
+| Odpoveď zákazníka: brána riadená udalosťami "Čakať na odpoveď" (prijatá, zamietnutá, žiadosť o úpravu) | O | `Quote` → `Accepted` / `Rejected`; úprava = nová verzia ponuky v `Draft` | `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject` | #75 |
+| Platnosť ponuky uplynula (timer) → Označiť ponuku ako expirovanú | O | `Quote` → `Expired` (platnosť predvolene 30 dní, `Quotes:DefaultValidityDays`) | automaticky `QuoteExpirationService` | #75 |
+| Vyplniť dopyt (web, telefón) | Z | podklad pre `Customer` a `SupplyPoint` | – (zapíše Obchod) | #70 |
+| Posúdiť cenovú ponuku | Z | `Quote` (`Sent`), zákazník vidí svoju ponuku | `GET /api/quotes/{id}` | #75 |
+| Prijať ponuku / Odmietnuť ponuku | Z | `Quote` → `Accepted` / `Rejected` | `POST /api/quotes/{id}/accept`, `POST /api/quotes/{id}/reject` | #75 |
+| Požiadať o úpravu ponuky | Z | žiadna (komunikácia mimo systému) | – | #75 |
 
 ## #62 Návrh FVE projektantom
 
 | Úloha | Lane | Entita → stav | Endpoint (navrhovaný) | Story |
 |---|---|---|---|---|
 | Odovzdať podklady projektantovi | O | `FveDesign` → `Requested` | `POST /api/quotes/{id}/designs` | #76, #78 |
+| Dohodnúť termín obhliadky so zákazníkom | P | žiadna (telefón, e-mail) | – | #76 |
+| Potvrdiť termín a sprístupniť objekt | Z | žiadna (mimo systému) | – | #76 |
 | Vykonať obhliadku objektu | P | `FveDesign` → `SiteSurveyDone` (poznámky, fotky) | `POST /api/designs/{id}/site-survey` | #76 |
 | Brána "Realizovateľné?" (nie) | P | `FveDesign` → `Infeasible` | `POST /api/designs/{id}/mark-infeasible` | #76 |
 | Zadať parametre strechy a spotreby | P | `FveDesign` → `InDesign` | `PUT /api/designs/{id}/parameters` | #76 |
@@ -62,6 +70,10 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Vystaviť zálohovú faktúru | O | `DepositPayment` → `Invoiced` | `POST /api/contracts/{id}/deposit-invoice` | #81 |
 | Čakať na úhradu (brána) + timer "Splatnosť vypršala" | O | `DepositPayment` → `Overdue` (job) | `POST /api/contracts/{id}/deposit/mark-overdue` | #81 |
 | Zaznamenať úhradu zálohy | O | `DepositPayment` → `Paid` | `POST /api/contracts/{id}/deposit/pay` | #81 |
+| Poslať upomienku zálohy | O | žiadna (e-mail mimo systému, v aplikácii nie je) | – | #81 |
+| Založiť inštaláciu k zmluve | O | `Installation` → `Planned` (jedna inštalácia na zmluvu; objednať komponenty sa dá až po úhrade zálohy) | `POST /api/installations` | #82 |
+| Skontrolovať a podpísať zmluvu | Z | `Contract` → `Signed` (zapíše Obchod) | `GET /api/contracts/{id}/pdf` | #79, #81 |
+| Uhradiť zálohu | Z | `DepositStatus` → `Paid` (zapíše Obchod) | – (bankový prevod) | #81 |
 
 ## #64 Žiadosť o pripojenie k distribučke
 
@@ -77,6 +89,8 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Skontrolovať technické podmienky | P | `ConnectionRequest` (`ContractOffered`), kontrola podmienok | `POST /api/connection-requests/{id}/review-conditions` | #86 |
 | Odoslať zmluvu o pripojení zákazníkovi | O | `ConnectionRequest` (`ContractOffered`) + notifikácia | `POST /api/connection-requests/{id}/send-contract` | #86, #130 |
 | Podpísaná zmluva od zákazníka (catch) | O | `ConnectionRequest` → `ContractSigned` | `POST /api/connection-requests/{id}/customer-signed` | #86 |
+| Dodať súhlas vlastníka objektu a podklady | Z | prílohy `ConnectionRequest` | – (podklady zapíše Obchod ako prílohy) | #85, #217 |
+| Podpísať zmluvu o pripojení | Z | `ConnectionRequest` → `ContractSigned` (zapíše Obchod) | – | #86 |
 | Zaslať podpísanú zmluvu distribučke | P | `ConnectionRequest` → `ContractSubmitted`, potom `Concluded` | `POST /api/connection-requests/{id}/submit-signed-contract`, `POST /api/connection-requests/{id}/conclude` | #86, #87 |
 
 ## #65 Inštalácia a revízia
@@ -93,6 +107,42 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Revízia neúspešná (error) | T | `Installation` → `InspectionFailed` | `POST /api/installations/{id}/inspection` (výsledok `Failed`) | #91 |
 | Odstrániť nedostatky | T | `Installation` → `Mounting` (opakovanie) | `POST /api/installations/{id}/rework` | #90, #91 |
 
+## #65a Podproces Montáž FVE
+
+Rozkreslenie podprocesu Montáž FVE zo strany #65. Endpointy v tejto a nasledujúcej sekcii sú už **implementované**. Kroky 1 až 9 checklistu sú povinné, fotodokumentácia a upratanie voliteľné (`ChecklistTemplate` v `Features/Installations/InstallationChecklist.cs`).
+
+| Úloha | Lane | Entita → stav | Endpoint | Story |
+|---|---|---|---|---|
+| Skontrolovať dodané komponenty na mieste | T | `InstallationDevice` (sériové čísla) | `GET /api/installations/{id}/devices` | #83 |
+| Chýba alebo je chybný komponent (error) | T | výmena zariadenia | `POST /api/installations/{id}/devices/{deviceId}/replace` | #128 |
+| Zabezpečiť pracovisko a BOZP | T | checklist `SiteSafety` | `PUT /api/installations/{id}/checklist/SiteSafety` | #90 |
+| Namontovať nosnú konštrukciu | T | checklist `MountingStructure` | `PUT /api/installations/{id}/checklist/MountingStructure` | #90 |
+| Osadiť a upevniť panely | T | checklist `PanelsMounted` | `PUT /api/installations/{id}/checklist/PanelsMounted` | #90 |
+| Zapojiť stringy a DC kabeláž | T | checklist `DcCabling`; `PanelString` | `PUT /api/installations/{id}/checklist/DcCabling`, `POST /api/installations/{id}/strings` | #84, #90 |
+| Namontovať a zapojiť striedač | T | checklist `InverterMounted` | `PUT /api/installations/{id}/checklist/InverterMounted` | #90 |
+| Osadiť DC a AC ochrany a odpojovač | T | checklist `Protections` | `PUT /api/installations/{id}/checklist/Protections` | #90 |
+| Pripojiť AC stranu do rozvádzača | T | checklist `AcConnection` | `PUT /api/installations/{id}/checklist/AcConnection` | #90 |
+| Uzemniť a pospájať, ochrana pred bleskom | T | checklist `Grounding` | `PUT /api/installations/{id}/checklist/Grounding` | #90 |
+| Zmerať izolačný odpor a polaritu stringov | T | checklist `StringMeasurements` | `PUT /api/installations/{id}/checklist/StringMeasurements` | #90 |
+| Nafotiť dokumentáciu montáže (voliteľné) | T | checklist `PhotoDocumentation` | `PUT /api/installations/{id}/checklist/PhotoDocumentation` | #90 |
+| Upratať pracovisko (voliteľné) | T | checklist `SiteCleanup` | `PUT /api/installations/{id}/checklist/SiteCleanup` | #90 |
+| Dokončiť a odškrtnúť chýbajúce kroky | T | checklist, `MissingRequiredChecklistSteps` | `GET /api/installations/{id}/checklist` | #90 |
+| Označiť montáž ako dokončenú | T | `Installation` → `MountingDone` (409, ak chýba povinný krok) | `POST /api/installations/{id}/transitions` (`MountingDone`) | #90 |
+
+## #65b Podproces Revízia
+
+Rozkreslenie podprocesu Revízia zo strany #65. Revíziu robí externý revízny technik (rozbalený bazén), SolarOps eviduje jej výsledok.
+
+| Úloha | Lane | Entita → stav | Endpoint | Story |
+|---|---|---|---|---|
+| Odovzdať inštaláciu na revíziu (stav Revízia) | T | `Installation` → `Inspection` | `POST /api/installations/{id}/transitions` (`Inspection`) | #91 |
+| Objednať revízneho technika a odovzdať podklady | T | žiadna (mimo systému) | podklady: `GET /api/installations/{id}/documentation` | #91, #93 |
+| Vykonať vizuálnu prehliadku FVE | Revízny technik | žiadna (externá strana) | – | #91 |
+| Zmerať izolačný odpor a uzemnenie | Revízny technik | žiadna (externá strana) | – | #91 |
+| Vyskúšať ochrany a funkciu striedača | Revízny technik | žiadna (externá strana) | – | #91 |
+| Vypracovať a podpísať revíznu správu | Revízny technik | žiadna (externá strana) | – | #91 |
+| Zaevidovať revíznu správu (výsledok, platnosť, súbor) | T | `RevisionReport`; `Installation` → `InspectionPassed` / `InspectionFailed` | `POST /api/installations/{id}/revision-reports` | #91 |
+
 ## #66 Uvedenie do prevádzky a odovzdanie
 
 | Úloha | Lane | Entita → stav | Endpoint (navrhovaný) | Story |
@@ -104,6 +154,8 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Spustiť FVE a overiť výrobu | T | `Installation` → `Commissioned`; prvé merania v telemetrii | `POST /api/installations/{id}/commission` | #92, #95 |
 | Odovzdať FVE a preberací protokol zákazníkovi | T | `HandoverProtocol` → `Issued` | `POST /api/installations/{id}/handover-protocol` | #93 |
 | Podpísaný preberací protokol (catch) | O | `HandoverProtocol` → `Signed`; `Installation` → `HandedOver` | `POST /api/installations/{id}/handover-protocol/sign` | #93 |
+| Uzavrieť zmluvu o dodávke elektriny s dodávateľom | Z | žiadna (zmluva s dodávateľom elektriny je mimo SolarOps) | – | #93 |
+| Prevziať FVE a podpísať preberací protokol | Z | `HandoverProtocol` → `Signed` | `GET /api/installations/{id}/documentation/handover-protocol` | #93 |
 | FVE v prevádzke: aktivovať monitoring (koncová správa) | O | `Installation.MonitoringEnabled` = `true` | `PUT /api/installations/{id}/monitoring` | #92, #26 |
 
 ## #67 Servisný proces z hlásenia zákazníka
@@ -119,17 +171,29 @@ Poznámka k lanes v tabuľkách: **O** = Obchod/Operátor (back office), **P** =
 | Overiť obnovenie výroby | T | `ServiceTicket` → `Verified` | `POST /api/tickets/{id}/verify` | #127 |
 | Uzavrieť tiket a informovať zákazníka | O | `ServiceTicket` → `Resolved` → `Closed`; `Notification` → `Sent` | `POST /api/tickets/{id}/close` | #129, #130 |
 
+| Nahlásiť poruchu (portál, telefón) | Z | `ServiceTicket` → `New` (pôvod `CustomerReport`) | `POST /api/tickets` (rola Customer, len vlastná inštalácia) | #120 |
+| Potvrdiť termín a sprístupniť FVE | Z | `ServiceVisit` (termín) | – (potvrdenie mimo systému) | #125 |
+
 Poznámka: úloha "Vyriešené na diaľku?" je brána, ktorá nie je úloha; jej vetva "áno" používa `POST /api/tickets/{id}/close` priamo z `RemoteDiagnosis`.
 
 ## #68 Automatický servis z detekcie podvýroby
 
-| Úloha | Lane | Entita → stav | Endpoint (navrhovaný) | Story |
+Strana zodpovedá implementácii zo Sprintu 3 a 4: alarm aj tiket vytvára plánovaná analýza bez zásahu človeka (`MlScheduledAnalysis`, každú hodinu, v Azure ako Container Apps Job). Operátor tiket až preveruje. Endpointy v tejto sekcii sú **implementované**.
+
+| Úloha | Lane | Entita → stav | Endpoint | Story |
 |---|---|---|---|---|
-| Upozornenie na podvýrobu (štart, správa z ML) | O | `Alert` → `Open` | `POST /api/alerts` (volá ML služba / .NET job) | #113, #112 |
-| Preveriť upozornenie (dáta, počasie, výpadok komunikácie) | O | `Alert` → `UnderReview` | `GET /api/alerts/{id}`, `POST /api/alerts/{id}/review` | #114, #251, #252 |
-| Falošný poplach zaznamenaný | O | `Alert` → `FalsePositive` (label pre ML) | `POST /api/alerts/{id}/feedback` | #119, #260 |
-| Vytvoriť servisný tiket | O | `Alert` → `Confirmed`; `ServiceTicket` → `New` (pôvod `AnomalyDetected`, priorita podľa straty výroby) | `POST /api/alerts/{id}/create-ticket` | #115, #116, #117 |
-| Servisný proces (#67) (call activity) | O | `ServiceTicket` prechádza stavmi z #67; po uzavretí `Alert` → `Closed` | pozri #67 | #121, #129 |
+| Každú hodinu (časovač, štart) | S | – | `MlScheduledAnalysis`, `MlAnalysisJob` | #33 |
+| Načítať telemetriu a predpoveď počasia | S | 5-min merania (ADR-185), `WeatherForecast` | `POST /api/telemetry` (príjem), Open-Meteo (ADR-180) | #95 |
+| Predikovať očakávanú výrobu | S | `StoredPrediction` | ML služba (predikcia); ručne `POST /api/installations/{installationId}/analysis` | #109, #110, #111 |
+| Vyhodnotiť podvýrobu (pod 85 % predikcie) | S | – | ML služba (detekcia, ADR #194) | #112, #113, #114 |
+| Vytvoriť alebo aktualizovať alarm podvýroby | S | `UnderproductionAlarm` (stabilné id pre inštaláciu a začiatok) | `GET /api/underproduction-alarms` | #113, #251 |
+| Otvoriť servisný tiket s prioritou | S | `ServiceTicket` → `New` (pôvod z detekcie, priorita podľa straty, `AlarmTicketRules`) | interné (`OpenOrSupplementAsync`) | #33, #115, #117 |
+| Eskalovať prioritu existujúceho tiketu | S | `ServiceTicket.Priority` len zvýšiť | interné (`EscalateAsync`) | #116, #117 |
+| Preveriť alarm (dáta, počasie, výpadok komunikácie) | Op | `ServiceTicket` → `Triaged` | `PUT /api/tickets/{id}/triage` | #121, #251, #252 |
+| Uzavrieť tiket ako falošný poplach | Op | `ServiceTicket` → `Closed` (poznámka) | `POST /api/tickets/{id}/transition` | #129 |
+| Servisný proces (#67) (call activity) | Op | `ServiceTicket` prechádza stavmi z #67 | pozri #67 | #121, #129 |
+
+Spätná väzba „falošný poplach“ do ML (pôvodne `Alert` → `FalsePositive`) v aplikácii nie je, preto ju diagram už nemá.
 
 ## Nezmapované úlohy
 
