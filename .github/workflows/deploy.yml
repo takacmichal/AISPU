@@ -1,0 +1,204 @@
+name: deploy
+
+# CD of SolarOps to Azure Container Apps (#161, #162; ADR #277, infra/README.md).
+# A push to main builds the images of the changed parts (API, ML) and pushes them to GHCR, tagged with the commit.
+# When the repository variables AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_SUBSCRIPTION_ID exist (printed by
+# infra/deploy.sh), it also deploys: database migrations first, then the API and its jobs, the ML service and the
+# frontend. The frontend image is built only here, because it bakes in the API URL from Azure.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.dockerignore'
+      - 'ml/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
+  # Manual run: rebuilds and deploys everything.
+  workflow_dispatch:
+
+# Deployments run one after another and are never cancelled halfway.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RESOURCE_GROUP: solarops-rg
+  TAG: ${{ github.sha }}
+  SOURCE: https://github.com/${{ github.repository }}
+  # The containerapp commands come from an az extension; install it without asking.
+  AZURE_EXTENSION_USE_DYNAMIC_INSTALL: yes_without_prompt
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.diff.outputs.api }}
+      ml: ${{ steps.diff.outputs.ml }}
+      web: ${{ steps.diff.outputs.web }}
+      registry: ${{ steps.diff.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find changed parts
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          # A manual run, a new branch or a rewritten history deploys everything.
+          if [[ "$GITHUB_EVENT_NAME" != push ]] || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            files=ALL
+          else
+            files=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            echo "$files"
+          fi
+          changed() {
+            [[ "$files" == ALL ]] || grep -qE '^\.github/workflows/deploy\.yml$' <<<"$files" || grep -qE "$1" <<<"$files"
+          }
+          for part in api ml web; do
+            case $part in
+              api) pattern='^(src/|Directory\.(Build|Packages)\.props$|global\.json$|\.dockerignore$)' ;;
+              ml) pattern='^ml/' ;;
+              web) pattern='^frontend/' ;;
+            esac
+            if changed "$pattern"; then echo "$part=true"; else echo "$part=false"; fi >> "$GITHUB_OUTPUT"
+          done
+          # Image names must be lower case.
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  images:
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.ml == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      REGISTRY: ${{ needs.changes.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      # The source label links the package to the repository (permissions, README on GHCR).
+      - name: API image
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          docker build -f src/SolarOps.Api/Dockerfile --label "org.opencontainers.image.source=$SOURCE" \
+            -t "$REGISTRY/aispu-api:$TAG" -t "$REGISTRY/aispu-api:latest" .
+          docker push --all-tags "$REGISTRY/aispu-api"
+
+      - name: ML image
+        if: needs.changes.outputs.ml == 'true'
+        run: |
+          docker build --label "org.opencontainers.image.source=$SOURCE" \
+            -t "$REGISTRY/aispu-ml:$TAG" -t "$REGISTRY/aispu-ml:latest" ml
+          docker push --all-tags "$REGISTRY/aispu-ml"
+
+  deploy:
+    needs: [changes, images]
+    # Runs also when only the frontend changed (images skipped), never after a failed image build,
+    # and not at all until Azure exists and the repository variables are set.
+    if: >
+      !cancelled() &&
+      vars.AZURE_CLIENT_ID != '' &&
+      needs.changes.result == 'success' &&
+      (needs.images.result == 'success' || needs.images.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The OIDC federated credential in infra/main.bicep trusts only this environment.
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      REGISTRY: ${{ needs.changes.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # A failed migration stops the workflow here, so the running API stays on the previous version.
+      - name: Run database migrations
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          set -euo pipefail
+          az containerapp job update -g "$RESOURCE_GROUP" -n solarops-migrate --image "$REGISTRY/aispu-api:$TAG" -o none
+          execution=$(az containerapp job start -g "$RESOURCE_GROUP" -n solarops-migrate --query name -o tsv)
+          echo "Migration $execution"
+          for _ in $(seq 1 60); do
+            status=$(az containerapp job execution show -g "$RESOURCE_GROUP" -n solarops-migrate \
+              --job-execution-name "$execution" --query properties.status -o tsv)
+            case "$status" in
+              Succeeded) exit 0 ;;
+              Failed | Stopped | Degraded)
+                echo "::error::Migration $execution ended with status $status (logs: infra/README.md)"
+                exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Migration $execution did not finish in 10 minutes"
+          exit 1
+
+      # Single revision mode: the previous revision keeps the traffic until the new one passes its readiness probe.
+      - name: Deploy API and its jobs
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          set -euo pipefail
+          image="$REGISTRY/aispu-api:$TAG"
+          az containerapp update -g "$RESOURCE_GROUP" -n solarops-api --image "$image" -o none
+          for job in solarops-ml-analysis solarops-weather; do
+            az containerapp job update -g "$RESOURCE_GROUP" -n "$job" --image "$image" -o none
+          done
+
+      - name: Deploy ML service
+        if: needs.changes.outputs.ml == 'true'
+        run: az containerapp update -g "$RESOURCE_GROUP" -n solarops-ml --image "$REGISTRY/aispu-ml:$TAG" -o none
+
+      - name: Find API URL
+        id: api
+        run: |
+          fqdn=$(az containerapp show -g "$RESOURCE_GROUP" -n solarops-api --query properties.configuration.ingress.fqdn -o tsv)
+          echo "url=https://$fqdn" >> "$GITHUB_OUTPUT"
+
+      - name: Build and deploy frontend
+        if: needs.changes.outputs.web == 'true'
+        env:
+          API_URL: ${{ steps.api.outputs.url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --build-arg "VITE_API_URL=$API_URL" --label "org.opencontainers.image.source=$SOURCE" \
+            -t "$REGISTRY/aispu-web:$TAG" -t "$REGISTRY/aispu-web:latest" frontend
+          docker push --all-tags "$REGISTRY/aispu-web"
+          az containerapp update -g "$RESOURCE_GROUP" -n solarops-web --image "$REGISTRY/aispu-web:$TAG" -o none
+
+      # Wakes the API from scale-to-zero and checks that it answers.
+      - name: Smoke test
+        env:
+          API_URL: ${{ steps.api.outputs.url }}
+        run: |
+          curl -fsS --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 "$API_URL/health"
+          echo
+          echo "API: $API_URL" >> "$GITHUB_STEP_SUMMARY"

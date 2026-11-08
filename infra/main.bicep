@@ -28,6 +28,9 @@ param minReplicas int = 0
 @description('Password of the PostgreSQL administrator. Must not contain ";" because it is part of the connection string.')
 param postgresAdminPassword string
 
+@description('Region of PostgreSQL. Azure for Students gets SkuNotAvailable for Burstable servers in some regions (main.bicepparam).')
+param postgresLocation string = location
+
 @secure()
 @description('JWT signing key, at least 32 bytes.')
 param jwtSigningKey string
@@ -35,6 +38,9 @@ param jwtSigningKey string
 @secure()
 @description('Password of the first administrator admin@solarops.local (ADR #277).')
 param adminPassword string
+
+@description('GitHub repository (owner/name) whose CD pipeline may sign in to Azure through OIDC (#161).')
+param githubRepository string = 'takacmichal/AISPU'
 
 @description('Container registry of the images.')
 param registryServer string = 'ghcr.io'
@@ -52,8 +58,9 @@ var databaseName = 'solarops'
 var names = {
   logs: '${prefix}-logs'
   identity: '${prefix}-identity'
+  deployIdentity: '${prefix}-deploy'
   keyVault: '${prefix}-kv-${suffix}'
-  postgres: '${prefix}-pg-${suffix}'
+  postgres: '${prefix}-db-${postgresLocation}-${suffix}'
   environment: '${prefix}-env'
   api: '${prefix}-api'
   ml: '${prefix}-ml'
@@ -106,11 +113,42 @@ resource secretsReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+// ---------------------------------------------------------------- CD pipeline (#161, #162)
+
+// GitHub Actions signs in as this identity through OIDC, so no Azure password is stored in GitHub.
+// Only jobs of the `production` environment of the repository get a token for it.
+resource deployIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: names.deployIdentity
+  location: location
+}
+
+resource githubCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = {
+  parent: deployIdentity
+  name: 'github-production'
+  properties: {
+    issuer: 'https://token.actions.githubusercontent.com'
+    subject: 'repo:${githubRepository}:environment:production'
+    audiences: ['api://AzureADTokenExchange']
+  }
+}
+
+// Contributor on this resource group only: update images and start the migration job.
+var contributorRole = 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+
+resource deployContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, deployIdentity.id, contributorRole)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', contributorRole)
+    principalId: deployIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ---------------------------------------------------------------- database (ADR #213)
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: names.postgres
-  location: location
+  location: postgresLocation
   sku: { name: 'Standard_B1ms', tier: 'Burstable' }
   properties: {
     version: '16'
@@ -162,10 +200,14 @@ resource adminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 
 // ---------------------------------------------------------------- container apps (ADR #211, #277)
 
-resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+// Without an explicit mode Azure creates an Express environment, which has no jobs, Key Vault references,
+// internal service names or insecure ingress. The Consumption profile keeps pay-per-use and scale to zero.
+resource environment 'Microsoft.App/managedEnvironments@2026-07-01' = {
   name: names.environment
   location: location
   properties: {
+    environmentMode: 'WorkloadProfiles'
+    workloadProfiles: [{ name: 'Consumption', workloadProfileType: 'Consumption' }]
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
@@ -378,3 +420,5 @@ output webUrl string = 'https://${webFqdn}'
 output keyVaultName string = keyVault.name
 output postgresHost string = postgres.properties.fullyQualifiedDomainName
 output migrateJobName string = migrateJob.name
+// GitHub variable AZURE_CLIENT_ID of the CD pipeline.
+output deployClientId string = deployIdentity.properties.clientId

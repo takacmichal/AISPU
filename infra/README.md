@@ -4,7 +4,7 @@ Celé prostredie SolarOps v Azure je opísané v [`main.bicep`](main.bicep) (#15
 
 ## Čo sa vytvorí
 
-Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predplatné Azure for Students povoľuje len niekoľko regiónov).
+Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predplatné Azure for Students povoľuje len niekoľko regiónov). Výnimkou je databáza v **Italy North**: Burstable PostgreSQL vracia študentskému predplatnému v Poland Central aj Sweden Central chybu `SkuNotAvailable` (región nastavuje `postgresLocation` v `main.bicepparam`).
 
 | Zdroj | Názov | Poznámka |
 |---|---|---|
@@ -15,9 +15,10 @@ Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predpla
 | Job `solarops-migrate` | ručne | EF migrácie (`--job migrate`), spúšťa ho `deploy.sh` |
 | Job `solarops-ml-analysis` | každú hodinu (`5 * * * *`, UTC) | analýza inštalácií, alarmy a tikety |
 | Job `solarops-weather` | denne o 3:30 UTC | predpoveď počasia |
-| PostgreSQL Flexible Server | `solarops-pg-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní |
+| PostgreSQL Flexible Server | `solarops-db-<región>-<suffix>` | 16, B1ms, 32 GB, zálohy 7 dní, Italy North |
 | Key Vault | `solarops-kv-<suffix>` | tajomstvá, prístup cez RBAC |
 | Managed identity | `solarops-identity` | aplikácie a joby ňou čítajú tajomstvá z Key Vault |
+| Managed identity | `solarops-deploy` | CD pipeline sa ňou prihlasuje cez OIDC, Contributor len na `solarops-rg` |
 | Log Analytics | `solarops-logs` | 30 dní, limit 1 GB denne |
 
 Joby používajú obraz API. Plán ML analýzy a počasia je v API vypnutý (`Ml__AnalysisEnabled=false`, `Weather__Enabled=false`), robia ho joby.
@@ -47,9 +48,30 @@ Skript:
 1. vytvorí resource group a nasadí `main.bicep` s parametrami z `main.bicepparam`,
 2. spustí job `solarops-migrate` a počká na jeho koniec,
 3. reštartuje API, aby na novej schéme vytvorilo roly a prvého admina,
-4. vypíše adresy frontendu a API.
+4. vypíše adresy frontendu a API a premenné pre CD pipeline.
 
-Ďalšie behy môžu obrazy vynechať, ostanú nasadené. Frontend pri prvom nasadení beží ako prázdny nginx (`nginx-unprivileged`), lebo jeho build potrebuje adresu API (`VITE_API_URL`), ktorá vznikne až s prostredím. Skutočný obraz frontendu nasadí CD (#162).
+Ďalšie behy môžu obrazy vynechať, ostanú nasadené. Frontend pri prvom nasadení beží ako prázdny nginx (`nginx-unprivileged`), lebo jeho build potrebuje adresu API (`VITE_API_URL`), ktorá vznikne až s prostredím. Skutočný obraz frontendu nasadí CD.
+
+## CD pipeline
+
+Workflow [`deploy.yml`](../.github/workflows/deploy.yml) (#161, #162) beží po každom pushi do `main`, ktorý mení `src/`, `ml/` alebo `frontend/`, a ručne cez *Run workflow*.
+
+1. Postaví obrazy zmenených častí a nahrá ich do GHCR ako `ghcr.io/takacmichal/aispu-{api,ml}:<commit>` a `:latest`. Toto ide aj bez Azure, obrazy sú potom pripravené na prvý `deploy.sh`.
+2. Ak sú nastavené premenné repozitára `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` a `AZURE_SUBSCRIPTION_ID`, prihlási sa do Azure cez OIDC (identita `solarops-deploy`, len z prostredia `production`, žiadne heslo v GitHube) a nasadí:
+   - pri zmene API: job `solarops-migrate` s novým obrazom a čaká na úspech, potom API a joby `solarops-ml-analysis` a `solarops-weather`,
+   - pri zmene ML: službu `solarops-ml`,
+   - pri zmene frontendu: postaví `aispu-web` s adresou API z Azure a nasadí `solarops-web`,
+   - nakoniec zavolá `/health` API.
+
+Neúspešná migrácia zastaví workflow skôr, než sa nasadí nové API. Container Apps v režime jednej revízie nechá prevádzku na starej revízii, kým nová neprejde readiness probe.
+
+Prvé nasadenie:
+
+1. Merge do `main` (alebo *Run workflow*) postaví obrazy API a ML.
+2. Vlastník repozitára prepne balíčky `aispu-api`, `aispu-ml` a `aispu-web` na GHCR na **public** (repozitár je verejný, inak treba `SOLAROPS_REGISTRY_*`).
+3. `infra/deploy.sh` s obrazmi `:latest` alebo `:<commit>`.
+4. Vlastník repozitára nastaví tri premenné, ktoré vypísal `deploy.sh` (Settings → Secrets and variables → Actions → Variables). Nie sú tajné, prihlásenie funguje len z tohto repozitára.
+5. *Run workflow* na `deploy` nasadí všetko vrátane frontendu.
 
 Súkromné obrazy: nastav `SOLAROPS_REGISTRY_USERNAME` a `SOLAROPS_REGISTRY_PASSWORD` (napr. GHCR token s `read:packages`).
 
@@ -75,7 +97,7 @@ az containerapp job execution list -g solarops-rg -n solarops-migrate -o table
 az containerapp job start -g solarops-rg -n solarops-ml-analysis
 
 # PostgreSQL mimo hodnotenia zastaviť (platí sa len úložisko)
-az postgres flexible-server stop -g solarops-rg -n <solarops-pg-...>
+az postgres flexible-server stop -g solarops-rg -n <solarops-db-...>
 
 # po obhajobe všetko zmazať
 az group delete -n solarops-rg
@@ -85,6 +107,8 @@ Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade).
 
 ## Známe obmedzenia
 
+- **Režim prostredia:** Azure nové prostredie bez určeného režimu vytvorí ako *Express*, ktoré nemá joby, Key Vault referencie, interné mená služieb ani HTTP medzi aplikáciami. Šablóna preto nastavuje `environmentMode: 'WorkloadProfiles'` s profilom Consumption (platí sa za použitie, scale to zero ostáva).
+- **Databáza v inom regióne** (Italy North) pridáva ku každému dotazu z Poland Central rádovo 20 ms.
 - **Firewall databázy** povoľuje služby Azure (pravidlo `0.0.0.0`), nie len naše prostredie. Container Apps (Consumption) nemajú pevnú odchádzajúcu IP; uzavretie by vyžadovalo VNet.
 - **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
 - **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).

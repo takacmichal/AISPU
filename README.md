@@ -200,7 +200,7 @@ API je jeden projekt rozdelený na vertikálne moduly v `src/SolarOps.Api/Featur
 
 ## Nasadenie do Azure
 
-Infraštruktúra je v Bicep v [`infra/`](infra/README.md): Container Apps (API, ML služba, frontend a joby), PostgreSQL Flexible Server, Key Vault a Log Analytics v regióne Poland Central. Nasadenie je `infra/deploy.sh`; tajomstvá generuje do ignorovaného `infra/.env`.
+Infraštruktúra je v Bicep v [`infra/`](infra/README.md): Container Apps (API, ML služba, frontend a joby), PostgreSQL Flexible Server, Key Vault a Log Analytics v regióne Poland Central. Prvé nasadenie je `infra/deploy.sh` (tajomstvá generuje do ignorovaného `infra/.env`), ďalšie verzie nasadzuje workflow `deploy.yml` po merge do `main`.
 
 ## Pravidlá PR a merge
 

@@ -101,4 +101,4 @@ ASP.NET Core Identity s JWT access tokenom (15 min) a rotujúcim refresh tokenom
 
 - Frontend: README aj ADR #209 uvádzajú React; staré issues hovoria o Angularu a sú zastarané.
 - Integrácia API a ML služby nie je hotová.
-- Nasadenie: Bicep v `infra/` vytvára prostredie v Poland Central (Container Apps pre API, ML, frontend a joby, PostgreSQL, Key Vault) a `infra/deploy.sh` ho nasadí; postup je v ADR #211, #277 a `infra/README.md`. Workflow `frontend-deploy.yml` ešte nasadzuje do Static Web Apps, podľa ADR #277 ho nahradí CD s nginx kontajnerom. CD pre obrazy API a ML zatiaľ neexistuje.
+- Nasadenie: Bicep v `infra/` vytvára prostredie v Poland Central (Container Apps pre API, ML, frontend a joby, PostgreSQL, Key Vault) a `infra/deploy.sh` ho nasadí; postup je v ADR #211, #277 a `infra/README.md`. CD workflow `deploy.yml` stavia obrazy do GHCR a nasadzuje ich do Container Apps (OIDC, migrácie pred novým API); Static Web Apps sa už nepoužívajú.
