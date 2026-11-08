@@ -40,6 +40,8 @@ ensure_secret() {
 ensure_secret SOLAROPS_POSTGRES_PASSWORD new_hex 24
 ensure_secret SOLAROPS_JWT_SIGNING_KEY new_hex 32
 ensure_secret SOLAROPS_ADMIN_PASSWORD new_admin_password
+# Alerts (#168) go to the signed-in Azure account unless infra/.env names another address.
+ensure_secret SOLAROPS_ALERT_EMAIL az account show --query user.name -o tsv
 
 set -a
 # shellcheck disable=SC1090

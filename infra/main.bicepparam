@@ -14,5 +14,7 @@ param postgresAdminPassword = readEnvironmentVariable('SOLAROPS_POSTGRES_PASSWOR
 param jwtSigningKey = readEnvironmentVariable('SOLAROPS_JWT_SIGNING_KEY')
 param adminPassword = readEnvironmentVariable('SOLAROPS_ADMIN_PASSWORD')
 
+param alertEmail = readEnvironmentVariable('SOLAROPS_ALERT_EMAIL', '')
+
 param registryUsername = readEnvironmentVariable('SOLAROPS_REGISTRY_USERNAME', '')
 param registryPassword = readEnvironmentVariable('SOLAROPS_REGISTRY_PASSWORD', '')

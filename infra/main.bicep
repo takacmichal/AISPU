@@ -42,6 +42,9 @@ param adminPassword string
 @description('GitHub repository (owner/name) whose CD pipeline may sign in to Azure through OIDC (#161).')
 param githubRepository string = 'takacmichal/AISPU'
 
+@description('E-mail for the alerts (#168). Empty: no alerts are created.')
+param alertEmail string = ''
+
 @description('Container registry of the images.')
 param registryServer string = 'ghcr.io'
 
@@ -417,6 +420,80 @@ resource weatherJob 'Microsoft.App/jobs@2024-03-01' = {
   }
   dependsOn: [secretsReader]
 }
+
+// ---------------------------------------------------------------- alerts (#168)
+
+resource alertGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (!empty(alertEmail)) {
+  name: '${prefix}-alerts'
+  location: 'global'
+  properties: {
+    groupShortName: 'SolarOps'
+    enabled: true
+    emailReceivers: [{ name: 'owner', emailAddress: alertEmail, useCommonAlertSchema: true }]
+  }
+}
+
+// Server errors of the API. A few are tolerated, e.g. the ML service waking up from zero.
+resource apiErrorsAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!empty(alertEmail)) {
+  name: '${prefix}-api-5xx'
+  location: 'global'
+  properties: {
+    description: 'The API returned more than 5 server errors (5xx) in 5 minutes.'
+    severity: 2
+    enabled: true
+    scopes: [api.id]
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          criterionType: 'StaticThresholdCriterion'
+          name: 'server-errors'
+          metricNamespace: 'Microsoft.App/containerApps'
+          metricName: 'Requests'
+          dimensions: [{ name: 'statusCodeCategory', operator: 'Include', values: ['5xx'] }]
+          operator: 'GreaterThan'
+          threshold: 5
+          timeAggregation: 'Total'
+        }
+      ]
+    }
+    actions: [{ actionGroupId: alertGroup.id }]
+  }
+}
+
+// Repeated restarts mean the app keeps crashing and is not available (scale to zero alone restarts nothing).
+resource restartAlerts 'Microsoft.Insights/metricAlerts@2018-03-01' = [
+  for appName in [names.api, names.ml]: if (!empty(alertEmail)) {
+    name: '${appName}-restarts'
+    location: 'global'
+    properties: {
+      description: '${appName} restarted more than twice in 15 minutes.'
+      severity: 1
+      enabled: true
+      scopes: [resourceId('Microsoft.App/containerApps', appName)]
+      evaluationFrequency: 'PT5M'
+      windowSize: 'PT15M'
+      criteria: {
+        'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+        allOf: [
+          {
+            criterionType: 'StaticThresholdCriterion'
+            name: 'restarts'
+            metricNamespace: 'Microsoft.App/containerApps'
+            metricName: 'RestartCount'
+            operator: 'GreaterThan'
+            threshold: 2
+            timeAggregation: 'Maximum'
+          }
+        ]
+      }
+      actions: [{ actionGroupId: alertGroup.id }]
+    }
+    dependsOn: [api, ml]
+  }
+]
 
 output apiUrl string = 'https://${apiFqdn}'
 output webUrl string = 'https://${webFqdn}'
