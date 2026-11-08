@@ -18,6 +18,7 @@ public sealed class ContractPdfTests
             CustomerType.Company, null, null, "Slnko Ľščťžýáíé s.r.o.", "35763469", "2020273893", "SK2020273893", "info@slnko.sk", "+421 900 123 456",
             new PostalAddress("Hlavná 12", "Žilina", "010 01"), null).Normalize(),
         null,
+        Guid.CreateVersion7(),
         Now);
 
     private static Contract ContractWith(int lineCount)

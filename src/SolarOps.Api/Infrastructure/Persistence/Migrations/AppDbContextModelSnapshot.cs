@@ -678,6 +678,10 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AnonymizedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anonymized_at");
+
                     b.Property<string>("CompanyName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -772,6 +776,44 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_customers_user_id");
 
                     b.ToTable("customers", (string)null);
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Customers.CustomerAuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("details");
+
+                    b.Property<DateTimeOffset>("PerformedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("performed_at");
+
+                    b.Property<Guid>("PerformedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("performed_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_customer_audit_entries");
+
+                    b.HasIndex("CustomerId", "PerformedAt")
+                        .HasDatabaseName("ix_customer_audit_entries_customer_id_performed_at");
+
+                    b.ToTable("customer_audit_entries", (string)null);
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.DeviceKeys.DeviceApiKey", b =>
@@ -2785,6 +2827,16 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SolarOps.Api.Features.Customers.CustomerAuditEntry", b =>
+                {
+                    b.HasOne("SolarOps.Api.Features.Customers.Customer", null)
+                        .WithMany("AuditEntries")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_audit_entries_customer_customer_id");
+                });
+
             modelBuilder.Entity("SolarOps.Api.Features.DeviceKeys.DeviceApiKey", b =>
                 {
                     b.HasOne("SolarOps.Api.Features.Installations.Installation", null)
@@ -3096,6 +3148,11 @@ namespace SolarOps.Api.Infrastructure.Persistence.Migrations
                     b.Navigation("AuditEntries");
 
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("SolarOps.Api.Features.Customers.Customer", b =>
+                {
+                    b.Navigation("AuditEntries");
                 });
 
             modelBuilder.Entity("SolarOps.Api.Features.Installations.Installation", b =>

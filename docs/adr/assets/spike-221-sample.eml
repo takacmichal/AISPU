@@ -1,0 +1,47 @@
+Return-Path: <no-reply@notify.solarops.test>
+Received: from localhost.localdomain (unknown [127.0.0.1])
+        by 4b10e343a82a (Mailpit) with SMTP
+        for <jan.novak@example.test>; Sun, 8 Nov 2026 01:35:15 +0000 (UTC)
+From: SolarOps <no-reply@notify.solarops.test>
+Date: Sun, 08 Nov 2026 02:35:15 +0100
+Subject: =?utf-8?b?Tm92w70gc2VydmlzbsO9?= tiket #2026-0042
+Message-Id: <spike-221-sample@solarops.test>
+To: =?utf-8?b?SsOhbiBOb3bDoWs=?= <jan.novak@example.test>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="=-0rLy4pQiLy/J+uWKP5CENA=="
+
+--=-0rLy4pQiLy/J+uWKP5CENA==
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Nový servisný tiket
+
+Dobrý deň, Ján Novák,
+
+prijali sme vašu žiadosť a vytvorili sme servisný tiket #2026-0042.
+Predmet: Elektráreň nevyrába, hláška „prehriatie“
+Stav: Nový
+Termín výjazdu: 12. 11. 2026 o 09:30.
+
+Ďakujeme,
+SolarOps
+--=-0rLy4pQiLy/J+uWKP5CENA==
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+<!doctype html>
+<html lang="sk">
+<head><meta charset="utf-8"><title>Nový servisný tiket</title></head>
+<body style="font-family: Arial, sans-serif; color: #1f2937;">
+  <h1 style="font-size: 20px;">Nový servisný tiket</h1>
+  <p>Dobrý deň, <strong>Ján Novák</strong>,</p>
+  <p>prijali sme vašu žiadosť a vytvorili sme servisný tiket <strong>#2026-0042</strong>.</p>
+  <p><strong>Predmet:</strong> Elektráreň nevyrába, hláška „prehriatie“</p>
+  <p><strong>Stav:</strong> Nový</p>
+  <p>O ďalšom postupe vás budeme informovať e-mailom. Termín výjazdu: 12. 11. 2026 o 09:30.</p>
+  <p>Ďakujeme,<br>SolarOps</p>
+  <hr>
+  <p style="font-size: 12px; color: #6b7280;">Tento e-mail bol odoslaný automaticky. Neodpovedajte naň.</p>
+</body>
+</html>
+--=-0rLy4pQiLy/J+uWKP5CENA==--

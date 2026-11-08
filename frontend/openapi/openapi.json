@@ -2238,6 +2238,105 @@
         }
       }
     },
+    "/api/customers/{id}/anonymize": {
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Erase the personal data of a customer (GDPR)",
+        "description": "Clears names, identifiers, contact details, address, note and the login link, archives the customer and keeps its id and audit trail. Already anonymized customers give 409.",
+        "operationId": "AnonymizeCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/{id}/audit": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Audit trail of the customer (created, updated, archived, reactivated, anonymized), oldest first",
+        "description": "Entries contain who, when and the names of changed fields, never the personal data values.",
+        "operationId": "GetCustomerAudit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerAuditEntryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard/summary": {
       "get": {
         "tags": [
@@ -9714,6 +9813,45 @@
         },
         "description": "Payload of `POST /api/tickets`: a fault report for an installation (state `New`)."
       },
+      "CustomerAction": {
+        "enum": [
+          "Created",
+          "Updated",
+          "Archived",
+          "Reactivated",
+          "Anonymized"
+        ],
+        "description": "Audited operations on a customer (#140)."
+      },
+      "CustomerAuditEntryResponse": {
+        "required": [
+          "action",
+          "performedBy",
+          "performedAt",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/CustomerAction"
+          },
+          "performedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Audit trail entry of a customer (#140): who, when and what changed, without personal data values."
+      },
       "CustomerListItemResponse": {
         "required": [
           "id",
@@ -9734,7 +9872,8 @@
           "createdAt",
           "updatedAt",
           "supplyPointCount",
-          "lastActivityAt"
+          "lastActivityAt",
+          "anonymizedAt"
         ],
         "type": "object",
         "properties": {
@@ -9831,6 +9970,13 @@
           "lastActivityAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "anonymizedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "Customer in a list: the customer data plus list summaries. `SupplyPointCount` is the number of supply points\n(odberné miesta); `LastActivityAt` is the latest of the customer's own update and the newest update of its\nquotes, installations and tickets."
@@ -9907,7 +10053,8 @@
           "note",
           "userId",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "anonymizedAt"
         ],
         "type": "object",
         "properties": {
@@ -9991,6 +10138,13 @@
           },
           "updatedAt": {
             "type": "string",
+            "format": "date-time"
+          },
+          "anonymizedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         },
