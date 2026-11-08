@@ -13,6 +13,7 @@ Backlog: [Issues](../../issues) a [GitHub Project](https://github.com/users/taka
 | Frontend | **React** + Vite + TypeScript (pnpm) – od Sprintu 1 namiesto Angularu | `frontend/` |
 | ML služba | Python 3.12 (uv), FastAPI, pytest, ruff | `ml/` |
 | Databáza | PostgreSQL 16 | `docker-compose.yml` |
+| Azure infraštruktúra | Bicep (Container Apps, PostgreSQL Flexible Server, Static Web Apps) | `infra/` |
 | Dokumentácia | ADR, BPMN | `docs/` |
 
 ## Snímky obrazoviek
