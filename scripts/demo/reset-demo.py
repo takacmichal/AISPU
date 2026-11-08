@@ -103,6 +103,7 @@ PRODUCTION_DAYS = 30
 # Output drops to 55 % for the last two days: inside the 72 h detection lookback and still going on at the end.
 FAULT_DAYS, FAULT_SEVERITY = 2, 0.45
 SIMULATOR_SEED = 188
+SLOW_CALL_TIMEOUT_S = 300
 
 CHECKLIST_CODES = ("SiteSafety", "MountingStructure", "PanelsMounted", "DcCabling", "InverterMounted", "Protections",
                    "AcConnection", "Grounding", "StringMeasurements", "PhotoDocumentation", "SiteCleanup")
@@ -221,7 +222,7 @@ TOKEN = ""
 
 
 def api(method: str, path: str, body: object | None = None, expect: tuple[int, ...] = (200, 201, 204),
-        api_key: str | None = None):
+        api_key: str | None = None, timeout: int = 30):
     """JSON call with the admin token, or with a device API key (X-Api-Key) when api_key is given."""
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"}
@@ -233,7 +234,7 @@ def api(method: str, path: str, body: object | None = None, expect: tuple[int, .
     # URLError means the request was not sent (connect or TLS failed), so even a POST is safe to repeat.
     for attempt in range(1, 4):
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 status, raw = resp.status, resp.read()
             break
         except urllib.error.HTTPError as err:
@@ -616,11 +617,12 @@ def seed_production(ids: dict) -> dict:
     key = api("POST", f"/api/installations/{inst}/api-keys")["apiKey"]
 
     print(f"  weather {first}..{last} (Open-Meteo archive, every installation with coordinates) ...")
-    backfill = api("POST", "/api/weather/backfill", period)
+    # Weather and ML calls are synchronous and slow on the smallest Azure replicas.
+    backfill = api("POST", "/api/weather/backfill", period, timeout=SLOW_CALL_TIMEOUT_S)
     status = next((i["status"] for i in backfill["items"] if i["installationId"] == inst), None)
     if status != "Updated":
         die(f"weather backfill for Novak's installation ended with {status}: {backfill}")
-    past = api("POST", f"/api/installations/{inst}/analysis/past", period)
+    past = api("POST", f"/api/installations/{inst}/analysis/past", period, timeout=SLOW_CALL_TIMEOUT_S)
 
     print(f"  telemetry from the simulator, power drop of {FAULT_SEVERITY:.0%} over the last {FAULT_DAYS} days ...")
     fault_start = datetime.combine(today - timedelta(days=FAULT_DAYS), datetime.min.time(), timezone.utc)
@@ -641,7 +643,7 @@ def seed_production(ids: dict) -> dict:
     stored = sum(api("POST", "/api/telemetry", batch, expect=(202,), api_key=key)["stored"] for batch in batches)
 
     print("  ML analysis (prediction + underproduction detection) ...")
-    analysis = api("POST", f"/api/installations/{inst}/analysis")
+    analysis = api("POST", f"/api/installations/{inst}/analysis", timeout=SLOW_CALL_TIMEOUT_S)
     return {"readings": stored, "predictedPastHours": past["predictedHours"], **analysis}
 
 
