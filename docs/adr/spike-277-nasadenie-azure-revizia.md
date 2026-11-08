@@ -78,7 +78,7 @@ Odhad na 5 dní v Poland Central (Azure Retail Prices API, 2026-11-07, USD):
 ## Riziká a neoverené
 
 - **Environment Management Hour (#380):** cenník ho od 2026-11-01 vedie ako samostatnú položku prostredia vedľa súkromných endpointov a plánovanej údržby. Či ho platí aj čisté Consumption prostredie, potvrdí až Cost Analysis po prvom dni.
-- Rate limiting prihlásenia za proxy Container Apps: adresa proxy nie je v `ForwardedHeaders:KnownProxies`, takže všetci klienti môžu zdieľať jeden limit. Zatiaľ sa nerieši, treba sledovať pri deme.
+- Rate limiting prihlásenia za proxy Container Apps: vyriešené (2026-11-08). API dôveruje `X-Forwarded-For` od proxy z rozsahu `100.100.0.0/17` (`ForwardedHeaders__KnownNetworks__0`), limit sa počíta pre každého klienta zvlášť. Ak by Azure rozsah proxy zmenil, klienti by opäť zdieľali jeden limit.
 - Cold start frontendu, API a ML pri `minReplicas = 0`. Pred obhajobou nastaviť 1.
 - Požiadavky zadania (frontend volá oba backendy, dve SQL databázy) môžu zmeniť ingress ML služby a pridať druhú databázu. Rieši sa samostatne.
 
