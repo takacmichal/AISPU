@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Documentation;
 using SolarOps.Api.Infrastructure.Errors;
+using SolarOps.Api.Infrastructure.Jobs;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Persistence;
 using SolarOps.Api.Infrastructure.Security;
@@ -30,6 +31,14 @@ builder.Services.AddPersistence();
 builder.Services.AddModules(builder.Configuration);
 
 var app = builder.Build();
+
+// Container Apps Jobs (ADR #277) start this image with `--job <name>`: run the job once and exit, no web server.
+if (app.Configuration[JobRunner.ConfigurationKey] is { Length: > 0 } job)
+{
+    Environment.ExitCode = await app.Services.RunJobAsync(job);
+    await app.DisposeAsync();
+    return;
+}
 
 app.UseSecurityHardening();
 app.UseExceptionHandler();

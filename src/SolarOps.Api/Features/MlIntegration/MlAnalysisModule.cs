@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using SolarOps.Api.Features.Weather;
 using SolarOps.Api.Infrastructure.Identity;
+using SolarOps.Api.Infrastructure.Jobs;
 using SolarOps.Api.Infrastructure.Modules;
 using SolarOps.Api.Infrastructure.Validation;
 
@@ -32,6 +33,7 @@ public sealed class MlAnalysisModule : IModule
         services.AddScoped<IMlAnalysisService, MlAnalysisService>();
         services.AddSingleton<IMlScheduledAnalysis, MlScheduledAnalysis>();
         services.AddHostedService<MlAnalysisBackgroundService>();
+        services.AddJob<MlAnalysisJob>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

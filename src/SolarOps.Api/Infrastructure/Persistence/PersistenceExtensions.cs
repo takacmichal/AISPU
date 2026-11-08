@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SolarOps.Api.Infrastructure.Jobs;
 
 namespace SolarOps.Api.Infrastructure.Persistence;
 
@@ -18,6 +19,7 @@ public static class PersistenceExtensions
         });
 
         services.AddHealthChecks().AddDbContextCheck<AppDbContext>("postgres");
+        services.AddJob<MigrateJob>();
         return services;
     }
 
