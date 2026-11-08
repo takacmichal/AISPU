@@ -273,6 +273,9 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'Jwt__SigningKey', secretRef: 'jwt-signing-key' }
             { name: 'Admin__Password', secretRef: 'admin-password' }
             { name: 'Cors__AllowedOrigins__0', value: 'https://${webFqdn}' }
+            // The Container Apps ingress proxy connects from the reserved infrastructure range (seen: 100.100.0.80
+            // and .113). Trusting it lets the login rate limit (#379) count each client IP, not one shared proxy IP.
+            { name: 'ForwardedHeaders__KnownNetworks__0', value: '100.100.0.0/17' }
           ])
           probes: [
             { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }

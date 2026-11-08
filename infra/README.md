@@ -130,6 +130,6 @@ az monitor action-group test-notifications create -g solarops-rg --action-group 
 - **Databáza v inom regióne** (Italy North) pridáva ku každému dotazu z Poland Central rádovo 20 ms.
 - **Firewall databázy** povoľuje služby Azure (pravidlo `0.0.0.0`), nie len naše prostredie. Container Apps (Consumption) nemajú pevnú odchádzajúcu IP; uzavretie by vyžadovalo VNet.
 - **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
-- **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).
+- **Rate limiting za proxy:** API dôveruje `X-Forwarded-For` len od proxy Container Apps (`ForwardedHeaders__KnownNetworks__0=100.100.0.0/17`, rezervovaný rozsah infraštruktúry prostredia). Ak by Azure rozsah zmenil, všetci klienti by opäť zdieľali jeden limit prihlásení; adresu proxy ukáže `cat /proc/net/tcp6` v `az containerapp exec`.
 - **ML model:** obraz neobsahuje natrénovaný model, služba počíta nekalibrovaným fyzikálnym modelom (#378).
 - Application Insights ešte nie je (#167).
