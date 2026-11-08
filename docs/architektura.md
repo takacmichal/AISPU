@@ -11,8 +11,8 @@ flowchart LR
     user([Používateľ<br/>Obchod, Projektant, Technik,<br/>Operátor, Zákazník, Admin])
     device([Invertor alebo<br/>simulátor])
 
-    subgraph azure[Azure, ADR 211]
-        spa[Frontend<br/>React + Vite<br/>Static Web Apps]
+    subgraph azure[Azure Poland Central, ADR 211 a 277]
+        spa[Frontend<br/>React + Vite<br/>nginx v Container Apps]
         api[API<br/>.NET 10 minimal API<br/>Container Apps]
         ml[ML služba<br/>FastAPI<br/>Container Apps]
         db[(PostgreSQL 16<br/>Flexible Server)]
@@ -32,7 +32,7 @@ Plná čiara je implementované, bodkovaná je plánované: **API zatiaľ ML slu
 
 | Časť | Technológia | Priečinok | Nasadenie |
 |---|---|---|---|
-| Frontend | React 19, Vite, TypeScript, pnpm, typy generované z OpenAPI | `frontend/` | Azure Static Web Apps |
+| Frontend | React 19, Vite, TypeScript, pnpm, typy generované z OpenAPI | `frontend/` | Azure Container Apps (nginx) |
 | API | .NET 10, ASP.NET Core minimal API, EF Core 10 + Npgsql | `src/SolarOps.Api` | Azure Container Apps |
 | ML služba a simulátor | Python 3.12, FastAPI, pandas, scikit-learn, uv | `ml/` | Azure Container Apps (interný ingress) |
 | Databáza | PostgreSQL 16 | `docker-compose.yml` lokálne | Azure Database for PostgreSQL Flexible Server |
@@ -87,7 +87,7 @@ ASP.NET Core Identity s JWT access tokenom (15 min) a rotujúcim refresh tokenom
 | Oblasť | Rozhodnutie | ADR |
 |---|---|---|
 | Štruktúra repa | monorepo, CI s `paths` filtrami | #209 |
-| Hosting | Container Apps (API, ML), Static Web Apps (frontend) | #211, #201 |
+| Hosting | Container Apps (API, ML, frontend v nginx), región Poland Central; Static Web Apps predplatné nepovoľuje | #211, #201, #277 |
 | Databáza | PostgreSQL + EF Core + Npgsql | #213 |
 | Autentifikácia | Identity + JWT + rotujúci refresh token | #218 |
 | Integrácia ML | REST (FastAPI), nie ONNX | #196 |
@@ -101,4 +101,4 @@ ASP.NET Core Identity s JWT access tokenom (15 min) a rotujúcim refresh tokenom
 
 - Frontend: README aj ADR #209 uvádzajú React; staré issues hovoria o Angularu a sú zastarané.
 - Integrácia API a ML služby nie je hotová.
-- Nasadenie: existuje workflow `frontend-deploy.yml` (Static Web Apps, vyžaduje secret a premennú v repozitári) a Bicep v `infra/` vytvára prostredie (Container Apps, PostgreSQL, Static Web Apps). Nasadenie API a ML do Container Apps, Key Vault, monitoring ani CD pre ne zatiaľ neexistujú; postup je v ADR #201, #211 a `infra/README.md`.
+- Nasadenie: Bicep v `infra/` vytvára prostredie v Poland Central (Container Apps pre API, ML, frontend a joby, PostgreSQL, Key Vault) a `infra/deploy.sh` ho nasadí; postup je v ADR #211, #277 a `infra/README.md`. Workflow `frontend-deploy.yml` ešte nasadzuje do Static Web Apps, podľa ADR #277 ho nahradí CD s nginx kontajnerom. CD pre obrazy API a ML zatiaľ neexistuje.

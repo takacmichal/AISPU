@@ -1,0 +1,42 @@
+# SPA server for Azure Container Apps (ADR #277, replaces staticwebapp.config.json from #278).
+# The nginx image renders this template at startup and replaces ${API_ORIGIN} with the environment variable
+# (public origin of the API, allowed in the CSP). nginx variables such as $uri stay untouched.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Security headers on every response, errors included. The locations below must not use add_header,
+    # otherwise nginx drops these server-level headers for that location.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${API_ORIGIN}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    # Probe for Container Apps.
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Hashed build files: cached for a year, a missing file is a 404, never index.html.
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+    }
+
+    # Deep links such as /customers/123 get the SPA, which routes on the client.
+    location / {
+        try_files $uri /index.html;
+    }
+
+    # Revalidated on every visit, so a new deployment is picked up right away.
+    location = /index.html {
+        expires -1;
+    }
+}

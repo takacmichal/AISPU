@@ -2,6 +2,7 @@
 
 - **Stav:** Navrhnuté
 - **Dátum:** 2026-10-15
+- **Čiastočne nahradené:** [ADR #277](spike-277-nasadenie-azure-revizia.md) (2026-11-07): región Poland Central a frontend v Container Apps namiesto Static Web Apps
 - **Issue:** #211 (nadradené #11); duplicity zo Sprintu 0: #210, #214 (pokryté týmto ADR)
 - **Súvisí:** #215 (náklady), #196 (REST ML služba), #218 (cross-site auth), #213 (PostgreSQL)
 
