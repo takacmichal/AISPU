@@ -20,6 +20,7 @@ Všetko je v resource group `solarops-rg` v regióne **Poland Central** (predpla
 | Managed identity | `solarops-identity` | aplikácie a joby ňou čítajú tajomstvá z Key Vault |
 | Managed identity | `solarops-deploy` | CD pipeline sa ňou prihlasuje cez OIDC, Contributor len na `solarops-rg` |
 | Log Analytics | `solarops-logs` | 30 dní, limit 1 GB denne |
+| Upozornenia | `solarops-alerts`, `solarops-api-5xx`, `solarops-api-restarts`, `solarops-ml-restarts` | e-mail na `SOLAROPS_ALERT_EMAIL` (#168) |
 
 Joby používajú obraz API. Plán ML analýzy a počasia je v API vypnutý (`Ml__AnalysisEnabled=false`, `Weather__Enabled=false`), robia ho joby.
 
@@ -105,6 +106,24 @@ az group delete -n solarops-rg
 
 Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade). Rozpočet `solarops-budget` (30 USD) posiela upozornenia vlastníkovi predplatného.
 
+## Upozornenia (#168)
+
+E-mail ide na adresu `SOLAROPS_ALERT_EMAIL` z `infra/.env`; `deploy.sh` ju pri prvom behu nastaví na prihlásený Azure účet. Prázdna hodnota upozornenia nevytvorí.
+
+| Upozornenie | Kedy | Závažnosť |
+|---|---|---|
+| `solarops-api-5xx` | API vráti viac ako 5 odpovedí 5xx za 5 minút | 2 (varovanie) |
+| `solarops-api-restarts`, `solarops-ml-restarts` | aplikácia sa reštartuje viac ako 2-krát za 15 minút (pád, neprejde štart) | 1 (chyba) |
+
+Health endpointy: API `/health` (vrátane spojenia s databázou), ML `/health`. Obe používa readiness probe; liveness probe zámerne nie je, lebo výpadok databázy by inak reštartoval API.
+
+Overenie, že e-mail príde (Azure pošle testovaciu správu):
+
+```bash
+az monitor action-group test-notifications create -g solarops-rg --action-group solarops-alerts \
+  --alert-type metricstaticthreshold --add-action email owner <adresa>
+```
+
 ## Známe obmedzenia
 
 - **Režim prostredia:** Azure nové prostredie bez určeného režimu vytvorí ako *Express*, ktoré nemá joby, Key Vault referencie, interné mená služieb ani HTTP medzi aplikáciami. Šablóna preto nastavuje `environmentMode: 'WorkloadProfiles'` s profilom Consumption (platí sa za použitie, scale to zero ostáva).
@@ -113,4 +132,4 @@ Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade).
 - **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
 - **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).
 - **ML model:** obraz neobsahuje natrénovaný model, služba počíta nekalibrovaným fyzikálnym modelom (#378).
-- Application Insights a upozornenia ešte nie sú (#167, #168).
+- Application Insights ešte nie je (#167).
