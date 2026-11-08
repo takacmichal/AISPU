@@ -61,3 +61,11 @@ Authorization: Bearer {{token}}
 ### List with search, type/status filters and paging; statusCounts ignores the status filter, items carry supplyPointCount and lastActivityAt
 GET {{baseUrl}}/api/customers?q=novak&type=Person&status=Active&page=1&pageSize=8&sortBy=name&sortDir=asc
 Authorization: Bearer {{token}}
+
+### Audit trail (who, when and what changed; admin only)
+GET {{baseUrl}}/api/customers/{{customerId}}/audit
+Authorization: Bearer {{token}}
+
+### Anonymize the customer (GDPR erasure, admin only)
+POST {{baseUrl}}/api/customers/{{customerId}}/anonymize
+Authorization: Bearer {{token}}

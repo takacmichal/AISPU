@@ -103,6 +103,12 @@ public sealed record CreateCustomerRequest : CustomerRequest;
 /// <summary>Payload for <c>PUT /api/customers/{id}</c> (full replacement of the editable data).</summary>
 public sealed record UpdateCustomerRequest : CustomerRequest;
 
+/// <summary>Audit trail entry of a customer (#140): who, when and what changed, without personal data values.</summary>
+public sealed record CustomerAuditEntryResponse(CustomerAction Action, Guid PerformedBy, DateTimeOffset PerformedAt, string? Details)
+{
+    public static CustomerAuditEntryResponse FromEntity(CustomerAuditEntry e) => new(e.Action, e.PerformedBy, e.PerformedAt, e.Details);
+}
+
 /// <summary>
 /// Page of customers returned by <c>GET /api/customers</c>. <c>StatusCounts</c> holds the customers per status
 /// (all values present, 0 when none) for the current <c>q</c> and <c>type</c> filters; the <c>status</c> filter is
@@ -139,7 +145,8 @@ public sealed record CustomerListItemResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     int SupplyPointCount,
-    DateTimeOffset LastActivityAt)
+    DateTimeOffset LastActivityAt,
+    DateTimeOffset? AnonymizedAt)
 {
     public static CustomerListItemResponse From(Customer c, int supplyPointCount, DateTimeOffset lastActivityAt) => new(
         c.Id,
@@ -160,7 +167,8 @@ public sealed record CustomerListItemResponse(
         c.CreatedAt,
         c.UpdatedAt,
         supplyPointCount,
-        lastActivityAt);
+        lastActivityAt,
+        c.AnonymizedAt);
 }
 
 /// <summary>Customer returned by the API.</summary>
@@ -181,7 +189,8 @@ public sealed record CustomerResponse(
     string? Note,
     Guid? UserId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? AnonymizedAt)
 {
     public static CustomerResponse FromEntity(Customer c) => new(
         c.Id,
@@ -200,5 +209,6 @@ public sealed record CustomerResponse(
         c.Note,
         c.UserId,
         c.CreatedAt,
-        c.UpdatedAt);
+        c.UpdatedAt,
+        c.AnonymizedAt);
 }

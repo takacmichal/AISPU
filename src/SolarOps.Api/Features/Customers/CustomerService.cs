@@ -4,6 +4,7 @@ using SolarOps.Api.Features.Installations;
 using SolarOps.Api.Features.Quotes;
 using SolarOps.Api.Features.SupplyPoints;
 using SolarOps.Api.Features.Tickets;
+using SolarOps.Api.Infrastructure.CurrentUser;
 using SolarOps.Api.Infrastructure.Errors;
 using SolarOps.Api.Infrastructure.Identity;
 using SolarOps.Api.Infrastructure.Persistence;
@@ -25,16 +26,21 @@ public interface ICustomerService
     Task<CustomerResponse> ArchiveAsync(Guid id, CancellationToken ct);
 
     Task<CustomerResponse> ReactivateAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Erases the personal data of the customer and keeps its id and audit trail (GDPR, #140).</summary>
+    Task<CustomerResponse> AnonymizeAsync(Guid id, CancellationToken ct);
+
+    Task<IReadOnlyList<CustomerAuditEntryResponse>> AuditAsync(Guid id, CancellationToken ct);
 }
 
-public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) : ICustomerService
+public sealed class CustomerService(AppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider) : ICustomerService
 {
     public async Task<CustomerResponse> CreateAsync(CreateCustomerRequest request, CancellationToken ct)
     {
         var details = request.ToDetails();
         await EnsureUniqueAsync(null, details.Email, request.UserId, ct);
 
-        var customer = Customer.Create(details, request.UserId, timeProvider.GetUtcNow());
+        var customer = Customer.Create(details, request.UserId, currentUser.RequireUserId(), timeProvider.GetUtcNow());
         db.Set<Customer>().Add(customer);
         await SaveAsync(ct);
         return CustomerResponse.FromEntity(customer);
@@ -132,7 +138,7 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
         var details = request.ToDetails();
         await EnsureUniqueAsync(id, details.Email, request.UserId, ct);
 
-        customer.Update(details, request.UserId, timeProvider.GetUtcNow());
+        customer.Update(details, request.UserId, currentUser.RequireUserId(), timeProvider.GetUtcNow());
         await SaveAsync(ct);
         return CustomerResponse.FromEntity(customer);
     }
@@ -140,7 +146,7 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
     public async Task<CustomerResponse> ArchiveAsync(Guid id, CancellationToken ct)
     {
         var customer = await FindAsync(id, ct);
-        customer.Archive(timeProvider.GetUtcNow());
+        customer.Archive(currentUser.RequireUserId(), timeProvider.GetUtcNow());
         await db.SaveChangesAsync(ct);
         return CustomerResponse.FromEntity(customer);
     }
@@ -148,9 +154,31 @@ public sealed class CustomerService(AppDbContext db, TimeProvider timeProvider) 
     public async Task<CustomerResponse> ReactivateAsync(Guid id, CancellationToken ct)
     {
         var customer = await FindAsync(id, ct);
-        customer.Reactivate(timeProvider.GetUtcNow());
+        customer.Reactivate(currentUser.RequireUserId(), timeProvider.GetUtcNow());
         await db.SaveChangesAsync(ct);
         return CustomerResponse.FromEntity(customer);
+    }
+
+    public async Task<CustomerResponse> AnonymizeAsync(Guid id, CancellationToken ct)
+    {
+        var customer = await FindAsync(id, ct);
+        customer.Anonymize(currentUser.RequireUserId(), timeProvider.GetUtcNow());
+        await db.SaveChangesAsync(ct);
+        return CustomerResponse.FromEntity(customer);
+    }
+
+    public async Task<IReadOnlyList<CustomerAuditEntryResponse>> AuditAsync(Guid id, CancellationToken ct)
+    {
+        if (!await db.Set<Customer>().AnyAsync(c => c.Id == id, ct))
+        {
+            throw new NotFoundException("Customer", id);
+        }
+
+        var entries = await db.Set<CustomerAuditEntry>().AsNoTracking()
+            .Where(e => e.CustomerId == id)
+            .OrderBy(e => e.PerformedAt).ThenBy(e => e.Id)
+            .ToListAsync(ct);
+        return entries.ConvertAll(CustomerAuditEntryResponse.FromEntity);
     }
 
     private async Task<Customer> FindAsync(Guid id, CancellationToken ct) =>

@@ -33,7 +33,7 @@ Tento dokument je záväzná matica **politika → roly → endpointy**. Kód, z
 
 | Politika | Povolené roly | Endpointy |
 |---|---|---|
-| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles`, `GET`, `POST` a `POST …/rotate` na `/api/installations/{installationId}/api-keys`, `DELETE /api/installations/{installationId}/api-keys/{keyId}` |
+| `AdminOnly` | Admin | `GET /api/roles`, `GET /api/users`, `GET /api/users/{id}/roles`, `PUT /api/users/{id}/roles`, `GET`, `POST` a `POST …/rotate` na `/api/installations/{installationId}/api-keys`, `DELETE /api/installations/{installationId}/api-keys/{keyId}`, `GET /api/customers/{id}/audit`, `POST /api/customers/{id}/anonymize` (audit a GDPR výmaz, #140) |
 | `CustomersRead` | Admin, Sales, Designer, Technician, Operator | `GET /api/customers`, `GET /api/customers/{id}`, `GET /api/customers/{customerId}/supply-points`, `GET /api/customers/{customerId}/supply-points/{id}` |
 | `CustomersWrite` | Admin, Sales | `POST /api/customers`, `PUT /api/customers/{id}`, `POST /api/customers/{id}/archive`, `POST /api/customers/{id}/reactivate`, `POST/PUT/DELETE /api/customers/{customerId}/supply-points/…` |
 | `CatalogRead` | Admin, Sales, Designer, Operator | `GET /api/components`, `GET /api/components/{id}` |
