@@ -111,6 +111,6 @@ Náklady sú v ADR #277 (približne 15 až 20 USD za 5 dní v horšom prípade).
 - **Databáza v inom regióne** (Italy North) pridáva ku každému dotazu z Poland Central rádovo 20 ms.
 - **Firewall databázy** povoľuje služby Azure (pravidlo `0.0.0.0`), nie len naše prostredie. Container Apps (Consumption) nemajú pevnú odchádzajúcu IP; uzavretie by vyžadovalo VNet.
 - **Prvé nasadenie** môže zlyhať, ak sa priradenie roly pre Key Vault ešte nerozšírilo (aplikácia nevie načítať tajomstvo). Stačí `deploy.sh` spustiť znova.
-- **Rate limiting za proxy:** API nemá nastavené `ForwardedHeaders__KnownNetworks__0` pre sieť Container Apps, všetci klienti preto môžu zdieľať jeden limit prihlásení (README, Časté chyby).
+- **Rate limiting za proxy:** API dôveruje `X-Forwarded-For` len od proxy Container Apps (`ForwardedHeaders__KnownNetworks__0=100.100.0.0/17`, rezervovaný rozsah infraštruktúry prostredia). Ak by Azure rozsah zmenil, všetci klienti by opäť zdieľali jeden limit prihlásení; adresu proxy ukáže `cat /proc/net/tcp6` v `az containerapp exec`.
 - **ML model:** obraz neobsahuje natrénovaný model, služba počíta nekalibrovaným fyzikálnym modelom (#378).
 - Application Insights a upozornenia ešte nie sú (#167, #168).
