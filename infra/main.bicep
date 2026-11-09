@@ -42,6 +42,9 @@ param adminPassword string
 @description('GitHub repository (owner/name) whose CD pipeline may sign in to Azure through OIDC (#161).')
 param githubRepository string = 'takacmichal/AISPU'
 
+@description('The same repository with the owner and repository IDs, as GitHub puts it in the OIDC subject (gh api repos/<owner>/<name>).')
+param githubRepositoryWithIds string = 'takacmichal@57014903/AISPU@1394459104'
+
 @description('E-mail for the alerts (#168). Empty: no alerts are created.')
 param alertEmail string = ''
 
@@ -133,6 +136,19 @@ resource githubCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/fede
     subject: 'repo:${githubRepository}:environment:production'
     audiences: ['api://AzureADTokenExchange']
   }
+}
+
+// GitHub now sends the owner and repository IDs in the subject (repo:owner@id/name@id:...).
+// Credentials of one identity cannot be written in parallel, hence dependsOn.
+resource githubCredentialWithIds 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = {
+  parent: deployIdentity
+  name: 'github-production-ids'
+  properties: {
+    issuer: 'https://token.actions.githubusercontent.com'
+    subject: 'repo:${githubRepositoryWithIds}:environment:production'
+    audiences: ['api://AzureADTokenExchange']
+  }
+  dependsOn: [githubCredential]
 }
 
 // Contributor on this resource group only: update images and start the migration job.
