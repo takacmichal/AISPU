@@ -820,7 +820,7 @@
 
 .landing .calc select {
   min-height: 52px;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   font-size: var(--text-body);
 }
 
