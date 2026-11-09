@@ -383,9 +383,9 @@
 .filter-chip select {
   width: auto;
   min-height: 38px;
-  padding: 0 14px 0 6px;
+  padding: 0 40px 0 6px;
   border: 0;
-  background: transparent;
+  background-color: transparent;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
