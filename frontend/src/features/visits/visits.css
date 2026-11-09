@@ -209,6 +209,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
+  min-width: 0;
   padding: var(--spacing-12);
   border-radius: var(--radius-cards);
   background: var(--surface-tint);
@@ -234,6 +235,17 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-buttons);
   background: var(--color-surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The calendar reuses visit-card parts, but its card is a single column: drop the two-column placement. */
+.visit-calendar__visit > .visit-card__time {
+  grid-row: auto;
+}
+
+.visit-calendar__visit > .visit-card__badges {
+  grid-column: auto;
 }
 
 .visit-calendar__visit--collision {
